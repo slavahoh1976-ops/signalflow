@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.1', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.1', '17.11.2026', ['Палитра фигур как в draw.io: 16 фигур и 4 линии — правый клик «Фигуры…» или двойной клик по холсту', 'Фигуры выглядят фигурами в обоих режимах, соединяются и меняют размер', 'Из меню по пустому месту убраны отдельные пункты «Фигура: …»']],
   ['1.6.0', '17.11.2026', ['Группы библиотеки: перетаскивание устройств между группами, новые группы, переименование (и встроенных), порядок перетаскиванием, удаление с переносом устройств', 'Правый клик по устройству — «Переместить в группу…», в редакторе базы — перенос выбранных']],
   ['1.5.4', '17.11.2026', ['Матрицы Lightware: MX2 HDMI 2.0 (4×4…48×48), MX2 DH (HDMI+DP), MX2 DP, MMX (HDBaseT), Taurus UCX (USB-C), модульные MX-FR']],
   ['1.5.3', '17.11.2026', ['Правый клик по пустому месту: «Новое устройство здесь» — создаётся в базе и сразу ставится на схему', 'Там же — быстрые фигуры (экран, лампа, кнопка, блок)', 'Фото, брошенное на пустое место схемы, после сохранения встаёт в эту точку']],
@@ -190,11 +191,11 @@ const portOf = (n, pid) => n.ports.find(p => p.id === pid);
 const HH = 40, RH = 18;
 function layout(n) {
   if (n._L) return n._L;
+  if (n.shape) {
+    const d = SHAPE_DEF[n.shape] || { w: 120, h: 60 }; const w = n.sw || d.w, h = n.sh || d.h;
+    return (n._L = { left: [], right: [], w, h, ih: h, pos: {}, pic: 1 });
+  }
   if (isPic()) {
-    if (n.shape) {
-      const w = n.sw || (n.shape === 'ellipse' ? 90 : 160), h = n.sh || (n.shape === 'ellipse' ? 90 : 100);
-      return (n._L = { left: [], right: [], w, h, ih: h, pos: {}, pic: 1 });
-    }
     const im = n.img && doc.images[n.img];
     let w, ih;
     if (im) { const ar = im.w / im.h; w = n.pw || Math.round(clamp(ar * 110, 70, 220)); ih = Math.round(w / ar); }
@@ -277,7 +278,7 @@ function picRoute(e) {
   return { pts, a, b, seg };
 }
 function route(e) {
-  if (isPic()) return picRoute(e);
+  if (isPic() || node(e.from.n).shape || node(e.to.n).shape) return picRoute(e);
   const a = portPos(e.from), b = portPos(e.to);
   const style = cfg.wire;
   if (style === 'line') return { pts: [a, b], a, b };
@@ -363,9 +364,9 @@ function nodeSVGpic(n) {
   let s = `<g class="node pic" data-id="${n.id}" transform="translate(${n.x},${n.y})"><rect class="n-frame" x="-4" y="-4" width="${w + 8}" height="${L.h + 8}" rx="4"/>`;
   if (n.shape) {
     const f = n.fill || '#ffffff', st = n.stroke || '#1f2937', fs = n.fs || 14;
-    s += n.shape === 'ellipse' ? `<ellipse cx="${w / 2}" cy="${ih / 2}" rx="${w / 2}" ry="${ih / 2}" fill="${esc(f)}" stroke="${esc(st)}" stroke-width="1.2"/>`
-      : `<rect width="${w}" height="${ih}" rx="${n.shape === 'round' ? 10 : 0}" fill="${esc(f)}" stroke="${esc(st)}" stroke-width="1.2"/>`;
-    const lines = String(n.label || '').split('\n'), tc = lum(f) < 0.5 ? '#ffffff' : '#111827';
+    s += shapeSVG(n.shape, w, ih, esc(f), esc(st));
+    if (SHAPE_NOTEXT.has(n.shape)) return s + '</g>';
+    const lines = String(n.label || '').split('\n'), tc = n.shape === 'text' ? (n.tcolor || '#111827') : lum(f) < 0.5 ? '#ffffff' : '#111827';
     s += `<text class="n-stext" text-anchor="middle" font-size="${fs}" fill="${tc}">` + lines.map((l, i) => `<tspan x="${w / 2}" y="${ih / 2 + (i - (lines.length - 1) / 2) * fs * 1.2 + fs * 0.35}">${esc(l)}</tspan>`).join('') + '</text>';
     return s + '</g>';
   }
@@ -375,7 +376,7 @@ function nodeSVGpic(n) {
   return s + '</g>';
 }
 function nodeSVG(n) {
-  if (isPic()) return nodeSVGpic(n);
+  if (isPic() || n.shape) return nodeSVGpic(n);
   const L = layout(n), w = L.w, h = L.h;
   const cat = CATS[n.cat] || CATS.my, c = n.color || cat.c;
   const sub = ((n.maker && n.maker !== 'Generic' ? n.maker + ' ' : '') + (n.model || '')).trim();
@@ -588,7 +589,7 @@ function renderOverlay() {
   LY.o.innerHTML = '';
   if (sel.size !== 1) return;
   const it0 = items.get([...sel][0]);
-  if (it0 && it0.k === 'n' && isPic()) { const n = it0.o, L = layout(n); LY.o.innerHTML = `<rect class="rsn" data-rsn="${n.id}" x="${n.x + L.w - 5}" y="${n.y + L.ih - 5}" width="10" height="10" rx="2"/>`; return; }
+  if (it0 && it0.k === 'n' && (isPic() || it0.o.shape)) { const n = it0.o, L = layout(n); LY.o.innerHTML = `<rect class="rsn" data-rsn="${n.id}" x="${n.x + L.w - 5}" y="${n.y + L.ih - 5}" width="10" height="10" rx="2"/>`; return; }
   if (cfg.wire !== 'orth') return;
   const it = it0; if (!it || it.k !== 'e' || !it.o._r || !it.o._r.seg) return;
   const s = it.o._r.seg;
@@ -872,7 +873,7 @@ function bestPort(fixed, fp, n, y, ignoreEdge) {
   const L = layout(n);
   for (const p of n.ports) {
     const c = canLink(fixed, fp, n.id, p, ignoreEdge); if (!c) continue;
-    const q = L.pos[p.id];
+    const q = L.pos[p.id] || { y: L.h / 2 };
     const s = c[0] * 10000 - Math.abs(n.y + q.y - y);
     if (s > score) { score = s; best = { p, c }; }
   }
@@ -1086,20 +1087,21 @@ svg.addEventListener('pointerup', ev => {
 let hoverId = null;
 function renderHover() {
   LY.hv.innerHTML = '';
-  const n = hoverId && node(hoverId); if (!n || !isPic()) return;
+  const n = hoverId && node(hoverId); if (!n || (!isPic() && !n.shape)) return;
   const L = layout(n), m = 16;
   const pts = [[n.x + L.w / 2, n.y - m], [n.x + L.w + m, n.y + L.ih / 2], [n.x + L.w / 2, n.y + L.h + m - 4], [n.x - m, n.y + L.ih / 2]];
   LY.hv.innerHTML = `<rect class="hv-zone" data-hzone="${n.id}" x="${n.x - 30}" y="${n.y - 30}" width="${L.w + 60}" height="${L.h + 60}"/>`
     + pts.map(p => `<g class="hn" data-hn="${n.id}" transform="translate(${p[0]},${p[1]})"><title>Тяните, чтобы соединить</title><circle r="8"/><path d="M-3.5 0h7M0 -3.5v7"/></g>`).join('');
 }
 svg.addEventListener('pointermove', ev => {
-  if (drag || !isPic()) return;
+  if (drag) return;
   const t = ev.target;
   if (t.closest && t.closest('[data-hn],[data-hzone]') && hoverId) {
     const z = t.closest('[data-hzone]'); if (!z || z.dataset.hzone === hoverId) return;
   }
   const g = t.closest && t.closest('.node');
-  const id = g ? g.dataset.id : null;
+  let id = g ? g.dataset.id : null;
+  if (id && !isPic() && !(node(id) || {}).shape) id = null;
   if (id !== hoverId) { hoverId = id; renderHover(); }
 });
 function startNodeWire(nid, ev) {
@@ -1269,7 +1271,7 @@ function openQuick(cx, cy, docPt, wire) {
   quick = { docPt, wire, idx: 0, list: [] };
   const q = $('#quick'); q.classList.remove('hidden');
   q.style.left = clamp(cx, 8, innerWidth - 410) + 'px'; q.style.top = clamp(cy, 8, innerHeight - 400) + 'px';
-  $('#quickIn').value = ''; renderQuick(); setTimeout(() => $('#quickIn').focus(), 0);
+  $('#quickIn').value = ''; $('#quickShapes').innerHTML = wire ? '' : shapeGridHTML(); $('#quickShapes').classList.toggle('hidden', !!wire); renderQuick(); setTimeout(() => $('#quickIn').focus(), 0);
 }
 function devMatches(d, q) {
   if (!q) return true;
@@ -1585,9 +1587,9 @@ function renderNodeProps(el, n) {
   if (n.shape) {
     el.innerHTML = `<h3>▢ Фигура</h3>${fld('Текст (Enter — новая строка)', 'label', n.label, { area: 1, rows: 2, focus: 1 })}
       <div class="row">${fld('Заливка', 'fill', n.fill || '#ffffff', { type: 'color' })}${fld('Обводка', 'stroke', n.stroke || '#1f2937', { type: 'color' })}</div>
-      <div class="row">${fld('Форма', 'shape', '', { select: [['rect', 'Прямоугольник'], ['round', 'Скруглённый'], ['ellipse', 'Круг / овал']].map(([v, t]) => `<option value="${v}"${v === n.shape ? ' selected' : ''}>${t}</option>`).join('') })}${fld('Шрифт', 'fs', n.fs || 14, { type: 'number' })}</div>
+      <div class="row">${fld('Форма', 'shape', '', { select: SHAPE_KINDS.map(([v, t]) => `<option value="${v}"${v === n.shape ? ' selected' : ''}>${t}</option>`).join('') })}${fld('Шрифт', 'fs', n.fs || 14, { type: 'number' })}</div>
       <div class="row">${fld('Ширина', 'sw', layout(n).w, { type: 'number' })}${fld('Высота', 'sh', layout(n).ih, { type: 'number' })}</div>
-      <div class="small muted">Фигуры соединяются с любыми устройствами. Размер — за уголок справа внизу (в режиме «Картинки»).</div>
+      <div class="small muted">Фигуры соединяются с любыми устройствами (синие кружки при наведении). Размер — за уголок справа внизу.</div>
       <div class="btns"><button data-act="dup">Дублировать</button><button data-act="del">Удалить</button></div>`;
     return;
   }
@@ -1803,10 +1805,25 @@ svg.addEventListener('contextmenu', ev => {
     ['Добавить устройство из базы…', () => openQuick(ev.clientX, ev.clientY, pt)],
     ['＋ Новое устройство здесь (своё, с фото)…', () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [], _placeAt: pt })],
     '-',
-    ['Фигура: прямоугольник / экран', () => placeShape('sh1', pt)], ['Фигура: круг — лампа', () => placeShape('sh3', pt)], ['Фигура: круг — кнопка', () => placeShape('sh4', pt)], ['Фигура: блок', () => placeShape('sh2', pt)],
+    ['Фигуры…', () => openShapes(ev.clientX, ev.clientY, pt)],
     (clip || store.get('clip', null)) && ['Вставить сюда', () => paste(pt)],
     ['Зона (помещение/рэк)', addFrame], ['Текст', addText], '-', ['Показать всё', () => fit()], ['Выделить всё', () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id))]]);
 });
+function shapeGridHTML() {
+  return SHAPE_KINDS.map(([k, name, w, h]) => `<div class="shb" draggable="true" data-dev="sh_${k}" title="${esc(name)} — клик или перетащите на схему"><svg viewBox="${-3} ${-3} ${w + 6} ${h + 6}" preserveAspectRatio="xMidYMid meet">${shapeSVG(k, w, h, k === 'text' ? 'transparent' : '#ffffff', '#1f2937')}${k === 'text' ? `<text x="${w / 2}" y="${h / 2 + 5}" text-anchor="middle" font-size="15" fill="#111827">Text</text>` : ''}</svg></div>`).join('');
+}
+let shapesAt = null;
+function openShapes(cx, cy, docPt) {
+  hidePops(); shapesAt = docPt;
+  const p = $('#shapesPop'); p.querySelector('.shGrid').innerHTML = shapeGridHTML(); p.classList.remove('hidden');
+  p.style.left = clamp(cx, 8, innerWidth - 250) + 'px'; p.style.top = clamp(cy, 8, innerHeight - 330) + 'px';
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('.shb'); if (!b) return;
+  const inQuick = !!b.closest('#quick'); const pt = inQuick && quick ? quick.docPt : shapesAt;
+  hidePops(); if (pt) placeShape(b.dataset.dev, pt);
+});
+document.addEventListener('dragstart', ev => { const b = ev.target.closest && ev.target.closest('.shb'); if (b) { ev.dataTransfer.setData('text/sf-dev', b.dataset.dev); ev.dataTransfer.effectAllowed = 'copy'; setTimeout(hidePops, 0); } });
 function placeShape(id, pt) {
   const d = BUILTIN_LIB.find(x => x.id === id); if (!d) return;
   const n = addNode(d, pt.x, pt.y); const L = layout(n); n.x = Math.round((pt.x - L.w / 2) / 10) * 10; n.y = Math.round((pt.y - (L.ih || L.h) / 2) / 10) * 10;
@@ -1820,7 +1837,7 @@ function toFront(front) {
   }
   renderAll(); markDirty();
 }
-function hidePops() { $('#quick').classList.add('hidden'); $('#ctx').classList.add('hidden'); quick = null; document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')); }
+function hidePops() { $('#shapesPop').classList.add('hidden'); $('#quick').classList.add('hidden'); $('#ctx').classList.add('hidden'); quick = null; document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')); }
 document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.pop') && !ev.target.closest('#svg')) hidePops(); });
 
 // ============================================================================
