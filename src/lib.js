@@ -439,32 +439,61 @@ const SHAPE_KINDS = [
 ];
 const SHAPE_DEF = Object.fromEntries(SHAPE_KINDS.map(k => [k[0], { n: k[1], w: k[2], h: k[3] }]));
 const SHAPE_NOTEXT = new Set(['dot', 'larrow', 'ldouble', 'lthick', 'lstep']);
-function shapeSVG(kind, w, h, f, st) {
+// параметры формы (жёлтые ромбики): p — основной, q — второй (толщина стрелы)
+const SHAPE_P = { round: .4, para: .2, trap: .2, hex: .2, step: .2, process: .1, doc: .2, tape: .12, barrow: .4, lthick: .25, tri: .5, lstep: .5 };
+const SHAPE_Q = { barrow: .5, lthick: .4 };
+function shapeSVG(kind, w, h, f, st, p, q) {
+  p = p ?? SHAPE_P[kind]; q = q ?? SHAPE_Q[kind];
   const A = `fill="${f}" stroke="${st}" stroke-width="1.4" stroke-linejoin="round"`;
-  const poly = pts => `<polygon points="${pts.map(p => p.join(',')).join(' ')}" ${A}/>`;
+  const poly = pts => `<polygon points="${pts.map(v => v.join(',')).join(' ')}" ${A}/>`;
   const head = (x, y, dir) => `<polygon points="${x},${y} ${x - 9 * dir},${y - 5} ${x - 9 * dir},${y + 5}" fill="${st}"/>`;
   switch (kind) {
     case 'text': return `<rect width="${w}" height="${h}" fill="transparent"/>`;
-    case 'round': return `<rect width="${w}" height="${h}" rx="${Math.min(12, h / 3)}" ${A}/>`;
+    case 'round': return `<rect width="${w}" height="${h}" rx="${p * Math.min(w, h) / 2}" ${A}/>`;
     case 'ellipse': return `<ellipse cx="${w / 2}" cy="${h / 2}" rx="${w / 2}" ry="${h / 2}" ${A}/>`;
     case 'diamond': return poly([[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]]);
-    case 'para': return poly([[w * .2, 0], [w, 0], [w * .8, h], [0, h]]);
-    case 'trap': return poly([[w * .2, 0], [w * .8, 0], [w, h], [0, h]]);
-    case 'hex': return poly([[w * .2, 0], [w * .8, 0], [w, h / 2], [w * .8, h], [w * .2, h], [0, h / 2]]);
-    case 'step': return poly([[0, 0], [w * .8, 0], [w, h / 2], [w * .8, h], [0, h], [w * .2, h / 2]]);
-    case 'process': return `<rect width="${w}" height="${h}" ${A}/><line x1="${w * .1}" y1="0" x2="${w * .1}" y2="${h}" stroke="${st}" stroke-width="1.4"/><line x1="${w * .9}" y1="0" x2="${w * .9}" y2="${h}" stroke="${st}" stroke-width="1.4"/>`;
-    case 'tri': return poly([[0, 0], [w, h / 2], [0, h]]);
-    case 'doc': return `<path d="M0 0H${w}V${h * .8}C${w * .75} ${h * .6} ${w * .5} ${h * 1.05} 0 ${h * .86}Z" ${A}/>`;
-    case 'tape': return `<path d="M0 ${h * .12}C${w * .25} ${-h * .08} ${w * .5} ${h * .32} ${w} ${h * .12}V${h * .88}C${w * .75} ${h * 1.08} ${w * .5} ${h * .68} 0 ${h * .88}Z" ${A}/>`;
+    case 'para': return poly([[w * p, 0], [w, 0], [w * (1 - p), h], [0, h]]);
+    case 'trap': return poly([[w * p, 0], [w * (1 - p), 0], [w, h], [0, h]]);
+    case 'hex': return poly([[w * p, 0], [w * (1 - p), 0], [w, h / 2], [w * (1 - p), h], [w * p, h], [0, h / 2]]);
+    case 'step': return poly([[0, 0], [w * (1 - p), 0], [w, h / 2], [w * (1 - p), h], [0, h], [w * p, h / 2]]);
+    case 'process': return `<rect width="${w}" height="${h}" ${A}/><line x1="${w * p}" y1="0" x2="${w * p}" y2="${h}" stroke="${st}" stroke-width="1.4"/><line x1="${w * (1 - p)}" y1="0" x2="${w * (1 - p)}" y2="${h}" stroke="${st}" stroke-width="1.4"/>`;
+    case 'tri': return poly([[0, 0], [w, h * p], [0, h]]);
+    case 'doc': { const b = h * (1 - p); return `<path d="M0 0H${w}V${b}C${w * .75} ${b - h * p} ${w * .5} ${b + h * p * 1.2} 0 ${b + h * p * .3}Z" ${A}/>`; }
+    case 'tape': return `<path d="M0 ${h * p}C${w * .25} ${-h * p * .7} ${w * .5} ${h * p * 2.7} ${w} ${h * p}V${h * (1 - p)}C${w * .75} ${h * (1 + p * .7)} ${w * .5} ${h * (1 - p * 2.7)} 0 ${h * (1 - p)}Z" ${A}/>`;
     case 'cloud': return `<path d="M${w * .25} ${h * .9}C${w * .02} ${h * .9} ${w * .02} ${h * .5} ${w * .2} ${h * .48}C${w * .15} ${h * .15} ${w * .5} ${h * .05} ${w * .55} ${h * .28}C${w * .65} ${h * .05} ${w * .95} ${h * .15} ${w * .85} ${h * .45}C${w * 1.02} ${h * .5} ${w} ${h * .9} ${w * .78} ${h * .9}Z" ${A}/>`;
-    case 'barrow': return poly([[0, h * .25], [w * .6, h * .25], [w * .6, 0], [w, h / 2], [w * .6, h], [w * .6, h * .75], [0, h * .75]]);
+    case 'barrow': case 'lthick': { const hx = w * (1 - p), t = h * (1 - q) / 2; return poly([[0, t], [hx, t], [hx, 0], [w, h / 2], [hx, h], [hx, h - t], [0, h - t]]); }
     case 'dot': return `<circle cx="${w / 2}" cy="${h / 2}" r="${Math.min(w, h) / 2}" fill="${st}"/>`;
     case 'larrow': return `<line x1="0" y1="${h / 2}" x2="${w - 6}" y2="${h / 2}" stroke="${st}" stroke-width="1.6"/>` + head(w, h / 2, 1);
     case 'ldouble': return `<line x1="6" y1="${h / 2}" x2="${w - 6}" y2="${h / 2}" stroke="${st}" stroke-width="1.6"/>` + head(w, h / 2, 1) + head(0, h / 2, -1);
-    case 'lthick': return poly([[0, h * .3], [w * .75, h * .3], [w * .75, 0], [w, h / 2], [w * .75, h], [w * .75, h * .7], [0, h * .7]]);
-    case 'lstep': return `<path d="M0 2H${w / 2}V${h - 4}H${w - 6}" fill="none" stroke="${st}" stroke-width="1.6"/>` + head(w, h - 4, 1);
+    case 'lstep': return `<path d="M0 2H${w * p}V${h - 4}H${w - 6}" fill="none" stroke="${st}" stroke-width="1.6"/>` + head(w, h - 4, 1);
     default: return `<rect width="${w}" height="${h}" ${A}/>`;
   }
+}
+// ромбики настройки формы: позиция в координатах фигуры и как из позиции получить значение
+function shapeHandles(kind, w, h, p, q) {
+  p = p ?? SHAPE_P[kind]; q = q ?? SHAPE_Q[kind];
+  const c = (v, a, b) => Math.max(a, Math.min(b, v));
+  switch (kind) {
+    case 'round': return [{ k: 'p', x: p * Math.min(w, h) / 2, y: 0, v: (x, y) => c(x / (Math.min(w, h) / 2), 0, 1) }];
+    case 'para': case 'trap': case 'hex': return [{ k: 'p', x: w * p, y: 0, v: x => c(x / w, 0, .45) }];
+    case 'step': return [{ k: 'p', x: w * (1 - p), y: 0, v: x => c(1 - x / w, 0, .6) }];
+    case 'process': return [{ k: 'p', x: w * p, y: 0, v: x => c(x / w, .02, .4) }];
+    case 'doc': return [{ k: 'p', x: w, y: h * (1 - p), v: (x, y) => c(1 - y / h, .04, .45) }];
+    case 'tape': return [{ k: 'p', x: 0, y: h * p, v: (x, y) => c(y / h, 0, .35) }];
+    case 'tri': return [{ k: 'p', x: w, y: h * p, v: (x, y) => c(y / h, 0, 1) }];
+    case 'lstep': return [{ k: 'p', x: w * p, y: h / 2, v: x => c(x / w, .05, .9) }];
+    case 'barrow': case 'lthick': return [{ k: 'p', x: w * (1 - p), y: 0, v: x => c(1 - x / w, .08, .9) }, { k: 'q', x: 0, y: h * (1 - q) / 2, v: (x, y) => c(1 - 2 * y / h, .1, 1) }];
+    default: return [];
+  }
+}
+// поворот на 90° и отражения: рисуем в «своих» координатах и переводим в рамку фигуры
+function shapeTf(n, w, h) {
+  const r = n.rot || 0, fh = !!n.flipH, fv = !!n.flipV;
+  const dw = r % 180 ? h : w, dh = r % 180 ? w : h;
+  const toBox = (x, y) => { let X, Y; if (r === 0) { X = x; Y = y; } else if (r === 90) { X = w - y; Y = x; } else if (r === 180) { X = w - x; Y = h - y; } else { X = y; Y = h - x; } if (fh) X = w - X; if (fv) Y = h - Y; return [X, Y]; };
+  const toLocal = (X, Y) => { if (fh) X = w - X; if (fv) Y = h - Y; if (r === 0) return [X, Y]; if (r === 90) return [Y, w - X]; if (r === 180) return [w - X, h - Y]; return [h - Y, X]; };
+  const tr = (fh || fv ? `translate(${fh ? w : 0},${fv ? h : 0}) scale(${fh ? -1 : 1},${fv ? -1 : 1}) ` : '') + (r === 90 ? `translate(${w},0) rotate(90)` : r === 180 ? `translate(${w},${h}) rotate(180)` : r === 270 ? `translate(0,${h}) rotate(270)` : '');
+  return { dw, dh, toBox, toLocal, tr };
 }
 const SHAPE_PORTS = Array.from({ length: 8 }, (_, i) => ({ name: 'Связь ' + (i + 1), type: 'any', dir: 'io' }));
 SHAPE_KINDS.forEach(([k, name, w, h]) => BUILTIN_LIB.push({ id: 'sh_' + k, cat: 'shape', maker: 'Generic', model: name, shape: k, fill: k === 'text' ? 'transparent' : '#ffffff', label: k === 'text' ? 'Текст' : SHAPE_NOTEXT.has(k) ? '' : '', sw: w, sh: h, ports: SHAPE_PORTS.map(p => ({ ...p })) }));

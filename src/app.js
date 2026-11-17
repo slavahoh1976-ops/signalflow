@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.1', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.2', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.2', '17.11.2026', ['Фигуры меняют форму: жёлтые ромбики (скругление, наклон, глубина, волна, наконечник и толщина стрелки, излом)', 'Поворот фигур на 90° и отражение по горизонтали/вертикали, ползунки формы в свойствах']],
   ['1.6.1', '17.11.2026', ['Палитра фигур как в draw.io: 16 фигур и 4 линии — правый клик «Фигуры…» или двойной клик по холсту', 'Фигуры выглядят фигурами в обоих режимах, соединяются и меняют размер', 'Из меню по пустому месту убраны отдельные пункты «Фигура: …»']],
   ['1.6.0', '17.11.2026', ['Группы библиотеки: перетаскивание устройств между группами, новые группы, переименование (и встроенных), порядок перетаскиванием, удаление с переносом устройств', 'Правый клик по устройству — «Переместить в группу…», в редакторе базы — перенос выбранных']],
   ['1.5.4', '17.11.2026', ['Матрицы Lightware: MX2 HDMI 2.0 (4×4…48×48), MX2 DH (HDMI+DP), MX2 DP, MMX (HDBaseT), Taurus UCX (USB-C), модульные MX-FR']],
@@ -106,6 +107,7 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .hv-zone{fill:transparent}
 .guide{stroke:#ec4899;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
 .rsn{fill:var(--panel);stroke:var(--sel);stroke-width:2;cursor:nwse-resize}
+.shp{fill:#facc15;stroke:#a16207;stroke-width:1.5;cursor:pointer}
 .lod1 .p-t,.lod1 .e-lb,.lod1 .e-lt,.lod1 .n-loc,.lod1 .n-sub{display:none}
 .lod2 .p-c,.lod2 .p-h,.lod2 .n-ic{display:none}
 .lod2 .n-title{font-size:20px}
@@ -364,7 +366,8 @@ function nodeSVGpic(n) {
   let s = `<g class="node pic" data-id="${n.id}" transform="translate(${n.x},${n.y})"><rect class="n-frame" x="-4" y="-4" width="${w + 8}" height="${L.h + 8}" rx="4"/>`;
   if (n.shape) {
     const f = n.fill || '#ffffff', st = n.stroke || '#1f2937', fs = n.fs || 14;
-    s += shapeSVG(n.shape, w, ih, esc(f), esc(st));
+    const tf = shapeTf(n, w, ih);
+    s += `<g${tf.tr ? ` transform="${tf.tr}"` : ''}>${shapeSVG(n.shape, tf.dw, tf.dh, esc(f), esc(st), n.sp, n.sq)}</g>`;
     if (SHAPE_NOTEXT.has(n.shape)) return s + '</g>';
     const lines = String(n.label || '').split('\n'), tc = n.shape === 'text' ? (n.tcolor || '#111827') : lum(f) < 0.5 ? '#ffffff' : '#111827';
     s += `<text class="n-stext" text-anchor="middle" font-size="${fs}" fill="${tc}">` + lines.map((l, i) => `<tspan x="${w / 2}" y="${ih / 2 + (i - (lines.length - 1) / 2) * fs * 1.2 + fs * 0.35}">${esc(l)}</tspan>`).join('') + '</text>';
@@ -589,7 +592,12 @@ function renderOverlay() {
   LY.o.innerHTML = '';
   if (sel.size !== 1) return;
   const it0 = items.get([...sel][0]);
-  if (it0 && it0.k === 'n' && (isPic() || it0.o.shape)) { const n = it0.o, L = layout(n); LY.o.innerHTML = `<rect class="rsn" data-rsn="${n.id}" x="${n.x + L.w - 5}" y="${n.y + L.ih - 5}" width="10" height="10" rx="2"/>`; return; }
+  if (it0 && it0.k === 'n' && (isPic() || it0.o.shape)) {
+    const n = it0.o, L = layout(n);
+    let s = `<rect class="rsn" data-rsn="${n.id}" x="${n.x + L.w - 5}" y="${n.y + L.ih - 5}" width="10" height="10" rx="2"/>`;
+    if (n.shape) { const tf = shapeTf(n, L.w, L.ih); for (const hd of shapeHandles(n.shape, tf.dw, tf.dh, n.sp, n.sq)) { const [X, Y] = tf.toBox(hd.x, hd.y); s += `<rect class="shp" data-shp="${hd.k}" x="${n.x + X - 5}" y="${n.y + Y - 5}" width="10" height="10" transform="rotate(45 ${n.x + X} ${n.y + Y})"><title>Тяните — изменить форму</title></rect>`; } }
+    LY.o.innerHTML = s; return;
+  }
   if (cfg.wire !== 'orth') return;
   const it = it0; if (!it || it.k !== 'e' || !it.o._r || !it.o._r.seg) return;
   const s = it.o._r.seg;
@@ -897,6 +905,8 @@ svg.addEventListener('pointerdown', ev => {
   hoverId = null; LY.hv.innerHTML = '';
   const hn = t.closest('[data-hn]');
   if (hn) return startNodeWire(hn.dataset.hn, ev);
+  const shp = t.closest('[data-shp]');
+  if (shp) { const n = node([...sel][0]); if (n) { drag = { mode: 'shparam', n, key: shp.dataset.shp, edges: [...adj.get(n.id)], started: false }; return; } }
   const rsn = t.closest('[data-rsn]');
   if (rsn) { const n = node(rsn.dataset.rsn), L = layout(n); drag = { mode: 'nresize', n, sx: pt.x, sy: pt.y, w0: L.w, h0: L.ih, edges: [...adj.get(n.id)], started: false }; return; }
   const h = t.closest('[data-h]');
@@ -1009,6 +1019,13 @@ function onMove(ev) {
     const f = drag.f; f.w = Math.max(120, Math.round((drag.w + pt.x - drag.sx) / 10) * 10); f.h = Math.max(60, Math.round((drag.h + pt.y - drag.sy) / 10) * 10);
     rerenderItem(f.id); return;
   }
+  if (drag.mode === 'shparam') {
+    const n = drag.n; if (!drag.started) { drag.started = true; hist(); }
+    const L = layout(n), tf = shapeTf(n, L.w, L.ih), [lx, ly] = tf.toLocal(pt.x - n.x, pt.y - n.y);
+    const hd = shapeHandles(n.shape, tf.dw, tf.dh, n.sp, n.sq).find(h => h.k === drag.key);
+    if (hd) { n['s' + drag.key] = Math.round(hd.v(lx, ly) * 100) / 100; rerenderNode(n); drag.edges.forEach(updateEdgeFast); renderOverlay(); }
+    return;
+  }
   if (drag.mode === 'nresize') {
     const n = drag.n; if (!drag.started) { drag.started = true; hist(); }
     const dx = pt.x - drag.sx, dy = pt.y - drag.sy;
@@ -1068,7 +1085,7 @@ svg.addEventListener('pointerup', ev => {
   const d = drag; drag = null; pendingEv = null;
   stage.classList.remove('panning');
   if (d.mode === 'move' && d.started) { markDirty(); renderOverlay(); cull(); }
-  if ((d.mode === 'resize' || d.mode === 'bend' || d.mode === 'nresize') && d.started) markDirty();
+  if ((d.mode === 'resize' || d.mode === 'bend' || d.mode === 'nresize' || d.mode === 'shparam') && d.started) { markDirty(); if (d.mode === 'shparam') renderProps(); }
   if (d.mode === 'nwire') finishNodeWire(d, ev);
   if (d.mode === 'marquee') {
     const m = $('#marquee'); m.style.display = 'none';
@@ -1589,7 +1606,10 @@ function renderNodeProps(el, n) {
       <div class="row">${fld('Заливка', 'fill', n.fill || '#ffffff', { type: 'color' })}${fld('Обводка', 'stroke', n.stroke || '#1f2937', { type: 'color' })}</div>
       <div class="row">${fld('Форма', 'shape', '', { select: SHAPE_KINDS.map(([v, t]) => `<option value="${v}"${v === n.shape ? ' selected' : ''}>${t}</option>`).join('') })}${fld('Шрифт', 'fs', n.fs || 14, { type: 'number' })}</div>
       <div class="row">${fld('Ширина', 'sw', layout(n).w, { type: 'number' })}${fld('Высота', 'sh', layout(n).ih, { type: 'number' })}</div>
-      <div class="small muted">Фигуры соединяются с любыми устройствами (синие кружки при наведении). Размер — за уголок справа внизу.</div>
+      ${SHAPE_P[n.shape] != null ? `<div class="fld"><label>${{ round: 'Скругление углов', barrow: 'Длина наконечника', lthick: 'Длина наконечника', doc: 'Волна', tape: 'Волна', tri: 'Положение вершины', lstep: 'Место излома', process: 'Ширина полос' }[n.shape] || 'Наклон / глубина'}</label><input type="range" data-k="sp" min="0" max="1" step="0.01" value="${n.sp ?? SHAPE_P[n.shape]}"></div>` : ''}
+      ${SHAPE_Q[n.shape] != null ? `<div class="fld"><label>Толщина стрелы</label><input type="range" data-k="sq" min="0.1" max="1" step="0.01" value="${n.sq ?? SHAPE_Q[n.shape]}"></div>` : ''}
+      <div class="btns"><button data-act="rot">↻ Повернуть 90°</button><button data-act="flipH">⇆ Отразить</button><button data-act="flipV">⇅ Отразить</button>${n.sp != null || n.sq != null || n.rot || n.flipH || n.flipV ? '<button data-act="shReset">Сбросить форму</button>' : ''}</div>
+      <div class="small muted">Жёлтые ромбики на выделенной фигуре — изменить форму. Уголок справа внизу — размер. Синие кружки при наведении — соединить.</div>
       <div class="btns"><button data-act="dup">Дублировать</button><button data-act="del">Удалить</button></div>`;
     return;
   }
@@ -1694,6 +1714,7 @@ function propChange(ev, commit) {
     rerenderItem(o.id); markDirty(); if (commit) renderProps(); return;
   }
   if (key === 'size') o.size = +val || 14;
+  else if (key === 'sp' || key === 'sq') o[key] = +val;
   else if (['pw', 'sw', 'sh', 'fs'].includes(key)) { if (+val > 0) o[key] = +val; else delete o[key]; }
   else if (key === 'len') o.len = val;
   else o[key] = val;
@@ -1716,6 +1737,14 @@ $('#props').addEventListener('click', ev => {
     rerenderItem(n.id); renderProps(); markDirty(); return;
   }
   const act = t.dataset.act; if (!act) return;
+  if (act === 'rot' || act === 'flipH' || act === 'flipV' || act === 'shReset') {
+    const n = it.o, L = layout(n); hist();
+    if (act === 'rot') { n.rot = ((n.rot || 0) + 90) % 360; n.sw = L.ih; n.sh = L.w; }
+    if (act === 'flipH') n.flipH = !n.flipH;
+    if (act === 'flipV') n.flipV = !n.flipV;
+    if (act === 'shReset') { delete n.sp; delete n.sq; if (n.rot % 180) { n.sw = L.ih; n.sh = L.w; } delete n.rot; delete n.flipH; delete n.flipV; }
+    rerenderItem(n.id); renderOverlay(); renderProps(); markDirty(); return;
+  }
   if (act === 'del') deleteSel();
   if (act === 'dup') { copySel(); paste(); }
   if (act === 'flip') flipSel();
