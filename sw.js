@@ -1,9 +1,10 @@
-// Офлайн-кэш: сначала сеть (чтобы обновления приходили сразу), без сети — из кэша
-const CACHE = 'signalflow-1.5.0';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './devices.json'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
+// Офлайн-кэш. Сначала всегда сеть (мимо HTTP-кэша), кэш — только когда нет интернета.
+const CACHE = 'signalflow-1.5.2';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './devices.json', './version.json'];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x))))); self.clients.claim(); });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
+  e.respondWith(fetch(e.request, { cache: 'no-store' }).then(r => { const c = r.clone(); const key = new URL(e.request.url); key.search = ''; caches.open(CACHE).then(x => x.put(key.href, c)); return r; })
+    .catch(() => { const key = new URL(e.request.url); key.search = ''; return caches.match(key.href).then(r => r || caches.match('./index.html')); }));
 });

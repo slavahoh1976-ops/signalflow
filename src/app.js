@@ -2,8 +2,10 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.5.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.5.2', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.5.2', '17.11.2026', ['Автопроверка обновлений: при новой версии вверху появляется кнопка «Обновить»', 'Сайт всегда загружается свежим (кэш только для работы без интернета)']],
+  ['1.5.1', '17.11.2026', ['База с фото всегда загружается свежая (без задержки кэша сайта)', 'В базе: «Коля (ПТС)» — группа «Люди / операторы»']],
   ['1.5.0', '17.11.2026', ['Цвета кабелей одинаковые в режимах «С портами» и «Картинки»', 'Свои иллюстрации для всех устройств без фото (≈25 видов: рэки, коммутаторы, серверы d3, конвертеры, камеры, мониторы, ноутбуки, пульты, свет, ИБП)', 'Умные направляющие при перетаскивании — выравнивание по краям и центрам (Alt — без них)']],
   ['1.4.0', '17.11.2026', ['База с фото догружается сама в любой браузер (раньше пропускалась, если в браузере уже была база)', 'Фильтр «📷 С фото» в библиотеке и «Файл → Пример из ваших фото»', 'Линии не накладываются: совпадающие участки разводятся по параллельным дорожкам', 'Концы линий равномерно распределяются по сторонам устройства', 'Подписи на линиях не перекрывают друг друга и устройства — автоматически ищут свободное место']],
   ['1.3.0', '17.11.2026', ['Режим «Картинки» (как draw.io): устройства фото с подписью, тонкие линии с подписями, подключение синими кружками', 'Фигуры: экран, лампа, кнопка, блок — с изменением размера', 'Редактор базы: изменить / удалить / копировать любое устройство, правки переносятся на схему', 'База с фото: 98 устройств из ваших картинок, подгружается автоматически', 'Новые типы: DMX (свет), группы «Свет», «Питание», «Периферия»', 'Номер версии в шапке']],
@@ -2071,12 +2073,12 @@ function baseManager() {
 }
 async function mergeDefaults(force) {
   if (!location.protocol.startsWith('http')) { if (force) toast('База с фото доступна, когда программа открыта с сайта', 'w'); return 0; }
-  let data; try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
+  let data; try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
   for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; customLib.push(d); n++; }
   if (force) cfg.removedDefaults = [], saveCfg();
-  if (n) { saveLib(); typeFilter.add('photo'); renderTypeFilter(); renderLib(); toast(`Загружена база с фото: ${n} устройств — показаны в библиотеке (фильтр «📷 С фото»)`); }
+  if (n) { const added = (data.devices || []).filter(d => customLib.includes(d)).slice(-n); saveLib(); typeFilter.add('photo'); renderTypeFilter(); renderLib(); toast(n <= 3 ? `В базу добавлено: ${added.map(d => d.model).join(', ')}` : `Загружена база с фото: ${n} устройств — показаны в библиотеке (фильтр «📷 С фото»)`); }
   else if (force) toast('База с фото уже загружена');
   return n;
 }
@@ -2276,5 +2278,25 @@ doc = newDoc(); P = doc.pages[0];
 })();
 // открытие файла проекта двойным кликом, когда приложение установлено (PWA file handler)
 try { if ('launchQueue' in window) launchQueue.setConsumer(async p => { if (!p.files || !p.files.length) return; const h = p.files[0]; const f = await h.getFile(); try { openDoc(JSON.parse(await f.text()), h); } catch (e) { toast('Не удалось открыть файл', 'e'); } }); } catch (e) { }
+// проверка обновлений: сайт сообщает последнюю версию, у пользователя — плашка «Обновить»
+const verNum = v => String(v).split('.').map(x => +x || 0).reduce((s, x) => s * 1000 + x, 0);
+async function hardReload() {
+  try { if (window.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) { }
+  try { if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.update(); } catch (e) { }
+  location.reload();
+}
+async function checkUpdate() {
+  if (!location.protocol.startsWith('http') || inClaude()) return;
+  try {
+    const r = await fetch('version.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const j = await r.json();
+    if (verNum(j.version) > verNum(APP_VERSION) && !$('#updBar')) {
+      const b = document.createElement('button'); b.id = 'updBar'; b.className = 'pri';
+      b.textContent = `⟳ Доступна версия ${j.version} — обновить`; b.onclick = hardReload;
+      $('#saveState').after(b);
+    }
+  } catch (e) { }
+}
+setTimeout(checkUpdate, 1500); setInterval(checkUpdate, 10 * 60 * 1000);
 // PWA (установка как приложение) — только при хостинге на своём сайте
 try { if ('serviceWorker' in navigator && location.protocol === 'https:' && window.top === window && document.querySelector('link[rel=manifest]')) navigator.serviceWorker.register('sw.js'); } catch (e) { }
