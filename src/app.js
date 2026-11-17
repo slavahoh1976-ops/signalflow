@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.3.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.4.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.4.0', '17.11.2026', ['База с фото догружается сама в любой браузер (раньше пропускалась, если в браузере уже была база)', 'Фильтр «📷 С фото» в библиотеке и «Файл → Пример из ваших фото»', 'Линии не накладываются: совпадающие участки разводятся по параллельным дорожкам', 'Концы линий равномерно распределяются по сторонам устройства', 'Подписи на линиях не перекрывают друг друга и устройства — автоматически ищут свободное место']],
   ['1.3.0', '17.11.2026', ['Режим «Картинки» (как draw.io): устройства фото с подписью, тонкие линии с подписями, подключение синими кружками', 'Фигуры: экран, лампа, кнопка, блок — с изменением размера', 'Редактор базы: изменить / удалить / копировать любое устройство, правки переносятся на схему', 'База с фото: 98 устройств из ваших картинок, подгружается автоматически', 'Новые типы: DMX (свет), группы «Свет», «Питание», «Периферия»', 'Номер версии в шапке']],
   ['1.2.0', '17.11.2026', ['Медиасерверы disguise (d3): VX, GX, EX, RX, PX и снятые модели', 'Двунаправленные SDI-порты']],
   ['1.1.0', '17.11.2026', ['Процессоры Magnimage, Barco Event Master, PixelHue, Datapath', 'Ноутбуки, Novastar, удлинители, тип VGA', 'Прямые кабели между близкими устройствами']],
@@ -219,14 +220,38 @@ function portPos(ref) {
 //  МАРШРУТИЗАЦИЯ КАБЕЛЕЙ
 // ============================================================================
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
-function picRoute(e) {
+function picOrient(e) {
   const na = node(e.from.n), nb = node(e.to.n), LA = layout(na), LB = layout(nb);
-  const A = { x: na.x, y: na.y, w: LA.w, h: LA.h, ih: LA.ih }, B = { x: nb.x, y: nb.y, w: LB.w, h: LB.h, ih: LB.ih };
+  const A = { id: na.id, x: na.x, y: na.y, w: LA.w, h: LA.h, ih: LA.ih }, B = { id: nb.id, x: nb.x, y: nb.y, w: LB.w, h: LB.h, ih: LB.ih };
   const acx = A.x + A.w / 2, acy = A.y + A.ih / 2, bcx = B.x + B.w / 2, bcy = B.y + B.ih / 2;
-  const off = k => ((hash(e.id + k) % 5) - 2) * 6;
   const hgap = B.x > A.x + A.w + 16 ? 1 : (A.x > B.x + B.w + 16 ? -1 : 0);
   const vgap = B.y > A.y + A.h + 16 ? 1 : (A.y > B.y + B.h + 16 ? -1 : 0);
-  const horiz = hgap && (!vgap || Math.abs(bcx - acx) >= Math.abs(bcy - acy));
+  const horiz = !!hgap && (!vgap || Math.abs(bcx - acx) >= Math.abs(bcy - acy));
+  const sa = horiz ? (hgap > 0 ? 'R' : 'L') : vgap ? (vgap > 0 ? 'B' : 'T') : 'R';
+  const sb = horiz ? (hgap > 0 ? 'L' : 'R') : vgap ? (vgap > 0 ? 'T' : 'B') : 'R';
+  return { A, B, acx, acy, bcx, bcy, hgap, vgap, horiz, sa, sb };
+}
+// распределяем концы линий по сторонам устройств, чтобы они не сходились в одну точку
+function assignAnchors() {
+  const groups = new Map();
+  const push = (k, it) => { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it); };
+  for (const e of P.edges) {
+    const o = picOrient(e); e._anc = {};
+    const vert = s => s === 'L' || s === 'R';
+    push(o.A.id + o.sa, { e, end: 'a', key: vert(o.sa) ? o.bcy : o.bcx, box: o.A, side: o.sa });
+    push(o.B.id + o.sb, { e, end: 'b', key: vert(o.sb) ? o.acy : o.acx, box: o.B, side: o.sb });
+  }
+  for (const list of groups.values()) {
+    list.sort((p, q) => p.key - q.key);
+    const n = list.length, side = list[0].side, box = list[0].box;
+    const len = (side === 'L' || side === 'R') ? box.ih : box.w;
+    const step = Math.min(len / (n + 1), 24);
+    list.forEach((it, i) => { it.e._anc[it.end] = (i - (n - 1) / 2) * step; });
+  }
+}
+function picRoute(e) {
+  const { A, B, acx, acy, bcx, bcy, hgap, vgap, horiz } = picOrient(e);
+  const off = k => (e._anc && e._anc[k] != null) ? e._anc[k] : k === 'm' ? ((hash(e.id + k) % 5) - 2) * 6 : 0;
   let a, b, pts, seg;
   if (horiz) {
     a = { x: hgap > 0 ? A.x + A.w : A.x, y: clamp(acy + off('a'), A.y + 3, A.y + A.ih - 3), nx: hgap, ny: 0, d: hgap };
@@ -239,9 +264,9 @@ function picRoute(e) {
   }
   if (cfg.wire === 'line') return { pts: [a, b], a, b };
   if (cfg.wire === 'curve') return { pts: [a, b], a, b, curve: true };
-  if (horiz) { const mx = e.pmx != null ? e.pmx : (a.x + b.x) / 2 + off('m'); pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', x: mx, y: (a.y + b.y) / 2 }; }
-  else if (vgap) { const my = e.pmy != null ? e.pmy : (a.y + b.y) / 2 + off('m'); pts = [a, { x: a.x, y: my }, { x: b.x, y: my }, b]; seg = { k: 'my', key: 'pmy', x: (a.x + b.x) / 2, y: my }; }
-  else { const x = e.pmx != null ? e.pmx : Math.max(a.x, b.x) + 30; pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', x, y: (a.y + b.y) / 2 }; }
+  if (horiz) { const mx = e.pmx != null ? e.pmx : (a.x + b.x) / 2 + off('m'); pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', i: 1, x: mx, y: (a.y + b.y) / 2 }; }
+  else if (vgap) { const my = e.pmy != null ? e.pmy : (a.y + b.y) / 2 + off('m'); pts = [a, { x: a.x, y: my }, { x: b.x, y: my }, b]; seg = { k: 'my', key: 'pmy', i: 1, x: (a.x + b.x) / 2, y: my }; }
+  else { const x = e.pmx != null ? e.pmx : Math.max(a.x, b.x) + 30; pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', i: 1, x, y: (a.y + b.y) / 2 }; }
   return { pts, a, b, seg };
 }
 function route(e) {
@@ -250,15 +275,17 @@ function route(e) {
   const style = cfg.wire;
   if (style === 'line') return { pts: [a, b], a, b };
   if (style === 'curve') return { pts: [a, b], a, b, curve: true };
+  const pidx = ref => { const n = node(ref.n), q = layout(n).pos[ref.p]; return q ? Math.round((q.y - HH - 6) / RH) : 0; };
+  const oA = 18 + (pidx(e.from) % 6) * 6 + (hash(e.id) % 3) * 3, oB = 18 + (pidx(e.to) % 6) * 6 + (hash(e.id + 'b') % 4) * 4;
   const o = 22 + (hash(e.id) % 4) * 5;         // разводим параллельные кабели
   const spread = ((hash(e.id) % 7) - 3) * 5;
-  const ax = a.x + a.d * o, bx = b.x + b.d * o;
+  const ax = a.x + a.d * oA, bx = b.x + b.d * oB;
   let pts, seg;
   if (a.d !== b.d) {
     const forward = (b.x - a.x) * a.d > 16;
     if (forward && e.my == null) {
       const mx = e.mx != null ? e.mx : (a.x + b.x) / 2 + spread;
-      pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', x: mx, y: (a.y + b.y) / 2 };
+      pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', i: 1, x: mx, y: (a.y + b.y) / 2 };
     } else {
       let my = e.my;
       if (my == null) {
@@ -268,11 +295,11 @@ function route(e) {
         else if (a.y > bB + 10) my = (bB + na.y) / 2;
         else my = Math.max(aB, bB) + 24 + Math.abs(spread);
       }
-      pts = [a, { x: ax, y: a.y }, { x: ax, y: my }, { x: bx, y: my }, { x: bx, y: b.y }, b]; seg = { k: 'my', x: (ax + bx) / 2, y: my };
+      pts = [a, { x: ax, y: a.y }, { x: ax, y: my }, { x: bx, y: my }, { x: bx, y: b.y }, b]; seg = { k: 'my', i: 2, x: (ax + bx) / 2, y: my };
     }
   } else {
     const x = e.mx != null ? e.mx : (a.d > 0 ? Math.max(ax, bx) : Math.min(ax, bx));
-    pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', x, y: (a.y + b.y) / 2 };
+    pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', i: 1, x, y: (a.y + b.y) / 2 };
   }
   return { pts, a, b, seg };
 }
@@ -363,7 +390,106 @@ function nodeSVG(n) {
   if (n.loc) s += `<text class="n-loc" x="8" y="${h - 6}">📍 ${esc(n.loc)}</text>`;
   return s + '</g>';
 }
-function edgeGeom(e) {
+const LANE = 8;
+// разводим совпадающие средние участки соседних кабелей по параллельным дорожкам
+function separateLanes(edges) {
+  // все участки — препятствия; сдвигаем средний участок вместе с примыкающими «хвостами», проверяя и их
+  const idx = { v: new Map(), h: new Map() }, B = 4;
+  const put = (o, s) => { const k = Math.round(s.c / B); if (!idx[o].has(k)) idx[o].set(k, []); idx[o].get(k).push(s); };
+  const segOf = (p1, p2) => Math.abs(p1.x - p2.x) < .5 ? ['v', p1.x, Math.min(p1.y, p2.y), Math.max(p1.y, p2.y)] : Math.abs(p1.y - p2.y) < .5 ? ['h', p1.y, Math.min(p1.x, p2.x), Math.max(p1.x, p2.x)] : null;
+  const hit1 = (sg, e) => { if (!sg) return false; const [o, c, lo, hi] = sg; for (let k = Math.round((c - LANE) / B); k <= Math.round((c + LANE) / B); k++) for (const s of idx[o].get(k) || []) { if (s.e === e || Math.abs(s.c - c) >= LANE - 1) continue; if (Math.min(hi, s.hi) - Math.max(lo, s.lo) > 3) return true; } return false; };
+  const reg = (sg, e) => { if (sg) put(sg[0], { e, c: sg[1], lo: sg[2], hi: sg[3] }); };
+  const movers = [];
+  for (const e of edges) {
+    const r = e._r; if (!r) continue;
+    const mi = !r.curve && r.pts.length >= 4 && r.seg && r.seg.i != null && e[r.seg.key || r.seg.k] == null ? r.seg.i : -1;
+    for (let i = 0; i < r.pts.length - 1; i++) { if (mi >= 0 && i >= mi - 1 && i <= mi + 1) continue; reg(segOf(r.pts[i], r.pts[i + 1]), e); }
+    if (mi >= 0) movers.push({ e, r, i: mi });
+  }
+  const len = m => { const p1 = m.r.pts[m.i], p2 = m.r.pts[m.i + 1]; return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y); };
+  movers.sort((p, q) => len(q) - len(p));
+  const deltas = [0]; for (let k = 1; k <= 10; k++) deltas.push(k * LANE, -k * LANE);
+  for (const m of movers) {
+    const P_ = m.r.pts, i = m.i, p1 = P_[i], p2 = P_[i + 1];
+    const vert = Math.abs(p1.x - p2.x) < .5, c0 = vert ? p1.x : p1.y;
+    const geo = c => { const q1 = vert ? { x: c, y: p1.y } : { x: p1.x, y: c }, q2 = vert ? { x: c, y: p2.y } : { x: p2.x, y: c }; return [segOf(P_[i - 1], q1), segOf(q1, q2), segOf(q2, P_[i + 2])]; };
+    let best = c0;
+    for (const d of deltas) { const g = geo(c0 + d); if (!g.some(sg => hit1(sg, m.e))) { best = c0 + d; break; } }
+    if (vert) { p1.x = p2.x = best; if (m.r.seg) m.r.seg.x = best; } else { p1.y = p2.y = best; if (m.r.seg) m.r.seg.y = best; }
+    geo(best).forEach(sg => reg(sg, m.e));
+  }
+}
+// подписи: ищем свободное место на своей линии — не поверх других подписей и устройств
+const labelW = t => t.length * (isPic() ? 6.6 : 5.6) + 10;
+function placeLabels(edges) {
+  const CELL = 120, grid = new Map();
+  const cells = (x1, y1, x2, y2, f) => { for (let gx = Math.floor(x1 / CELL); gx <= Math.floor(x2 / CELL); gx++) for (let gy = Math.floor(y1 / CELL); gy <= Math.floor(y2 / CELL); gy++) f(gx + ',' + gy); };
+  const addBox = b => cells(b[0], b[1], b[2], b[3], k => { if (!grid.has(k)) grid.set(k, []); grid.get(k).push(b); });
+  const overlap = b => { let s = 0; const seen = new Set(); cells(b[0], b[1], b[2], b[3], k => { for (const o of grid.get(k) || []) { if (seen.has(o)) continue; seen.add(o); const w = Math.min(b[2], o[2]) - Math.max(b[0], o[0]), h = Math.min(b[3], o[3]) - Math.max(b[1], o[1]); if (w > 0 && h > 0) s += w * h * (o.node ? 2 : 1); } }); return s; };
+  for (const n of P.nodes) { const L = layout(n); const b = [n.x - 2, n.y - 2, n.x + L.w + 2, n.y + L.h + 2]; b.node = 1; addBox(b); }
+  const order = edges.map(e => ({ e, t: edgeText(e) })).filter(x => x.t).sort((p, q) => q.t.length - p.t.length);
+  for (const e of edges) e._lp = null;
+  for (const { e, t } of order) {
+    const r = e._r, w = labelW(t), h = 16, cands = [];
+    if (r.curve) {
+      const ax = r.a.nx ?? r.a.d, ay = r.a.ny ?? 0, bx = r.b.nx ?? r.b.d, by = r.b.ny ?? 0, k = Math.max(40, Math.hypot(r.b.x - r.a.x, r.b.y - r.a.y) * 0.4);
+      const P0 = r.a, P1 = { x: r.a.x + ax * k, y: r.a.y + ay * k }, P2 = { x: r.b.x + bx * k, y: r.b.y + by * k }, P3 = r.b;
+      for (const tt of [0.5, 0.38, 0.62, 0.27, 0.73, 0.18, 0.82]) { const u = 1 - tt; cands.push({ x: u * u * u * P0.x + 3 * u * u * tt * P1.x + 3 * u * tt * tt * P2.x + tt * tt * tt * P3.x, y: u * u * u * P0.y + 3 * u * u * tt * P1.y + 3 * u * tt * tt * P2.y + tt * tt * tt * P3.y }); }
+    } else {
+      const segs = [];
+      for (let i = 0; i < r.pts.length - 1; i++) { const A = r.pts[i], B = r.pts[i + 1]; segs.push({ A, B, len: Math.abs(B.x - A.x) + Math.abs(B.y - A.y) }); }
+      segs.sort((p, q) => q.len - p.len);
+      for (const s of segs) {
+        if (s.len < 14) continue;
+        const horiz = Math.abs(s.B.y - s.A.y) < 1, need = horiz ? w + 6 : h + 6;
+        const fr = s.len > need ? [0.5, 0.35, 0.65, 0.22, 0.78, 0.12, 0.88] : [0.5];
+        for (const f of fr) cands.push({ x: s.A.x + (s.B.x - s.A.x) * f, y: s.A.y + (s.B.y - s.A.y) * f });
+      }
+      // запасные места — рядом с линией (сбоку от вертикали, над/под горизонталью)
+      for (const s of segs.slice(0, 3)) {
+        if (s.len < 14) continue;
+        const horiz = Math.abs(s.B.y - s.A.y) < 1;
+        for (const f of [0.5, 0.3, 0.7]) { const x = s.A.x + (s.B.x - s.A.x) * f, y = s.A.y + (s.B.y - s.A.y) * f;
+          if (horiz) cands.push({ x, y: y - 11, side: 1 }, { x, y: y + 11, side: 1 }); else cands.push({ x: x + w / 2 + 5, y, side: 1 }, { x: x - w / 2 - 5, y, side: 1 }); }
+      }
+      if (!cands.length) cands.push(labelPt(r));
+    }
+    let best = null, bs = Infinity;
+    for (const c of cands) { const b = [c.x - w / 2 - 2, c.y - h / 2 - 1, c.x + w / 2 + 2, c.y + h / 2 + 1]; const s = overlap(b) + (c.side ? 0.5 : 0); if (s < bs) { bs = s; best = { c, b }; if (s < 1) break; } }
+    e._lp = best.c; addBox(best.b);
+  }
+}
+function layoutEdges() {
+  if (isPic()) assignAnchors();
+  for (const e of P.edges) { e._st = edgeStatus(e)[0]; e._r = route(e); }
+  if (cfg.wire === 'orth') { separateLanes(P.edges); separateLanes(P.edges); }
+  placeLabels(P.edges);
+  for (const e of P.edges) setBB(e);
+}
+function setBB(e) {
+  const r = e._r; let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const p of r.pts) { x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y); }
+  if (r.curve) { x1 -= 80; x2 += 80; }
+  e._bb = [x1, y1, x2, y2];
+}
+// полная раскладка после изменений (не во время перетаскивания)
+let relayT = 0;
+function scheduleRelayout() { clearTimeout(relayT); relayT = setTimeout(relayout, 30); }
+function relayout() {
+  if (drag && (drag.mode === 'move' || drag.mode === 'bend' || drag.mode === 'nresize')) return scheduleRelayout();
+  layoutEdges();
+  for (const e of P.edges) applyEdge(e);
+  renderOverlay();
+}
+function applyEdge(e) {
+  const g = els.get(e.id); if (!g) return;
+  const t = edgeText(e), c = g.children, d = pathD(e._r);
+  if (!!c[2] !== !!t || (c[3] && c[3].textContent !== t)) return rerenderEdge(e, true);
+  c[0].setAttribute('d', d); c[1].setAttribute('d', d);
+  if (c[2]) { const w = labelW(t); c[2].setAttribute('x', e._lp.x - w / 2); c[2].setAttribute('y', e._lp.y - 8); c[2].setAttribute('width', w); c[3].setAttribute('x', e._lp.x); c[3].setAttribute('y', e._lp.y); }
+}
+function edgeGeom(e, cached) {
+  if (cached && e._r) { const t = edgeText(e); return { d: pathD(e._r), t, lp: e._lp || labelPt(e._r), lw: labelW(t) }; }
   const r = route(e);
   e._r = r;
   let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
@@ -371,11 +497,11 @@ function edgeGeom(e) {
   if (r.curve) { x1 -= 80; x2 += 80; }
   e._bb = [x1, y1, x2, y2];
   const t = edgeText(e); const lp = labelPt(r);
-  return { d: pathD(r), t, lp, lw: t.length * 5.6 + 10 };
+  return { d: pathD(r), t, lp, lw: labelW(t) };
 }
-function edgeSVG(e) {
-  e._st = edgeStatus(e)[0];
-  const g = edgeGeom(e);
+function edgeSVG(e, cached) {
+  if (!cached) e._st = edgeStatus(e)[0];
+  const g = edgeGeom(e, cached === true);
   const col = e.color || (isPic() ? 'var(--picLine)' : (T[e.type] || T.sdi3g).c);
   const cls = e._st === 0 ? ' bad' : e._st === 1 ? ' warn' : '';
   let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${isPic() && !e.color ? 'any' : (T[e.type] ? e.type : 'sdi3g')})"/>`;
@@ -404,7 +530,8 @@ function mk(str) { const g = document.createElementNS(NS, 'g'); g.innerHTML = st
 function renderAll() {
   reindex(); els.clear(); renderImgDefs(); updateModeUI(); hoverId = null; if (LY.hv) LY.hv.innerHTML = '';
   LY.f.innerHTML = P.frames.map(frameSVG).join('');
-  LY.e.innerHTML = P.edges.map(edgeSVG).join('');
+  layoutEdges();
+  LY.e.innerHTML = P.edges.map(e => edgeSVG(e, true)).join('');
   LY.n.innerHTML = P.nodes.map(nodeSVG).join('');
   LY.t.innerHTML = P.texts.map(textSVG).join('');
   for (const L of [LY.f, LY.e, LY.n, LY.t]) for (const g of L.children) { els.set(g.dataset.id, g); g._v = true; }
@@ -419,9 +546,9 @@ function rerenderNode(n) {
   els.set(n.id, g); g._v = true;
   if (sel.has(n.id)) g.classList.add('sel');
 }
-function rerenderEdge(e) {
+function rerenderEdge(e, cached) {
   if (headless) return;
-  const old = els.get(e.id), g = mk(edgeSVG(e));
+  const old = els.get(e.id), g = mk(edgeSVG(e, cached === true));
   if (old) old.replaceWith(g); else LY.e.appendChild(g);
   els.set(e.id, g); g._v = true;
   if (sel.has(e.id)) g.classList.add('sel');
@@ -567,7 +694,7 @@ function hist() {
   markDirty();
 }
 function markDirty() {
-  dirtyFile = true; setSaveState();
+  dirtyFile = true; setSaveState(); scheduleRelayout();
   clearTimeout(asTimer); asTimer = setTimeout(() => idb.set('doc', snap()), 700);
   clearTimeout(extraTimer); extraTimer = setTimeout(() => { renderExtra(); updateStatus(); }, 250);
 }
@@ -1188,12 +1315,13 @@ function itemHTML(d, i, extra) {
 }
 function renderTypeFilter() {
   const keys = ['sdi12g', 'sdi3g', 'hdmi', 'dp', 'fiber', 'eth', 'hdbt', 'ref', 'aud'];
-  $('#libTypeFilter').innerHTML = keys.map(k => `<span data-tf="${k}" class="${typeFilter.has(k) ? 'on' : ''}" style="${typeFilter.has(k) ? 'background:' + T[k].c : 'border-color:' + T[k].c}">${T[k].s === 'SDI' ? T[k].n.replace('-SDI', '') + ' SDI' : T[k].s}</span>`).join('');
+  $('#libTypeFilter').innerHTML = `<span data-tf="photo" class="${typeFilter.has('photo') ? 'on' : ''}" style="${typeFilter.has('photo') ? 'background:#0f766e' : 'border-color:#0f766e'}" title="Только устройства с фото">📷 С фото</span>` + keys.map(k => `<span data-tf="${k}" class="${typeFilter.has(k) ? 'on' : ''}" style="${typeFilter.has(k) ? 'background:' + T[k].c : 'border-color:' + T[k].c}">${T[k].s === 'SDI' ? T[k].n.replace('-SDI', '') + ' SDI' : T[k].s}</span>`).join('');
 }
 const groupOf = d => (d.group && d.group.trim()) || (CATS[d.cat] || CATS.my).n;
 function renderLib() {
   const q = $('#libSearch').value.trim().toLowerCase();
-  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.size || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g'))));
+  const tf = [...typeFilter].filter(k => k !== 'photo');
+  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.has('photo') || d.img) && (!tf.length || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g'))));
   const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
   const gmap = new Map();
   for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
@@ -1672,7 +1800,7 @@ function buildExportSVG() {
   for (const e of P.edges) e._st = edgeStatus(e)[0];
   return `<svg xmlns="http://www.w3.org/2000/svg"${isPic() ? ' class="picmode"' : ''} width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
     + `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>`
-    + P.frames.map(frameSVG).join('') + P.edges.map(edgeSVG).join('') + P.nodes.map(nodeSVG).join('') + P.texts.map(textSVG).join('') + LY.x.innerHTML + '</svg>';
+    + P.frames.map(frameSVG).join('') + (layoutEdges(), P.edges.map(e => edgeSVG(e, true)).join('')) + P.nodes.map(nodeSVG).join('') + P.texts.map(textSVG).join('') + LY.x.innerHTML + '</svg>';
 }
 function exportSVG() { const s = buildExportSVG(); if (s) download(safeName() + ' — ' + P.name + '.svg', s, 'image/svg+xml'); }
 function exportPNG() {
@@ -1764,6 +1892,7 @@ function deleteDevices(list) {
   const mine = list.filter(d => customLib.includes(d)), builtin = list.filter(d => !customLib.includes(d));
   const prevLib = customLib.slice(), prevHidden = (cfg.hidden || []).slice();
   customLib = customLib.filter(d => !mine.includes(d));
+  cfg.removedDefaults = [...new Set([...(cfg.removedDefaults || []), ...mine.map(d => d.id)])];
   cfg.hidden = [...new Set([...(cfg.hidden || []), ...builtin.map(d => d.id)])];
   saveLib(); saveCfg(); renderLib();
   const t = document.createElement('div');
@@ -1917,6 +2046,17 @@ function baseManager() {
     editDevice(d);
   };
 }
+async function mergeDefaults(force) {
+  if (!location.protocol.startsWith('http')) { if (force) toast('База с фото доступна, когда программа открыта с сайта', 'w'); return 0; }
+  let data; try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
+  const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
+  let n = 0;
+  for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; customLib.push(d); n++; }
+  if (force) cfg.removedDefaults = [], saveCfg();
+  if (n) { saveLib(); typeFilter.add('photo'); renderTypeFilter(); renderLib(); toast(`Загружена база с фото: ${n} устройств — показаны в библиотеке (фильтр «📷 С фото»)`); }
+  else if (force) toast('База с фото уже загружена');
+  return n;
+}
 function importLib(data) {
   const reopen = baseOpen;
   const list = Array.isArray(data) ? data : data.devices; let n = 0;
@@ -1947,7 +2087,8 @@ const CMD = {
   baseManager: () => { baseQ = ''; baseSel.clear(); baseManager(); },
   libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('signalflow-база-устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
   libImport: () => $('#libIn').click(),
-  libDefault: async () => { try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (!r.ok) throw 0; importLib(await r.json()); } catch (e) { toast('База по умолчанию недоступна (откройте приложение с сайта)', 'w'); } },
+  libDefault: () => mergeDefaults(true),
+  photoDemo: () => { const d = buildPhotoDemo(); if (d) { openDoc(d); fit(); } },
   fit: () => fit(), zoom100: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / view.k); },
   zoomIn: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); },
   zoomOut: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 0.8); },
@@ -2043,6 +2184,32 @@ function buildDemo() {
   for (const pg of out.pages) for (const n of pg.nodes) delete n._L;
   return JSON.parse(JSON.stringify(out, replacer));
 }
+function buildPhotoDemo() {
+  const F = m => customLib.find(d => d.model === m) || allLib().find(d => d.model === m);
+  if (!customLib.some(d => d.img)) { toast('Сначала загрузите базу с фото: Вставка → Загрузить базу с фото', 'w'); return null; }
+  headless = true; const saved = { doc, P }; doc = newDoc(); doc.name = 'Пример из ваших фото'; doc.view = 'pic'; P = doc.pages[0]; reindex();
+  const A = (m, x, y, label) => { const d = F(m); if (!d) return null; const n = addNode(d, x, y, true); if (label) n.label = label; return n; };
+  const L = (a, b, cap) => { if (!a || !b) return; let pr = bestPair(a, b); if (pr && pr.c[0] === 0) pr = null; if (!pr) { const pa = addLinkPort(a, 'io'), pb = addLinkPort(b, 'io'); pr = { from: { n: a.id, p: pa.id }, to: { n: b.id, p: pb.id } }; } const e = connect(pr.from, pr.to, true); if (cap) e.caption = cap; };
+  const scr = A('Прямоугольник (экран, блок)', 80, 40, 'LED-экран'); if (scr) { scr.sw = 320; scr.sh = 170; }
+  const lamp = A('Круг — сигнальная лампа', 440, 80, 'Сигнальная\nлампа');
+  const proc = A('LED-550D (550DS с SDI)', 80, 270, 'Процессор');
+  const e2 = A('E2 Gen 2 (Event Master, типовая конф.)', 420, 260, 'E2');
+  const ec = A('Event Master EC-50 (пульт)', 760, 240, 'Пульт EC-50');
+  const players = [0, 1, 2].map(i => A('Ноутбук', 380 + i * 300, 560, 'Игрок ' + (i + 1)));
+  const mons = [0, 1, 2].map(i => A('Монитор AOC (HDMI/VGA)', 380 + i * 300, 760, 'Монитор ' + (i + 1)));
+  const host = A('Монитор — PGM', 1340, 760, 'Ведущий');
+  const pres = A('Ноутбук с презентацией', 60, 600, 'Презентация');
+  const reza = A('Ноутбук с Resolume', 60, 820, 'Resolume');
+  const sw = A('HP коммутатор 24×1G + 4 SFP', 500, 1010, 'Коммутатор');
+  const atem = A('ATEM Mini Pro', 1250, 260, 'ATEM');
+  const cam = A('PXW-Z190 (XDCAM 4K)', 1280, 60, 'Камера');
+  reindex();
+  L(pres, e2, 'hdmi'); L(reza, e2, 'hdmi 1920x1080'); L(e2, proc, 'dvi'); L(proc, scr, ''); L(lamp, proc, 'cat 5');
+  players.forEach((n, i) => { L(n, mons[i], 'hdmi'); L(n, sw, 'cat 5'); });
+  L(ec, sw, 'cat 5'); L(cam, atem, 'hdmi'); L(atem, host, 'hdmi'); L(atem, e2, 'hdmi');
+  const out = JSON.parse(JSON.stringify(doc, replacer)); doc = saved.doc; P = saved.P; headless = false; if (P) reindex();
+  return out;
+}
 function buildStress(N) {
   headless = true; const saved = { doc, P }; doc = newDoc(); doc.name = `Тест нагрузки: ${N} устройств`; P = doc.pages[0]; reindex();
   const lib = BUILTIN_LIB.filter(d => d.ports.length <= 24 && d.ports.some(p => p.dir === 'in') && d.ports.some(p => p.dir === 'out'));
@@ -2074,7 +2241,7 @@ doc = newDoc(); P = doc.pages[0];
   let lib = await idb.get('lib');
   if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
   customLib = Array.isArray(lib) ? lib : [];
-  if (!lib && location.protocol.startsWith('http')) { try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (r.ok) importLib(await r.json()); } catch (e) { } }
+  await mergeDefaults(false);
   renderLib();
   let saved = await idb.get('doc');
   if (!saved) saved = store.get('doc', null);
