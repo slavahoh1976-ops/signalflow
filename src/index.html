@@ -12,7 +12,7 @@
     <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="appName">SignalFlow</b><span id="appVer" class="ver" data-cmd="about" title="Версия программы — что нового"></span><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
     <div class="menus">
       <div class="menu"><button>Файл</button><div class="dd">
-        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
+        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr><a data-cmd="backupAll">Резервная копия всего (схема + база + настройки)</a><a data-cmd="restoreAll">Восстановить из резервной копии…</a><hr>
         <a data-cmd="exportPNG">Экспорт PNG</a><a data-cmd="exportSVG">Экспорт SVG</a><a data-cmd="print">Печать / PDF <kbd>Ctrl+P</kbd></a><hr>
         <a data-cmd="cables">Кабельный журнал (CSV)</a><a data-cmd="bom">Спецификация оборудования (CSV)</a><hr>
         <a data-cmd="demo">Открыть пример (с портами)</a><a data-cmd="photoDemo">Открыть пример из ваших фото</a><a data-cmd="stress">Тест нагрузки (1000 устройств)</a>
@@ -55,7 +55,7 @@
     <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
     <div id="libTypeFilter"></div>
     <div id="libList"></div>
-    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
+    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋ Устройство</button><button data-cmd="newGroup" title="Новая группа">＋ Группа</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
   </aside>
 
   <main id="stage">

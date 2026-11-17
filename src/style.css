@@ -64,6 +64,7 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .cat{margin-top:2px}
 .catH{display:flex;align-items:center;gap:6px;padding:6px 6px;font-weight:600;cursor:pointer;border-radius:5px;user-select:none}
 .catH:hover{background:var(--panel2)}
+.catH.drop{background:var(--accs);outline:2px dashed var(--acc);outline-offset:-2px}
 .catH .cnt{margin-left:auto;color:var(--muted);font-weight:400;font-size:11px}
 .catH .arr{transition:transform .15s;font-size:10px;color:var(--muted)}
 .cat.closed .arr{transform:rotate(-90deg)}
@@ -81,8 +82,8 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .item .fav{opacity:0;color:var(--muted);cursor:pointer;padding:0 3px}
 .item:hover .fav,.item .fav.on{opacity:1}
 .item .fav.on{color:#f59e0b}
-.libFoot{display:flex;gap:4px;padding:8px;border-top:1px solid var(--line)}
-.libFoot button{flex:1;font-size:12px;padding:4px 4px}
+.libFoot{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-top:1px solid var(--line)}
+.libFoot button{flex:1 1 28%;font-size:12px;padding:4px 4px}
 
 #stage{position:relative;overflow:hidden;background-color:var(--canvas);outline:none}
 #stage.grid{background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px)}

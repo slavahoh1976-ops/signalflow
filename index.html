@@ -74,6 +74,7 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .cat{margin-top:2px}
 .catH{display:flex;align-items:center;gap:6px;padding:6px 6px;font-weight:600;cursor:pointer;border-radius:5px;user-select:none}
 .catH:hover{background:var(--panel2)}
+.catH.drop{background:var(--accs);outline:2px dashed var(--acc);outline-offset:-2px}
 .catH .cnt{margin-left:auto;color:var(--muted);font-weight:400;font-size:11px}
 .catH .arr{transition:transform .15s;font-size:10px;color:var(--muted)}
 .cat.closed .arr{transform:rotate(-90deg)}
@@ -91,8 +92,8 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .item .fav{opacity:0;color:var(--muted);cursor:pointer;padding:0 3px}
 .item:hover .fav,.item .fav.on{opacity:1}
 .item .fav.on{color:#f59e0b}
-.libFoot{display:flex;gap:4px;padding:8px;border-top:1px solid var(--line)}
-.libFoot button{flex:1;font-size:12px;padding:4px 4px}
+.libFoot{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-top:1px solid var(--line)}
+.libFoot button{flex:1 1 28%;font-size:12px;padding:4px 4px}
 
 #stage{position:relative;overflow:hidden;background-color:var(--canvas);outline:none}
 #stage.grid{background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px)}
@@ -188,7 +189,7 @@ table.bm td{vertical-align:middle}
     <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="appName">SignalFlow</b><span id="appVer" class="ver" data-cmd="about" title="Версия программы — что нового"></span><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
     <div class="menus">
       <div class="menu"><button>Файл</button><div class="dd">
-        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
+        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr><a data-cmd="backupAll">Резервная копия всего (схема + база + настройки)</a><a data-cmd="restoreAll">Восстановить из резервной копии…</a><hr>
         <a data-cmd="exportPNG">Экспорт PNG</a><a data-cmd="exportSVG">Экспорт SVG</a><a data-cmd="print">Печать / PDF <kbd>Ctrl+P</kbd></a><hr>
         <a data-cmd="cables">Кабельный журнал (CSV)</a><a data-cmd="bom">Спецификация оборудования (CSV)</a><hr>
         <a data-cmd="demo">Открыть пример (с портами)</a><a data-cmd="photoDemo">Открыть пример из ваших фото</a><a data-cmd="stress">Тест нагрузки (1000 устройств)</a>
@@ -231,7 +232,7 @@ table.bm td{vertical-align:middle}
     <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
     <div id="libTypeFilter"></div>
     <div id="libList"></div>
-    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
+    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋ Устройство</button><button data-cmd="newGroup" title="Новая группа">＋ Группа</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
   </aside>
 
   <main id="stage">
@@ -773,8 +774,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.5.4', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.0', '17.11.2026', ['Группы библиотеки: перетаскивание устройств между группами, новые группы, переименование (и встроенных), порядок перетаскиванием, удаление с переносом устройств', 'Правый клик по устройству — «Переместить в группу…», в редакторе базы — перенос выбранных']],
   ['1.5.4', '17.11.2026', ['Матрицы Lightware: MX2 HDMI 2.0 (4×4…48×48), MX2 DH (HDMI+DP), MX2 DP, MMX (HDBaseT), Taurus UCX (USB-C), модульные MX-FR']],
   ['1.5.3', '17.11.2026', ['Правый клик по пустому месту: «Новое устройство здесь» — создаётся в базе и сразу ставится на схему', 'Там же — быстрые фигуры (экран, лампа, кнопка, блок)', 'Фото, брошенное на пустое место схемы, после сохранения встаёт в эту точку']],
   ['1.5.2', '17.11.2026', ['Автопроверка обновлений: при новой версии вверху появляется кнопка «Обновить»', 'Сайт всегда загружается свежим (кэш только для работы без интернета)']],
@@ -807,7 +809,7 @@ const idb = (() => {
     async set(k, v) { try { const db = await open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return store.set(k, v); } },
   };
 })();
-const cfg = Object.assign({ hidden: [], builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
+const cfg = Object.assign({ groupRename: {}, groupOrder: [], groupsExtra: [], hidden: [], builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
 const saveCfg = () => store.set('cfg', cfg);
 const favs = new Set(store.get('favs', []));
 let customLib = [];
@@ -1489,7 +1491,16 @@ function loadState(str, keepView) {
 function undo() { if (!undoS.length) return toast('Нечего отменять'); redoS.push(snap()); loadState(undoS.pop(), true); markDirty(); }
 function redo() { if (!redoS.length) return; undoS.push(snap()); loadState(redoS.pop(), true); markDirty(); }
 
+function restoreBackup(b) {
+  customLib = Array.isArray(b.lib) ? b.lib : customLib; saveLib();
+  if (b.cfg) { Object.assign(cfg, b.cfg); saveCfg(); }
+  if (Array.isArray(b.favs)) { favs.clear(); b.favs.forEach(x => favs.add(x)); store.set('favs', [...favs]); }
+  renderTypeFilter(); renderLib();
+  if (b.doc && b.doc.pages) openDoc(b.doc);
+  toast(`Восстановлено из копии: схема и ${customLib.length} устройств базы`);
+}
 function openDoc(d, handle) {
+  if (d && d.backup) return restoreBackup(d);
   if (!d || !Array.isArray(d.pages)) return toast('Это не файл SignalFlow', 'e');
   doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
   $('#imgDefs').innerHTML = '';
@@ -2115,7 +2126,98 @@ function renderTypeFilter() {
   const keys = ['sdi12g', 'sdi3g', 'hdmi', 'dp', 'fiber', 'eth', 'hdbt', 'ref', 'aud'];
   $('#libTypeFilter').innerHTML = `<span data-tf="photo" class="${typeFilter.has('photo') ? 'on' : ''}" style="${typeFilter.has('photo') ? 'background:#0f766e' : 'border-color:#0f766e'}" title="Только устройства с фото">📷 С фото</span>` + keys.map(k => `<span data-tf="${k}" class="${typeFilter.has(k) ? 'on' : ''}" style="${typeFilter.has(k) ? 'background:' + T[k].c : 'border-color:' + T[k].c}">${T[k].s === 'SDI' ? T[k].n.replace('-SDI', '') + ' SDI' : T[k].s}</span>`).join('');
 }
-const groupOf = d => (d.group && d.group.trim()) || (CATS[d.cat] || CATS.my).n;
+const rawGroup = d => (d.group && d.group.trim()) || (CATS[d.cat] || CATS.my).n;
+const groupOf = d => { const g = rawGroup(d); return (cfg.groupRename || {})[g] || g; };
+function allGroupNames() {
+  const s = new Set();
+  for (const g of cfg.groupOrder || []) s.add(g);
+  for (const d of customLib) s.add(groupOf(d));
+  for (const c of Object.keys(CATS)) if (c !== 'shape' && c !== 'my') s.add((cfg.groupRename || {})[CATS[c].n] || CATS[c].n);
+  for (const g of cfg.groupsExtra || []) s.add(g);
+  s.add(groupOf({ cat: 'shape' }));
+  return [...s];
+}
+// перенос устройства в группу: своё — меняем поле, встроенное — создаём свою копию (она заменит встроенную)
+function moveToGroup(list, g) {
+  let n = 0;
+  for (const d of list) {
+    if (!d || d.cat === 'shape') continue;
+    if (customLib.includes(d)) { d.group = g; n++; continue; }
+    const c = { ...JSON.parse(JSON.stringify(d)), id: 'c' + uid(), group: g }; delete c.shape;
+    customLib.push(c); n++;
+  }
+  if (!(cfg.groupOrder || []).includes(g)) cfg.groupOrder = [...(cfg.groupOrder || []), g];
+  cfg.groupsExtra = (cfg.groupsExtra || []).filter(x => x !== g);
+  openCats.add(g); store.set('openCats', [...openCats]);
+  saveLib(); saveCfg(); renderLib();
+  if (n) toast(`Перемещено в «${g}»: ${n}`);
+}
+function askText(title, value, cb, ph) {
+  openModal(title, `<div class="fld"><input id="askIn" value="${esc(value || '')}" placeholder="${esc(ph || '')}" style="font-size:15px;padding:8px"></div><div class="btns"><button class="pri" id="askOk">OK</button><button id="askNo">Отмена</button></div>`);
+  const i = $('#askIn'); i.focus(); i.select();
+  const ok = () => { const v = i.value.trim(); closeModal(); if (v) cb(v); };
+  $('#askOk').onclick = ok; $('#askNo').onclick = closeModal; i.onkeydown = e => { if (e.key === 'Enter') ok(); };
+}
+function newGroup(after) {
+  askText('Новая группа', '', name => {
+    if (allGroupNames().includes(name)) return toast('Такая группа уже есть', 'w');
+    cfg.groupsExtra = [...(cfg.groupsExtra || []), name];
+    const order = cfg.groupOrder && cfg.groupOrder.length ? cfg.groupOrder.slice() : currentGroupOrder();
+    const i = after ? order.indexOf(after) : -1; order.splice(i >= 0 ? i + 1 : order.length, 0, name);
+    cfg.groupOrder = order; openCats.add(name); store.set('openCats', [...openCats]); saveCfg(); renderLib();
+    toast(`Группа «${name}» создана — перетащите в неё устройства`);
+  }, 'например: Аппаратная 1, Стол игрока');
+}
+function renameGroup(old) {
+  askText('Переименовать группу', old, name => {
+    if (name === old) return;
+    for (const d of customLib) if (groupOf(d) === old) d.group = name;
+    const rn = { ...(cfg.groupRename || {}) };
+    for (const k of Object.keys(rn)) if (rn[k] === old) rn[k] = name;
+    for (const c of Object.values(CATS)) if (c.n === old) rn[c.n] = name;
+    cfg.groupRename = rn;
+    cfg.groupOrder = (cfg.groupOrder || []).map(g => g === old ? name : g);
+    cfg.groupsExtra = (cfg.groupsExtra || []).map(g => g === old ? name : g);
+    if (openCats.has(old)) { openCats.delete(old); openCats.add(name); store.set('openCats', [...openCats]); }
+    saveLib(); saveCfg(); renderLib(); toast(`Группа переименована: «${name}»`);
+  });
+}
+function currentGroupOrder() { return [...document.querySelectorAll('#libList .cat')].map(c => c.dataset.cat).filter(c => c !== 'fav'); }
+function moveGroup(g, dir) {
+  const order = cfg.groupOrder && cfg.groupOrder.length ? cfg.groupOrder.slice() : currentGroupOrder();
+  for (const x of allGroupNames()) if (!order.includes(x)) order.push(x);
+  const i = order.indexOf(g), j = i + dir; if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]]; cfg.groupOrder = order; saveCfg(); renderLib();
+}
+function placeGroupBefore(g, target) {
+  const order = (cfg.groupOrder && cfg.groupOrder.length ? cfg.groupOrder.slice() : currentGroupOrder()).filter(x => x !== g);
+  for (const x of allGroupNames()) if (!order.includes(x) && x !== g) order.push(x);
+  const i = order.indexOf(target); order.splice(i < 0 ? order.length : i, 0, g); cfg.groupOrder = order; saveCfg(); renderLib();
+}
+function deleteGroup(g) {
+  const devs = allLib().filter(d => groupOf(d) === g && d.cat !== 'shape');
+  if (!devs.length) { cfg.groupsExtra = (cfg.groupsExtra || []).filter(x => x !== g); cfg.groupOrder = (cfg.groupOrder || []).filter(x => x !== g); saveCfg(); renderLib(); return toast(`Группа «${g}» удалена`); }
+  const others = allGroupNames().filter(x => x !== g && x !== groupOf({ cat: 'shape' }));
+  openModal(`Удалить группу «${g}»`, `<p>В группе устройств: <b>${devs.length}</b>. Что с ними сделать?</p>
+    <div class="fld"><label><input type="radio" name="dg" value="move" checked> Перенести в группу:</label><select id="dgTo">${others.map(x => `<option>${esc(x)}</option>`).join('')}</select></div>
+    <div class="fld"><label><input type="radio" name="dg" value="del"> Удалить устройства вместе с группой (можно будет вернуть сразу после)</label></div>
+    <div class="btns"><button class="pri" id="dgOk">Удалить группу</button><button id="dgNo">Отмена</button></div>`);
+  $('#dgNo').onclick = closeModal;
+  $('#dgOk').onclick = () => {
+    const mode = document.querySelector('input[name=dg]:checked').value, to = $('#dgTo').value; closeModal();
+    cfg.groupsExtra = (cfg.groupsExtra || []).filter(x => x !== g); cfg.groupOrder = (cfg.groupOrder || []).filter(x => x !== g);
+    if (mode === 'move') moveToGroup(devs, to); else deleteDevices(devs);
+    saveCfg(); renderLib();
+  };
+}
+function pickGroup(list) {
+  const names = allGroupNames().filter(x => x !== groupOf({ cat: 'shape' }));
+  openModal(`Переместить в группу (${list.length})`, `<div class="fld"><label>Группа</label><select id="pgSel">${names.map(x => `<option>${esc(x)}</option>`).join('')}</select></div>
+    <div class="fld"><label>…или новая группа</label><input id="pgNew" placeholder="название новой группы"></div>
+    <div class="btns"><button class="pri" id="pgOk">Переместить</button><button id="pgNo">Отмена</button></div>`);
+  $('#pgNo').onclick = closeModal;
+  $('#pgOk').onclick = () => { const g = $('#pgNew').value.trim() || $('#pgSel').value; const back = baseOpen; closeModal(); moveToGroup(list, g); if (back) baseManager(); };
+}
 function renderLib() {
   const q = $('#libSearch').value.trim().toLowerCase();
   const tf = [...typeFilter].filter(k => k !== 'photo');
@@ -2123,15 +2225,18 @@ function renderLib() {
   const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
   const gmap = new Map();
   for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
-  const order = [...new Set(customLib.map(groupOf))];
-  for (const c of Object.keys(CATS)) if (!order.includes(CATS[c].n)) order.push(CATS[c].n);
+  const order = (cfg.groupOrder || []).slice();
+  for (const g of customLib.map(groupOf)) if (!order.includes(g)) order.push(g);
+  for (const c of Object.keys(CATS)) { const n = groupOf({ cat: c }); if (!order.includes(n)) order.push(n); }
   for (const g of gmap.keys()) if (!order.includes(g)) order.push(g);
-  for (const g of order) if (gmap.has(g)) groups.push([g, g, gmap.get(g)]);
+  for (const g of cfg.groupsExtra || []) if (!order.includes(g)) order.push(g);
+  const extra = new Set(cfg.groupsExtra || []);
+  for (const g of order) if (gmap.has(g) || extra.has(g)) groups.push([g, g, gmap.get(g) || []]);
   const searching = q || typeFilter.size;
-  $('#libList').innerHTML = groups.filter(g => g[2].length || (g[0] === 'fav' && !searching)).map(([c, name, list]) => {
+  $('#libList').innerHTML = groups.filter(g => g[2].length || (!searching && (g[0] === 'fav' || extra.has(g[0])))).map(([c, name, list]) => {
     const open = searching || openCats.has(c);
-    return `<div class="cat${open ? '' : ' closed'}" data-cat="${esc(c)}"><div class="catH"><span class="arr">▼</span>${esc(name)}<span class="cnt">${list.length}</span></div><div class="items">`
-      + (list.length ? list.map(d => itemHTML(d)).join('') : '<div class="small muted" style="padding:2px 12px 6px">Нажмите ★ у устройства, чтобы добавить сюда</div>') + '</div></div>';
+    return `<div class="cat${open ? '' : ' closed'}" data-cat="${esc(c)}"><div class="catH"${c !== 'fav' ? ' draggable="true" title="Перетащите, чтобы изменить порядок · правый клик — меню группы"' : ''}><span class="arr">▼</span>${esc(name)}<span class="cnt">${list.length}</span></div><div class="items">`
+      + (list.length ? list.map(d => itemHTML(d)).join('') : `<div class="small muted" style="padding:2px 12px 6px">${c === 'fav' ? 'Нажмите ★ у устройства, чтобы добавить сюда' : 'Пустая группа — перетащите сюда устройства'}</div>`) + '</div></div>';
   }).join('') || `<div class="muted" style="padding:12px;line-height:1.5">${customLib.length || q ? 'Ничего не найдено' : 'Ваша база пуста.<br>Нажмите «＋ Своё устройство» или просто перетащите фото устройства сюда.'}</div>`;
 }
 $('#libSearch').addEventListener('input', renderLib);
@@ -2155,14 +2260,43 @@ $('#libList').addEventListener('click', ev => {
   selectOnly([n.id]); markDirty();
 });
 $('#quickList').addEventListener('mousedown', ev => { if (ev.target.closest('[data-fav]')) { ev.preventDefault(); onFavClick(ev); } });
+let libDragGroup = null;
+$('#libList').addEventListener('dragstart', ev => {
+  const h = ev.target.closest && ev.target.closest('.catH');
+  if (h) { libDragGroup = h.parentNode.dataset.cat; ev.dataTransfer.setData('text/sf-group', libDragGroup); ev.dataTransfer.effectAllowed = 'move'; return; }
+  libDragGroup = null;
+});
+$('#libList').addEventListener('dragover', ev => {
+  const cat = ev.target.closest && ev.target.closest('.cat'); if (!cat || cat.dataset.cat === 'fav') return;
+  const t = ev.dataTransfer.types;
+  if (t.includes('text/sf-dev') || t.includes('text/sf-group')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop')); cat.querySelector('.catH').classList.add('drop'); }
+});
+$('#libList').addEventListener('dragleave', ev => { if (!ev.relatedTarget || !$('#libList').contains(ev.relatedTarget)) document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop')); });
+$('#libList').addEventListener('drop', ev => {
+  document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop'));
+  const cat = ev.target.closest && ev.target.closest('.cat'); if (!cat || cat.dataset.cat === 'fav') return;
+  const g = cat.dataset.cat, dev = ev.dataTransfer.getData('text/sf-dev'), grp = ev.dataTransfer.getData('text/sf-group');
+  if (dev) { ev.preventDefault(); ev.stopPropagation(); const d = libById(dev); if (d && groupOf(d) !== g) moveToGroup([d], g); return; }
+  if (grp && grp !== g) { ev.preventDefault(); ev.stopPropagation(); placeGroupBefore(grp, g); }
+});
 $('#libList').addEventListener('dragstart', ev => { const it = ev.target.closest('.item'); if (!it) return; ev.dataTransfer.setData('text/sf-dev', it.dataset.dev); ev.dataTransfer.effectAllowed = 'copy'; });
 $('#libList').addEventListener('contextmenu', ev => {
+  const h = ev.target.closest('.catH');
+  if (h) {
+    ev.preventDefault(); const g = h.parentNode.dataset.cat; if (g === 'fav') return;
+    return showCtx(ev.clientX, ev.clientY, [
+      ['Переименовать группу…', () => renameGroup(g)], ['＋ Новая группа…', () => newGroup(g)], ['＋ Новое устройство в эту группу…', () => deviceEditor({ id: null, cat: 'my', group: g, maker: '', model: '', ports: [] })],
+      '-', ['Выше', () => moveGroup(g, -1)], ['Ниже', () => moveGroup(g, 1)],
+      '-', ['Развернуть все группы', () => { allGroupNames().forEach(x => openCats.add(x)); store.set('openCats', [...openCats]); renderLib(); }], ['Свернуть все группы', () => { openCats.clear(); store.set('openCats', []); renderLib(); }],
+      '-', ['Удалить группу…', () => deleteGroup(g)]]);
+  }
   const it = ev.target.closest('.item'); if (!it) return; ev.preventDefault();
   const d = libById(it.dataset.dev), custom = customLib.includes(d);
   showCtx(ev.clientX, ev.clientY, [
     ['Добавить на схему', () => it.click()],
     ['Изменить (фото, порты, название)…', () => editDevice(d)],
     ['Копия как новое устройство…', () => deviceEditor({ ...JSON.parse(JSON.stringify(d)), id: null, model: d.model + ' (копия)' })],
+    ['Переместить в группу…', () => pickGroup([d])],
     ['Удалить из базы', () => deleteDevices([d])],
     '-', ['Вся база — редактор…', () => baseManager()],
   ]);
@@ -2671,7 +2805,7 @@ document.addEventListener('drop', async ev => {
     const onCanvas = stage.contains(ev.target);
     return deviceEditor({ id: null, cat: 'my', maker: '', model: f.name.replace(/\.[^.]+$/, ''), img: im, ports: [], _placeAt: onCanvas ? toDoc(ev.clientX, ev.clientY) : undefined });
   }
-  try { const d = JSON.parse(await f.text()); if (d.pages) openDoc(d); else if (Array.isArray(d.devices)) importLib(d); } catch (e) { toast('Не удалось открыть файл', 'e'); }
+  try { const d = JSON.parse(await f.text()); if (d.backup) restoreBackup(d); else if (d.pages) openDoc(d); else if (Array.isArray(d.devices)) importLib(d); } catch (e) { toast('Не удалось открыть файл', 'e'); }
 });
 
 // ---------- база устройств: свой редактор, импорт/экспорт
@@ -2733,7 +2867,7 @@ function applyDevToNodes(dev, oldKeys, oldIds) {
 function deviceEditor(dev) {
   const d = JSON.parse(JSON.stringify(dev)); d.ports = (d.ports || []).map(p => ({ ...p }));
   d.cat = d.cat || 'my';
-  const groups = [...new Set(customLib.map(groupOf).concat(Object.values(CATS).map(c => c.n)))];
+  const groups = allGroupNames();
   const oldKeys = new Set([devKey(dev)]), oldIds = new Set([dev.id, dev._builtin].filter(Boolean));
   const onSchema = (dev.id || dev._builtin) ? nodesOfDev(oldKeys, oldIds).length : 0;
   const draw = () => {
@@ -2818,7 +2952,7 @@ function baseManager() {
   const hiddenN = (cfg.hidden || []).length;
   openModal(`База устройств — ваших: ${customLib.length}, встроенных: ${BUILTIN_LIB.length - 5}`, `
     <div class="btns" style="align-items:center"><input id="bmQ" placeholder="Поиск по базе…" value="${esc(baseQ)}" style="flex:1;min-width:220px">
-      <button class="pri" data-bm="new">＋ Новое устройство</button><button data-bm="delSel" ${baseSel.size ? '' : 'disabled'}>Удалить выбранные (${baseSel.size})</button>
+      <button class="pri" data-bm="new">＋ Новое устройство</button><button data-bm="moveSel" ${baseSel.size ? '' : 'disabled'}>В группу… (${baseSel.size})</button><button data-bm="delSel" ${baseSel.size ? '' : 'disabled'}>Удалить выбранные (${baseSel.size})</button><button data-bm="newGroup">＋ Группа</button>
       ${hiddenN ? `<button data-bm="unhide">Вернуть скрытые встроенные (${hiddenN})</button>` : ''}
       <button data-bm="export">⇩ Экспорт</button><button data-bm="import">⇧ Импорт</button></div>
     <div class="small muted" style="margin:4px 0 8px">Клик по строке — изменить. Ваши устройства хранятся в браузере; сохраняйте копию через «⇩ Экспорт».</div>
@@ -2836,7 +2970,7 @@ function baseManager() {
   body.oninput = null; body.onchange = ev => {
     const t = ev.target;
     if (t.id === 'bmAll') { rows.forEach(x => t.checked ? baseSel.add(x.d.id) : baseSel.delete(x.d.id)); return baseManager(); }
-    if (t.dataset.bsel) { t.checked ? baseSel.add(t.dataset.bsel) : baseSel.delete(t.dataset.bsel); const b = body.querySelector('[data-bm=delSel]'); b.disabled = !baseSel.size; b.textContent = `Удалить выбранные (${baseSel.size})`; }
+    if (t.dataset.bsel) { t.checked ? baseSel.add(t.dataset.bsel) : baseSel.delete(t.dataset.bsel); const b = body.querySelector('[data-bm=delSel]'); b.disabled = !baseSel.size; b.textContent = `Удалить выбранные (${baseSel.size})`; const m = body.querySelector('[data-bm=moveSel]'); m.disabled = !baseSel.size; m.textContent = `В группу… (${baseSel.size})`; }
   };
   body.onclick = ev => {
     const t = ev.target; if (t.dataset.bsel || t.id === 'bmAll' || t.id === 'bmQ') return;
@@ -2846,6 +2980,8 @@ function baseManager() {
     if (act === 'export') return CMD.libExport();
     if (act === 'import') return $('#libIn').click();
     if (act === 'unhide') { cfg.hidden = []; saveCfg(); renderLib(); return baseManager(); }
+    if (act === 'moveSel') { const list = [...baseSel].map(libById).filter(Boolean); baseSel.clear(); return pickGroup(list); }
+    if (act === 'newGroup') return newGroup();
     if (act === 'delSel') { const list = [...baseSel].map(libById).filter(Boolean); baseSel.clear(); deleteDevices(list); return baseManager(); }
     if (!d) return;
     if (act === 'del') { deleteDevices([d]); return baseManager(); }
@@ -2892,6 +3028,9 @@ const CMD = {
   undo, redo, copy: copySel, paste: () => paste(), dup: () => { copySel(); paste(); }, del: deleteSel,
   selAll: () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)), find: () => $('#findBox').focus(), renumber,
   quick: quickAtCenter, addFrame, addText, newDevice: () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] }),
+  newGroup: () => newGroup(),
+  backupAll: () => download(`SignalFlow — резервная копия ${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'SignalFlow', backup: 1, appVersion: APP_VERSION, date: new Date().toISOString(), doc: JSON.parse(snap()), lib: customLib, cfg, favs: [...favs] }), 'application/json'),
+  restoreAll: () => $('#fileIn').click(),
   baseManager: () => { baseQ = ''; baseSel.clear(); baseManager(); },
   libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('signalflow-база-устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
   libImport: () => $('#libIn').click(),
