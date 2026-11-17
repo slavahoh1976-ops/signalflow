@@ -189,7 +189,7 @@ function route(e) {
   const ax = a.x + a.d * o, bx = b.x + b.d * o;
   let pts, seg;
   if (a.d !== b.d) {
-    const forward = (b.x - a.x) * a.d > 2 * o;
+    const forward = (b.x - a.x) * a.d > 16;
     if (forward && e.my == null) {
       const mx = e.mx != null ? e.mx : (a.x + b.x) / 2 + spread;
       pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', x: mx, y: (a.y + b.y) / 2 };
@@ -924,7 +924,7 @@ function devMatches(d, q) {
   return q.split(/\s+/).every(w => hay.includes(w));
 }
 function famOf(w) {
-  w = w.toLowerCase(); const map = { sdi: 'sdi', hdmi: 'hdmi', dp: 'dp', dvi: 'dvi', fiber: 'fiber', 'оптика': 'fiber', opt: 'fiber', ndi: 'eth', ip: 'eth', lan: 'eth', eth: 'eth', usb: 'usb', hdbt: 'hdbt', hdbaset: 'hdbt', cvbs: 'cvbs', aes: 'aes', audio: 'aud', xlr: 'aud' };
+  w = w.toLowerCase(); const map = { sdi: 'sdi', hdmi: 'hdmi', dp: 'dp', dvi: 'dvi', fiber: 'fiber', 'оптика': 'fiber', opt: 'fiber', ndi: 'eth', ip: 'eth', lan: 'eth', eth: 'eth', usb: 'usb', hdbt: 'hdbt', hdbaset: 'hdbt', cvbs: 'cvbs', av: 'cvbs', vga: 'vga', aes: 'aes', audio: 'aud', xlr: 'aud' };
   return map[w];
 }
 function renderQuick() {
