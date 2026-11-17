@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignalFlow — схемы видеосигнала</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
+    <div class="menus">
+      <div class="menu"><button>Файл</button><div class="dd">
+        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
+        <a data-cmd="exportPNG">Экспорт PNG</a><a data-cmd="exportSVG">Экспорт SVG</a><a data-cmd="print">Печать / PDF <kbd>Ctrl+P</kbd></a><hr>
+        <a data-cmd="cables">Кабельный журнал (CSV)</a><a data-cmd="bom">Спецификация оборудования (CSV)</a><hr>
+        <a data-cmd="demo">Открыть пример</a><a data-cmd="stress">Тест нагрузки (1000 устройств)</a>
+      </div></div>
+      <div class="menu"><button>Правка</button><div class="dd">
+        <a data-cmd="undo">Отменить <kbd>Ctrl+Z</kbd></a><a data-cmd="redo">Повторить <kbd>Ctrl+Y</kbd></a><hr>
+        <a data-cmd="copy">Копировать <kbd>Ctrl+C</kbd></a><a data-cmd="paste">Вставить <kbd>Ctrl+V</kbd></a><a data-cmd="dup">Дублировать <kbd>Ctrl+D</kbd></a><a data-cmd="del">Удалить <kbd>Del</kbd></a><hr>
+        <a data-cmd="selAll">Выделить всё <kbd>Ctrl+A</kbd></a><a data-cmd="find">Найти на схеме <kbd>Ctrl+F</kbd></a><a data-cmd="renumber">Перенумеровать кабели</a>
+      </div></div>
+      <div class="menu"><button>Вставка</button><div class="dd">
+        <a data-cmd="quick">Устройство… <kbd>A / двойной клик</kbd></a><a data-cmd="addFrame">Зона (помещение/рэк) <kbd>Z</kbd></a><a data-cmd="addText">Текст <kbd>T</kbd></a><hr>
+        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a>
+      </div></div>
+      <div class="menu"><button>Вид</button><div class="dd">
+        <a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
+        <a data-cmd="toggleGrid">Сетка и привязка</a><a data-cmd="toggleLegend">Легенда и штамп на схеме</a><a data-cmd="toggleLabels">Подписи кабелей</a><a data-cmd="theme">Тёмная / светлая тема</a><hr>
+        <a data-cmd="wire:orth">Кабели: ортогональные</a><a data-cmd="wire:curve">Кабели: кривые</a><a data-cmd="wire:line">Кабели: прямые</a>
+      </div></div>
+      <div class="menu"><button>Проверка</button><div class="dd">
+        <a data-cmd="check">Проверить схему</a><a data-cmd="cablesView">Кабельный журнал</a><a data-cmd="bomView">Спецификация</a>
+      </div></div>
+      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a></div></div>
+    </div>
+    <div id="saveState" class="ok">Сохранено</div>
+    <div class="tools">
+      <button data-cmd="undo" title="Отменить (Ctrl+Z)">↶</button><button data-cmd="redo" title="Повторить (Ctrl+Y)">↷</button>
+      <span class="sep"></span>
+      <button data-cmd="zoomOut" title="Уменьшить">−</button><button id="zoomLbl" data-cmd="fit" title="Показать всё (F)">100%</button><button data-cmd="zoomIn" title="Увеличить">+</button>
+      <span class="sep"></span>
+      <select id="wireStyle" title="Стиль кабелей"><option value="orth">┐ Ортогональные</option><option value="curve">∿ Кривые</option><option value="line">／ Прямые</option></select>
+      <button data-cmd="check" title="Проверить схему">✓ Проверка</button>
+      <button data-cmd="cablesView" title="Кабельный журнал">☰ Кабели</button>
+      <input id="findBox" placeholder="Найти на схеме…" title="Ctrl+F">
+    </div>
+  </header>
+
+  <aside id="lib">
+    <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
+    <div id="libTypeFilter"></div>
+    <div id="libList"></div>
+    <div class="libFoot"><button data-cmd="newDevice">＋ Своё устройство</button><button data-cmd="libExport" title="Экспорт базы">⇩ База</button><button data-cmd="libImport" title="Импорт базы">⇧ База</button></div>
+  </aside>
+
+  <main id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs id="defs"></defs>
+      <g id="vp">
+        <g id="Lframes"></g><g id="Ledges"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
+      </g>
+    </svg>
+    <div id="marquee"></div>
+    <div id="hint"></div>
+  </main>
+
+  <aside id="props"></aside>
+
+  <footer id="bottom">
+    <div id="pages"></div>
+    <div id="status"></div>
+  </footer>
+</div>
+
+<div id="quick" class="pop hidden"><input id="quickIn" placeholder="Начните вводить модель или тип…" spellcheck="false"><div id="quickList"></div></div>
+<div id="ctx" class="pop hidden"></div>
+<div id="modal" class="hidden"><div class="mbox"><div class="mhead"><b id="mTitle"></b><button id="mClose">✕</button></div><div id="mBody"></div></div></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept=".json,.vsf" hidden>
+<input type="file" id="libIn" accept=".json" hidden>
+<script>/*JS*/</script>
+</body>
+</html>

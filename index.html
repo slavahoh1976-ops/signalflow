@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#1f6feb">
+<title>SignalFlow — схемы видеосигнала</title>
+<style>:root{
+  --bg:#f4f5f7; --panel:#ffffff; --panel2:#f8fafc; --line:#e2e5ea; --text:#1f2937; --muted:#6b7280; --acc:#2563eb; --accs:#dbeafe;
+  --canvas:#ffffff; --grid:#eef0f3; --grid2:#e1e4e9;
+  --node:#ffffff; --nodeStroke:#cbd2dc; --nodeText:#111827; --portText:#374151; --frameFill:rgba(37,99,235,.035);
+  --labelBg:#ffffff; --sel:#2563eb; --warn:#f59e0b; --bad:#ef4444;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+}
+.dark{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1d2129; --line:#2a2f3a; --text:#e5e7eb; --muted:#9ca3af; --acc:#60a5fa; --accs:#1e3a5f;
+  --canvas:#12151b; --grid:#1a1e26; --grid2:#232835;
+  --node:#1c2029; --nodeStroke:#3a4150; --nodeText:#f3f4f6; --portText:#cbd5e1; --frameFill:rgba(96,165,250,.05);
+  --labelBg:#12151b; --sel:#60a5fa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-size:13px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 7px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-family:inherit}
+.hidden{display:none!important}
+
+#app{display:grid;grid-template-columns:270px 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
+#top{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap;min-width:0}
+.brand{display:flex;align-items:center;gap:6px;color:var(--acc)}
+#docName{border:1px solid transparent;font-weight:600;font-size:15px;width:220px;color:var(--text);background:transparent}
+#docName:hover{border-color:var(--line)}
+.menus{display:flex}
+.menu{position:relative}
+.menu>button{border:none;background:none;padding:5px 9px}
+.menu>button:hover{background:var(--panel2)}
+.menu .dd{display:none;position:absolute;left:0;top:100%;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:260px;padding:5px}
+.menu:hover .dd,.menu.open .dd{display:block}
+.dd a{display:flex;padding:6px 10px;border-radius:5px;cursor:pointer}
+.dd a:hover{background:var(--accs)}
+.dd hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+#saveState{font-size:12px;padding:3px 8px;border-radius:5px;white-space:nowrap;cursor:pointer}
+#saveState.dirty{background:#fee2e2;color:#b91c1c}
+#saveState.ok{color:var(--muted)}
+.tools{display:flex;align-items:center;gap:4px;margin-left:auto}
+.tools .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+#zoomLbl{min-width:58px}
+#findBox{width:150px}
+@media (max-width:1350px){#findBox,#wireStyle{display:none}}
+@media (max-width:1150px){#app{grid-template-columns:230px 1fr 250px}}
+
+#lib{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.libHead{padding:8px}
+.libHead input{width:100%}
+.libHead input[type=checkbox]{width:auto;margin:0}
+#libTypeFilter{display:flex;flex-wrap:wrap;gap:3px;padding:0 8px 6px}
+#libTypeFilter span{font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);cursor:pointer;user-select:none}
+#libTypeFilter span.on{color:#fff;border-color:transparent}
+#libList{flex:1;overflow:auto;padding:0 4px 8px}
+.cat{margin-top:2px}
+.catH{display:flex;align-items:center;gap:6px;padding:6px 6px;font-weight:600;cursor:pointer;border-radius:5px;user-select:none}
+.catH:hover{background:var(--panel2)}
+.catH .cnt{margin-left:auto;color:var(--muted);font-weight:400;font-size:11px}
+.catH .arr{transition:transform .15s;font-size:10px;color:var(--muted)}
+.cat.closed .arr{transform:rotate(-90deg)}
+.cat.closed .items{display:none}
+.item{display:flex;align-items:center;gap:7px;padding:4px 6px 4px 10px;border-radius:5px;cursor:grab;user-select:none}
+.item:hover{background:var(--accs)}
+.item .ic{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;flex:none}
+.item .ic svg{width:14px;height:14px}
+.item .t{min-width:0;flex:1}
+.item .m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .k{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .fav{opacity:0;color:var(--muted);cursor:pointer;padding:0 3px}
+.item:hover .fav,.item .fav.on{opacity:1}
+.item .fav.on{color:#f59e0b}
+.libFoot{display:flex;gap:4px;padding:8px;border-top:1px solid var(--line)}
+.libFoot button{flex:1;font-size:12px;padding:4px 4px}
+
+#stage{position:relative;overflow:hidden;background-color:var(--canvas);outline:none}
+#stage.grid{background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px)}
+#svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;touch-action:none}
+#stage.panning #svg{cursor:grabbing}
+#stage.spacepan #svg{cursor:grab}
+#marquee{position:absolute;border:1px dashed var(--acc);background:rgba(37,99,235,.08);pointer-events:none;display:none}
+#hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(17,24,39,.88);color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;pointer-events:none;display:none;max-width:80%}
+
+#props{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:10px 12px}
+#props h3{margin:2px 0 10px;font-size:14px;display:flex;align-items:center;gap:6px}
+#props h4{margin:14px 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.fld{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.fld label{font-size:11.5px;color:var(--muted)}
+.fld input,.fld select,.fld textarea{width:100%}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+.btns{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.ports{width:100%;border-collapse:collapse;font-size:12px}
+.ports td{padding:2px 2px}
+.ports input,.ports select{width:100%;padding:2px 4px;font-size:12px}
+.ports .x{cursor:pointer;color:var(--muted);text-align:center}
+.ports .x:hover{color:var(--bad)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.warnbox{background:#fef3c7;color:#92400e;border-radius:6px;padding:7px 9px;margin:6px 0;font-size:12px}
+.badbox{background:#fee2e2;color:#991b1b;border-radius:6px;padding:7px 9px;margin:6px 0;font-size:12px}
+.dark .warnbox{background:#3b2f0e;color:#fcd34d}.dark .badbox{background:#3f1515;color:#fca5a5}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;font-size:12px}
+.legend i{width:22px;height:3px;border-radius:2px;display:block}
+.stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--line)}
+.muted{color:var(--muted)}
+.small{font-size:11.5px}
+
+#bottom{grid-column:1/4;display:flex;align-items:center;background:var(--panel);border-top:1px solid var(--line);padding:0 8px;gap:10px}
+#pages{display:flex;align-items:center;gap:2px;overflow:auto;flex:1}
+#pages .pg{padding:3px 12px;border-radius:5px 5px 0 0;cursor:pointer;white-space:nowrap;border:1px solid transparent}
+#pages .pg.on{background:var(--canvas);border-color:var(--line);font-weight:600}
+#pages .add{padding:2px 8px;border:none;background:none;font-size:16px}
+#status{color:var(--muted);font-size:12px;white-space:nowrap}
+
+.pop{position:fixed;z-index:100;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 32px rgba(0,0,0,.22)}
+#quick{width:400px;padding:7px}
+#quick input{width:100%;font-size:14px;padding:7px 9px}
+#quickList{max-height:340px;overflow:auto;margin-top:5px}
+#quickList .item{cursor:pointer}
+#quickList .item.on{background:var(--accs)}
+#quick .qh{font-size:11.5px;color:var(--muted);padding:4px 6px}
+#ctx{min-width:220px;padding:5px}
+#ctx a{display:flex;padding:6px 10px;border-radius:5px;cursor:pointer}
+#ctx a:hover{background:var(--accs)}
+#ctx hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:grid;place-items:center}
+.mbox{background:var(--panel);border-radius:12px;width:min(1000px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mhead{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-size:15px}
+.mhead button{margin-left:auto;border:none}
+#mBody{padding:14px 16px;overflow:auto}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px}
+table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+table.grid th{position:sticky;top:-14px;background:var(--panel);font-weight:600}
+table.grid tr.clk{cursor:pointer}
+table.grid tr.clk:hover td{background:var(--accs)}
+#toast{position:fixed;right:16px;bottom:44px;z-index:300;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
+#toast div{background:#111827;color:#fff;padding:8px 13px;border-radius:8px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:420px}
+#toast div.w{background:#92400e}
+#toast div.e{background:#991b1b}
+
+#printArea{display:none}
+.item .ic.ph{background:#fff;border:1px solid var(--line);overflow:hidden}
+.item .ic.ph img{width:100%;height:100%;object-fit:contain}
+.devGrid{display:grid;grid-template-columns:230px 1fr;gap:16px}
+.photoDrop{border:2px dashed var(--line);border-radius:10px;min-height:170px;display:grid;place-items:center;text-align:center;cursor:pointer;padding:8px;background:var(--panel2);margin-bottom:6px}
+.photoDrop.over,.photoDrop:hover{border-color:var(--acc)}
+.photoDrop img{max-width:100%;max-height:200px;object-fit:contain}
+.propImg{max-width:100%;max-height:120px;border:1px solid var(--line);border-radius:6px;background:#fff;display:block;margin-bottom:4px}
+
+@media print{
+  #app,#toast,.pop,#modal{display:none!important}
+  #printArea{display:block}
+  #printArea svg{width:100%;height:auto;max-height:100vh}
+  @page{size:landscape;margin:8mm}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
+    <div class="menus">
+      <div class="menu"><button>Файл</button><div class="dd">
+        <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
+        <a data-cmd="exportPNG">Экспорт PNG</a><a data-cmd="exportSVG">Экспорт SVG</a><a data-cmd="print">Печать / PDF <kbd>Ctrl+P</kbd></a><hr>
+        <a data-cmd="cables">Кабельный журнал (CSV)</a><a data-cmd="bom">Спецификация оборудования (CSV)</a><hr>
+        <a data-cmd="demo">Открыть пример</a><a data-cmd="stress">Тест нагрузки (1000 устройств)</a>
+      </div></div>
+      <div class="menu"><button>Правка</button><div class="dd">
+        <a data-cmd="undo">Отменить <kbd>Ctrl+Z</kbd></a><a data-cmd="redo">Повторить <kbd>Ctrl+Y</kbd></a><hr>
+        <a data-cmd="copy">Копировать <kbd>Ctrl+C</kbd></a><a data-cmd="paste">Вставить <kbd>Ctrl+V</kbd></a><a data-cmd="dup">Дублировать <kbd>Ctrl+D</kbd></a><a data-cmd="del">Удалить <kbd>Del</kbd></a><hr>
+        <a data-cmd="selAll">Выделить всё <kbd>Ctrl+A</kbd></a><a data-cmd="find">Найти на схеме <kbd>Ctrl+F</kbd></a><a data-cmd="renumber">Перенумеровать кабели</a>
+      </div></div>
+      <div class="menu"><button>Вставка</button><div class="dd">
+        <a data-cmd="quick">Устройство… <kbd>A / двойной клик</kbd></a><a data-cmd="addFrame">Зона (помещение/рэк) <kbd>Z</kbd></a><a data-cmd="addText">Текст <kbd>T</kbd></a><hr>
+        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a>
+      </div></div>
+      <div class="menu"><button>Вид</button><div class="dd">
+        <a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
+        <a data-cmd="toggleGrid">Сетка и привязка</a><a data-cmd="toggleLegend">Легенда и штамп на схеме</a><a data-cmd="toggleLabels">Подписи кабелей</a><a data-cmd="theme">Тёмная / светлая тема</a><hr>
+        <a data-cmd="wire:orth">Кабели: ортогональные</a><a data-cmd="wire:curve">Кабели: кривые</a><a data-cmd="wire:line">Кабели: прямые</a>
+      </div></div>
+      <div class="menu"><button>Проверка</button><div class="dd">
+        <a data-cmd="check">Проверить схему</a><a data-cmd="cablesView">Кабельный журнал</a><a data-cmd="bomView">Спецификация</a>
+      </div></div>
+      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a></div></div>
+    </div>
+    <div id="saveState" class="ok">Сохранено</div>
+    <div class="tools">
+      <button data-cmd="undo" title="Отменить (Ctrl+Z)">↶</button><button data-cmd="redo" title="Повторить (Ctrl+Y)">↷</button>
+      <span class="sep"></span>
+      <button data-cmd="zoomOut" title="Уменьшить">−</button><button id="zoomLbl" data-cmd="fit" title="Показать всё (F)">100%</button><button data-cmd="zoomIn" title="Увеличить">+</button>
+      <span class="sep"></span>
+      <select id="wireStyle" title="Стиль кабелей"><option value="orth">┐ Ортогональные</option><option value="curve">∿ Кривые</option><option value="line">／ Прямые</option></select>
+      <button data-cmd="check" title="Проверить схему">✓ Проверка</button>
+      <button data-cmd="cablesView" title="Кабельный журнал">☰ Кабели</button>
+      <input id="findBox" placeholder="Найти на схеме…" title="Ctrl+F">
+    </div>
+  </header>
+
+  <aside id="lib">
+    <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
+    <div id="libTypeFilter"></div>
+    <div id="libList"></div>
+    <div class="libFoot"><button data-cmd="newDevice">＋ Своё устройство</button><button data-cmd="libExport" title="Экспорт базы">⇩ База</button><button data-cmd="libImport" title="Импорт базы">⇧ База</button></div>
+  </aside>
+
+  <main id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs id="defs"></defs>
+      <g id="vp">
+        <g id="Lframes"></g><g id="Ledges"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
+      </g>
+    </svg>
+    <div id="marquee"></div>
+    <div id="hint"></div>
+  </main>
+
+  <aside id="props"></aside>
+
+  <footer id="bottom">
+    <div id="pages"></div>
+    <div id="status"></div>
+  </footer>
+</div>
+
+<div id="quick" class="pop hidden"><input id="quickIn" placeholder="Начните вводить модель или тип…" spellcheck="false"><div id="quickList"></div></div>
+<div id="ctx" class="pop hidden"></div>
+<div id="modal" class="hidden"><div class="mbox"><div class="mhead"><b id="mTitle"></b><button id="mClose">✕</button></div><div id="mBody"></div></div></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept=".json,.vsf" hidden>
+<input type="file" id="libIn" accept=".json" hidden>
+<script>// ===================== ТИПЫ СИГНАЛОВ =====================
+// fam — семейство (для проверки совместимости), pre — префикс номера кабеля
+const T = {
+  sdi12g: { n: '12G-SDI', s: 'SDI', fam: 'sdi', rate: 4, c: '#1f6feb', pre: 'V' },
+  sdi6g:  { n: '6G-SDI',  s: 'SDI', fam: 'sdi', rate: 3, c: '#3b82f6', pre: 'V' },
+  sdi3g:  { n: '3G-SDI',  s: 'SDI', fam: 'sdi', rate: 2, c: '#60a5fa', pre: 'V' },
+  sdihd:  { n: 'HD-SDI',  s: 'SDI', fam: 'sdi', rate: 1, c: '#93c5fd', pre: 'V' },
+  hdmi:   { n: 'HDMI',    s: 'HDMI', fam: 'hdmi', c: '#ea7a1e', pre: 'H' },
+  dp:     { n: 'DisplayPort', s: 'DP', fam: 'dp', c: '#9b51e0', pre: 'D' },
+  dvi:    { n: 'DVI',     s: 'DVI', fam: 'dvi', c: '#c084fc', pre: 'D' },
+  hdbt:   { n: 'HDBaseT', s: 'HDBT', fam: 'hdbt', c: '#d97706', pre: 'T' },
+  cvbs:   { n: 'CVBS (композит)', s: 'CVBS', fam: 'cvbs', c: '#a3a3a3', pre: 'V' },
+  fiber:  { n: 'Оптика (видео)', s: 'FIB', fam: 'fiber', c: '#16a34a', pre: 'F' },
+  eth:    { n: 'Ethernet (NDI/IP/Dante)', s: 'LAN', fam: 'eth', c: '#0d9488', pre: 'N' },
+  sfp:    { n: 'SFP+ 10/25G (ST 2110)', s: 'SFP', fam: 'eth', c: '#0f766e', pre: 'N' },
+  ref:    { n: 'Genlock / Ref', s: 'REF', fam: 'ref', c: '#ca8a04', pre: 'R' },
+  tc:     { n: 'Timecode LTC', s: 'TC', fam: 'tc', c: '#a16207', pre: 'R' },
+  aud:    { n: 'Аудио аналог (XLR/Jack)', s: 'AUD', fam: 'aud', c: '#dc2626', pre: 'A' },
+  aes:    { n: 'AES/EBU', s: 'AES', fam: 'aes', c: '#e11d48', pre: 'A' },
+  madi:   { n: 'MADI', s: 'MADI', fam: 'madi', c: '#be123c', pre: 'A' },
+  usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#475569', pre: 'U' },
+  ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#64748b', pre: 'C' },
+  gpio:   { n: 'GPIO / Tally', s: 'GPIO', fam: 'gpio', c: '#84cc16', pre: 'G' },
+  pwr:    { n: 'Питание', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
+};
+const TYPE_KEYS = Object.keys(T);
+
+// Совместимость: 2 — ок, 1 — предупреждение, 0 — нужен конвертер
+function compat(a, b) {
+  if (a === b) return [2, ''];
+  const A = T[a], B = T[b];
+  if (!A || !B) return [0, 'Неизвестный тип'];
+  if (A.fam === 'sdi' && B.fam === 'sdi') {
+    return A.rate <= B.rate ? [2, ''] : [1, `${A.n} → вход ${B.n}: вход может не принять такой формат`];
+  }
+  if (A.fam === B.fam) return [1, `${A.n} ↔ ${B.n}: проверьте скорость/модуль`];
+  const pair = [A.fam, B.fam].sort().join('+');
+  if (pair === 'dvi+hdmi') return [1, 'HDMI ↔ DVI: нужен пассивный переходник, звука не будет'];
+  if (pair === 'dp+hdmi' && A.fam === 'dp') return [1, 'DP → HDMI: нужен переходник (DP++)'];
+  return [0, `${A.n} → ${B.n}: нужен конвертер`];
+}
+
+// ===================== КАТЕГОРИИ =====================
+const CATS = {
+  cam:  { n: 'Камеры', pre: 'CAM', c: '#2563eb', ic: 'cam' },
+  ccu:  { n: 'CCU / базовые станции', pre: 'CCU', c: '#1d4ed8', ic: 'rack' },
+  sw:   { n: 'Видеомикшеры', pre: 'SW', c: '#7c3aed', ic: 'sw' },
+  proc: { n: 'Презентационные процессоры', pre: 'PRC', c: '#6d28d9', ic: 'sw' },
+  rt:   { n: 'Матрицы / роутеры', pre: 'RTR', c: '#9333ea', ic: 'grid' },
+  conv: { n: 'Конвертеры', pre: 'CNV', c: '#0891b2', ic: 'conv' },
+  da:   { n: 'Распределители / сплиттеры', pre: 'DA', c: '#0e7490', ic: 'da' },
+  ext:  { n: 'Удлинители / оптика', pre: 'EXT', c: '#15803d', ic: 'ext' },
+  mon:  { n: 'Мониторы / экраны / проекторы', pre: 'MON', c: '#334155', ic: 'mon' },
+  mv:   { n: 'Мультивьюеры', pre: 'MV', c: '#475569', ic: 'mv' },
+  led:  { n: 'LED-процессоры и экраны', pre: 'LED', c: '#db2777', ic: 'led' },
+  rec:  { n: 'Запись / плейбек', pre: 'REC', c: '#b91c1c', ic: 'rec' },
+  pc:   { n: 'Компьютеры / медиасерверы', pre: 'PC', c: '#0f172a', ic: 'pc' },
+  enc:  { n: 'Стриминг / NDI / энкодеры', pre: 'ENC', c: '#0d9488', ic: 'enc' },
+  net:  { n: 'Сеть', pre: 'NET', c: '#115e59', ic: 'net' },
+  sync: { n: 'Синхронизация', pre: 'SYNC', c: '#a16207', ic: 'sync' },
+  aud:  { n: 'Звук', pre: 'AUD', c: '#be123c', ic: 'aud' },
+  ctl:  { n: 'Управление / tally / интерком', pre: 'CTL', c: '#4d7c0f', ic: 'ctl' },
+  pp:   { n: 'Патч-панели / прочее', pre: 'PP', c: '#57534e', ic: 'pp' },
+  my:   { n: 'Мои устройства', pre: 'DEV', c: '#0369a1', ic: 'star' },
+};
+
+// ===================== ИКОНКИ (16x16) =====================
+const ICONS = {
+  cam: 'M2 5h8v6H2zM10 7l4-2v6l-4-2z',
+  rack: 'M2 3h12v4H2zM2 9h12v4H2zM4 5h2M4 11h2',
+  sw: 'M1 4h14v8H1zM3 6h2v2H3zM6 6h2v2H6zM9 6h2v2H9zM3 9h8M12 6h2v4h-2z',
+  grid: 'M2 2h12v12H2zM2 6h12M2 10h12M6 2v12M10 2v12',
+  conv: 'M2 5h5v6H2zM9 5h5v6H9zM7 8h2M8 7l1 1-1 1',
+  da: 'M2 7h4M6 8l7-5M6 8h7M6 8l7 5M2 9h4',
+  ext: 'M1 8h4M11 8h4M5 6h6v4H5zM7 8h2',
+  mon: 'M1 3h14v8H1zM6 14h4M8 11v3',
+  mv: 'M1 3h14v9H1zM1 7.5h14M8 3v9',
+  led: 'M1 3h14v9H1zM3 5h1M6 5h1M9 5h1M12 5h1M3 8h1M6 8h1M9 8h1M12 8h1M6 14h4',
+  rec: 'M1 4h14v8H1zM5 6.5a1.5 1.5 0 1 0 0.01 0M9 7h4M9 9h4',
+  pc: 'M2 3h12v8H2zM1 13h14M5 11v2M11 11v2',
+  enc: 'M3 9a5 5 0 0 1 10 0M5.5 9a2.5 2.5 0 0 1 5 0M8 9v5',
+  net: 'M1 5h14v6H1zM3 7h2v2H3zM6 7h2v2H6zM9 7h2v2H9zM12 7h1v2h-1z',
+  sync: 'M8 2a6 6 0 1 0 0.01 0M8 4v4l3 2',
+  aud: 'M2 6h3l4-3v10l-4-3H2zM11 5a4 4 0 0 1 0 6M13 3a7 7 0 0 1 0 10',
+  ctl: 'M3 2h10v12H3zM6 5a2 2 0 1 0 0.01 0M5 10h6M5 12h6',
+  pp: 'M1 5h14v6H1zM3 8a1 1 0 1 0 0.01 0M6 8a1 1 0 1 0 0.01 0M9 8a1 1 0 1 0 0.01 0M12 8a1 1 0 1 0 0.01 0',
+  star: 'M8 1.5l2 4.3 4.6.5-3.4 3.1 1 4.6L8 11.7 3.8 14l1-4.6L1.4 6.3 6 5.8z',
+};
+
+// ===================== БАЗА УСТРОЙСТВ =====================
+// Формат портов: "тип[*кол-во][:Имя]" через запятую. Конфигурации типовые —
+// перед проектом сверяйтесь с паспортом устройства (любое можно отредактировать).
+const RAW = [
+  // --- Камеры
+  ['cam', 'Generic', 'Камера SDI', 'ref,sdi3g:Return', 'sdi3g*2'],
+  ['cam', 'Generic', 'Камера HDMI', '', 'hdmi'],
+  ['cam', 'Generic', 'PTZ-камера NDI', 'eth:LAN/NDI/PoE', 'sdi3g,hdmi'],
+  ['cam', 'Sony', 'HDC-3500 (головка)', 'fiber:SMPTE fiber', 'sdi3g:Prompter/Return'],
+  ['cam', 'Sony', 'FX6', 'tc:TC IN', 'sdi12g,hdmi'],
+  ['cam', 'Sony', 'FX9', 'ref,tc:TC IN', 'sdi12g,sdi3g,hdmi'],
+  ['cam', 'Sony', 'FR7 (PTZ)', 'ref,eth:LAN', 'sdi12g,sdi3g,hdmi,fiber:Optical'],
+  ['cam', 'Blackmagic', 'URSA Broadcast G2', 'sdi12g:PGM Return,ref,aud*2:XLR', 'sdi12g,sdi3g:Monitor'],
+  ['cam', 'Blackmagic', 'Studio Camera 4K Pro G2', 'sdi12g:PGM Return,aud*2:XLR,eth:LAN', 'sdi12g,hdmi'],
+  ['cam', 'Blackmagic', 'Pocket Cinema 6K', 'aud:Mini XLR', 'hdmi'],
+  ['cam', 'Panasonic', 'AW-UE150', 'ref,eth:LAN/PoE+', 'sdi12g,sdi3g,hdmi,fiber:Optical'],
+  ['cam', 'Panasonic', 'AW-UE100', 'ref,eth:LAN/NDI', 'sdi12g,hdmi'],
+  ['cam', 'Panasonic', 'AG-CX350', 'tc', 'sdi3g,hdmi'],
+  ['cam', 'Canon', 'CR-N500', 'eth:LAN/NDI', 'sdi3g,hdmi'],
+  ['cam', 'Canon', 'XF605', 'tc', 'sdi12g,hdmi'],
+  ['cam', 'BirdDog', 'P400', 'eth:LAN/NDI/PoE', 'sdi3g,hdmi'],
+  ['cam', 'Marshall', 'CV568 (POV)', '', 'sdi3g,hdmi'],
+  ['cam', 'GoPro', 'HERO (HDMI)', '', 'hdmi:Media Mod'],
+  // --- CCU
+  ['ccu', 'Sony', 'HDCU-3500', 'fiber:Camera,ref,sdi3g:Return*1', 'sdi12g*4,eth:LAN'],
+  ['ccu', 'Blackmagic', 'URSA Studio Fiber Converter', 'fiber:SMPTE,ref', 'sdi12g*2'],
+  ['ccu', 'Blackmagic', 'Studio Fiber Converter', 'fiber:SMPTE,sdi12g:Return,ref', 'sdi12g*2'],
+  // --- Видеомикшеры
+  ['sw', 'Blackmagic', 'ATEM Mini Pro', 'hdmi*4,aud*2:Mic 3.5', 'hdmi:Out,usb:Webcam,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM Mini Extreme ISO', 'hdmi*8,aud*2:Mic 3.5', 'hdmi*2:Out,usb*2,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM SDI Extreme ISO', 'sdi3g*4,hdmi*4', 'sdi3g:PGM,sdi3g*2:AUX,hdmi:MV,usb,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM Television Studio HD8 ISO', 'sdi3g*8,ref,aud*2:XLR', 'sdi3g:PGM,sdi3g*3:AUX,hdmi:MV,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM Television Studio 4K8', 'sdi12g*8,ref,aud*2:XLR', 'sdi12g:PGM,sdi12g*3:AUX,hdmi:MV,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM 1 M/E Constellation 4K', 'sdi12g*10,ref', 'sdi12g*6:AUX,sdi12g:MV,hdmi:MV,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM 2 M/E Constellation 4K', 'sdi12g*20,ref', 'sdi12g*12:AUX,sdi12g*2:MV,eth:LAN'],
+  ['sw', 'Blackmagic', 'ATEM 4 M/E Constellation 4K', 'sdi12g*40,ref', 'sdi12g*24:AUX,sdi12g*4:MV,eth:LAN'],
+  ['sw', 'Roland', 'V-160HD', 'sdi3g*8,hdmi*8,aud*4:XLR', 'sdi3g*3,hdmi*3,usb,eth:LAN'],
+  ['sw', 'Roland', 'V-8HD', 'hdmi*8', 'hdmi*3'],
+  ['sw', 'Roland', 'V-1HD+', 'hdmi*4', 'hdmi*2'],
+  ['sw', 'Ross', 'Carbonite Ultra 1M/E', 'sdi3g*24,ref', 'sdi3g*12:AUX,sdi3g*2:MV,eth:LAN'],
+  ['sw', 'Ross', 'Carbonite Black 2M/E', 'sdi3g*36,ref', 'sdi3g*18:AUX,sdi3g*4:MV,eth:LAN'],
+  ['sw', 'Sony', 'XVS-G1', 'sdi12g*24,ref', 'sdi12g*12,eth:LAN'],
+  ['sw', 'Datavideo', 'SE-1200MU', 'sdi3g*4,hdmi*2', 'sdi3g*2,hdmi*2'],
+  ['sw', 'NewTek', 'TriCaster Mini 4K', 'hdmi*4,eth:NDI', 'hdmi*2,eth:LAN'],
+  ['sw', 'Generic', 'vMix ПК + DeckLink Quad 2', 'sdi3g*6,eth:NDI/LAN', 'sdi3g*2:Out,hdmi:GUI,dp:GUI'],
+  ['sw', 'Generic', 'OBS ПК (захват HDMI)', 'hdmi*2:Capture,eth:LAN', 'hdmi:GUI,dp:GUI'],
+  // --- Презентационные процессоры
+  ['proc', 'Barco', 'E2 Gen 2 (типовая конф.)', 'sdi12g*8,hdmi*4,dp*4', 'sdi12g*8:Out,dp*4:Out,eth:LAN'],
+  ['proc', 'Barco', 'S3-4K', 'sdi12g*4,hdmi*4,dp*4', 'hdmi*4:Out,sdi12g*2:Out,eth:LAN'],
+  ['proc', 'Analog Way', 'Aquilon RS2 (типовая конф.)', 'sdi12g*8,hdmi*8', 'hdmi*8:Out,eth:LAN'],
+  ['proc', 'Analog Way', 'Pulse 4K', 'hdmi*4,dp*2,sdi12g*2', 'hdmi*2:Out,sdi12g:Out,eth:LAN'],
+  ['proc', 'Analog Way', 'Picturall Pro', 'hdmi*2', 'dp*8:Out,eth:LAN'],
+  ['proc', 'Novastar', 'VX1000 (all-in-one)', 'hdmi*2,dvi*2,sdi3g*2', 'eth*10:Port,hdmi:Monitor,eth:LAN'],
+  // --- Матрицы
+  ['rt', 'Blackmagic', 'Smart Videohub 12G 40x40', 'sdi12g*40,ref', 'sdi12g*40,eth:LAN'],
+  ['rt', 'Blackmagic', 'Videohub 12G 20x20', 'sdi12g*20,ref', 'sdi12g*20,eth:LAN'],
+  ['rt', 'Blackmagic', 'Smart Videohub 12G 12x12', 'sdi12g*12,ref', 'sdi12g*12,eth:LAN'],
+  ['rt', 'Blackmagic', 'Videohub 10x10 12G', 'sdi12g*10,ref', 'sdi12g*10,eth:LAN'],
+  ['rt', 'AJA', 'KUMO 3232-12G', 'sdi12g*32,ref', 'sdi12g*32,eth:LAN'],
+  ['rt', 'AJA', 'KUMO 1616-12G', 'sdi12g*16,ref', 'sdi12g*16,eth:LAN'],
+  ['rt', 'Generic', 'HDMI матрица 8x8', 'hdmi*8,ctrl', 'hdmi*8,eth:LAN'],
+  ['rt', 'Generic', 'HDMI матрица 4x4', 'hdmi*4', 'hdmi*4'],
+  ['rt', 'Lightware', 'MX2-8x8-HDMI20', 'hdmi*8', 'hdmi*8,eth:LAN'],
+  // --- Конвертеры
+  ['conv', 'Blackmagic', 'Micro Converter SDI→HDMI 12G', 'sdi12g', 'sdi12g:Loop,hdmi'],
+  ['conv', 'Blackmagic', 'Micro Converter HDMI→SDI 12G', 'hdmi', 'sdi12g*2'],
+  ['conv', 'Blackmagic', 'Micro Converter SDI→HDMI 3G', 'sdi3g', 'sdi3g:Loop,hdmi'],
+  ['conv', 'Blackmagic', 'Micro Converter HDMI→SDI 3G', 'hdmi', 'sdi3g*2'],
+  ['conv', 'Blackmagic', 'Teranex Mini SDI→HDMI 12G', 'sdi12g', 'sdi12g:Loop,hdmi,aud*2:Analog'],
+  ['conv', 'Blackmagic', 'Teranex Mini HDMI→SDI 12G', 'hdmi,aud*2:Analog', 'sdi12g'],
+  ['conv', 'Blackmagic', 'Teranex AV (кросс-конвертер)', 'sdi12g,hdmi,ref,aud*2', 'sdi12g*2,hdmi'],
+  ['conv', 'Blackmagic', 'Mini Converter Audio→SDI', 'sdi3g,aes*2,aud*2', 'sdi3g'],
+  ['conv', 'Blackmagic', 'Mini Converter SDI→Audio', 'sdi3g', 'sdi3g:Loop,aes*2,aud*2'],
+  ['conv', 'Blackmagic', 'Mini Converter UpDownCross HD', 'sdi3g,hdmi', 'sdi3g*2,hdmi'],
+  ['conv', 'Decimator', 'MD-HX (кросс-конвертер)', 'sdi3g,hdmi', 'sdi3g*2,hdmi'],
+  ['conv', 'Decimator', 'MD-LX', 'sdi3g,hdmi', 'sdi3g,hdmi'],
+  ['conv', 'AJA', 'Hi5-12G (SDI→HDMI)', 'sdi12g', 'hdmi'],
+  ['conv', 'AJA', 'HA5-12G (HDMI→SDI)', 'hdmi', 'sdi12g*2'],
+  ['conv', 'Generic', 'DP → HDMI переходник', 'dp', 'hdmi'],
+  ['conv', 'Generic', 'HDMI → DVI переходник', 'hdmi', 'dvi'],
+  ['conv', 'Generic', 'Скалер HDMI→SDI', 'hdmi', 'sdi3g'],
+  ['conv', 'Generic', 'Скалер SDI→HDMI', 'sdi3g', 'hdmi'],
+  ['conv', 'Generic', 'CVBS→SDI конвертер', 'cvbs', 'sdi3g'],
+  // --- DA
+  ['da', 'Blackmagic', 'Mini Converter SDI Distribution 4K', 'sdi12g', 'sdi12g*8'],
+  ['da', 'Blackmagic', 'Mini Converter SDI Distribution 3G', 'sdi3g', 'sdi3g*8'],
+  ['da', 'Generic', 'HDMI сплиттер 1x2', 'hdmi', 'hdmi*2'],
+  ['da', 'Generic', 'HDMI сплиттер 1x4', 'hdmi', 'hdmi*4'],
+  ['da', 'Generic', 'HDMI сплиттер 1x8', 'hdmi', 'hdmi*8'],
+  ['da', 'Generic', 'SDI DA 1x4', 'sdi3g', 'sdi3g*4'],
+  ['da', 'Generic', 'Genlock DA 1x6', 'ref', 'ref*6'],
+  // --- Удлинители
+  ['ext', 'Generic', 'HDBaseT TX', 'hdmi', 'hdbt,hdmi:Loop'],
+  ['ext', 'Generic', 'HDBaseT RX', 'hdbt', 'hdmi'],
+  ['ext', 'Generic', 'HDMI по оптике TX', 'hdmi', 'fiber'],
+  ['ext', 'Generic', 'HDMI по оптике RX', 'fiber', 'hdmi'],
+  ['ext', 'Blackmagic', 'Mini Converter Optical Fiber 12G', 'sdi12g:SDI In,fiber:Fiber In', 'sdi12g*2:SDI Out,fiber:Fiber Out'],
+  ['ext', 'AJA', 'FiDO-T-12G (SDI→оптика)', 'sdi12g', 'fiber'],
+  ['ext', 'AJA', 'FiDO-R-12G (оптика→SDI)', 'fiber', 'sdi12g*2'],
+  ['ext', 'Generic', 'Оптический кросс 12 портов', 'fiber*12', 'fiber*12'],
+  // --- Мониторы
+  ['mon', 'Generic', 'Монитор SDI', 'sdi3g', 'sdi3g:Loop'],
+  ['mon', 'Generic', 'Телевизор / монитор HDMI', 'hdmi', ''],
+  ['mon', 'Generic', 'Монитор ПК (DP/HDMI)', 'dp,hdmi', ''],
+  ['mon', 'Generic', 'Проектор', 'hdmi,hdbt', ''],
+  ['mon', 'Generic', 'Суфлёр (HDMI/SDI)', 'hdmi,sdi3g', ''],
+  ['mon', 'Blackmagic', 'SmartView 4K G2', 'sdi12g*2', 'sdi12g:Loop,eth:LAN'],
+  ['mon', 'Blackmagic', 'SmartView HD', 'sdi3g', 'sdi3g:Loop'],
+  ['mon', 'Sony', 'PVM-X2400', 'sdi12g*4,hdmi', 'sdi12g*2:Loop'],
+  ['mon', 'Atomos', 'Shinobi SDI', 'sdi3g,hdmi', 'sdi3g:Loop'],
+  ['mon', 'Lilliput', 'Q17 (12G)', 'sdi12g,hdmi', 'sdi12g:Loop'],
+  // --- Мультивьюеры
+  ['mv', 'Blackmagic', 'MultiView 16', 'sdi6g*16', 'sdi6g*2,hdmi'],
+  ['mv', 'Blackmagic', 'MultiView 4 HD', 'sdi3g*4', 'sdi3g:Out,hdmi'],
+  ['mv', 'Decimator', 'DMON-QUAD', 'sdi3g*4', 'sdi3g*2,hdmi'],
+  ['mv', 'Generic', 'HDMI мультивьюер 4x1', 'hdmi*4', 'hdmi'],
+  // --- LED
+  ['led', 'Novastar', 'MCTRL4K', 'hdmi:HDMI 2.0,dp:DP 1.2,dvi', 'eth*16:Port,fiber*2:OPT,hdmi:Loop'],
+  ['led', 'Novastar', 'MCTRL660 Pro', 'hdmi,dvi,sdi3g', 'eth*6:Port,fiber*2:OPT'],
+  ['led', 'Novastar', 'MCTRL R5', 'hdmi,dp,sdi12g', 'eth*8:Port,fiber*2:OPT'],
+  ['led', 'Novastar', 'VX600', 'hdmi*2,dvi,sdi3g', 'eth*6:Port,hdmi:Monitor'],
+  ['led', 'Novastar', 'CVT10 (оптика↔медь)', 'fiber*2:OPT', 'eth*10:Port'],
+  ['led', 'Brompton', 'Tessera SX40', 'hdmi:HDMI 2.0,sdi12g*2,ref', 'sfp*4:10G Trunk,eth:LAN'],
+  ['led', 'Brompton', 'Tessera XD 10G', 'sfp:10G Trunk', 'eth*10:Port,sfp:Loop'],
+  ['led', 'Brompton', 'Tessera S8', 'hdmi,dvi,sdi3g', 'eth*8:Port'],
+  ['led', 'Colorlight', 'X16', 'hdmi*2,dvi*2,sdi3g', 'eth*16:Port'],
+  ['led', 'Colorlight', 'Z6 Pro', 'hdmi:HDMI 2.0,dp,sdi12g', 'eth*24:Port,fiber*4:OPT'],
+  ['led', 'Generic', 'LED-экран (кабинеты)', 'eth*4:Data In', ''],
+  ['led', 'Generic', 'Сигнальная лампа / таймер', 'gpio', ''],
+  // --- Запись
+  ['rec', 'Blackmagic', 'HyperDeck Studio 4K Pro', 'sdi12g,hdmi,ref,aud*2:XLR', 'sdi12g*2,hdmi,eth:LAN'],
+  ['rec', 'Blackmagic', 'HyperDeck Studio HD Plus', 'sdi3g,hdmi', 'sdi3g,hdmi,eth:LAN'],
+  ['rec', 'Blackmagic', 'HyperDeck Extreme 8K HDR', 'sdi12g*4,hdmi,ref', 'sdi12g*4,hdmi,eth:LAN'],
+  ['rec', 'AJA', 'Ki Pro Ultra 12G', 'sdi12g*4,hdmi,ref', 'sdi12g*4,hdmi,eth:LAN'],
+  ['rec', 'Atomos', 'Ninja V', 'hdmi', 'hdmi'],
+  ['rec', 'Atomos', 'Shogun 7', 'sdi12g,hdmi', 'sdi12g,hdmi'],
+  ['rec', 'Atomos', 'Ninja Ultra', 'hdmi', 'hdmi'],
+  ['rec', 'Generic', 'Повтор (replay) сервер', 'sdi3g*6,ref', 'sdi3g*2,eth:LAN'],
+  // --- ПК / медиасерверы
+  ['pc', 'Generic', 'Ноутбук', 'usb', 'hdmi,usb,eth:LAN'],
+  ['pc', 'Generic', 'ПК (2×DP + HDMI)', '', 'dp*2,hdmi,eth:LAN'],
+  ['pc', 'Generic', 'ПК + DeckLink 8K Pro', 'sdi12g*2,ref', 'sdi12g*2,dp,eth:LAN'],
+  ['pc', 'Apple', 'Mac mini / MacBook', '', 'hdmi,usb*2:USB-C,eth:LAN'],
+  ['pc', 'Resolume', 'Arena медиасервер (4 выхода)', 'sdi3g*2:Capture', 'dp*4,eth:LAN'],
+  ['pc', 'disguise', 'vx 4+ (VFC 12G)', 'ref,sdi12g*2:Capture', 'sdi12g*4,eth*2:LAN'],
+  ['pc', 'Generic', 'Графический сервер (CasparCG)', 'ref', 'sdi3g*4:Fill/Key,eth:LAN'],
+  ['pc', 'Generic', 'Видеоплеер (Brightsign/медиаплеер)', 'eth:LAN', 'hdmi'],
+  // --- Стриминг / NDI
+  ['enc', 'Blackmagic', 'Web Presenter HD', 'sdi3g,aud*2:XLR', 'sdi3g:Loop,usb:Webcam,eth:LAN'],
+  ['enc', 'Blackmagic', 'Streaming Encoder HD', 'hdmi', 'eth:LAN,usb'],
+  ['enc', 'Magewell', 'Pro Convert SDI 4K Plus', 'sdi12g', 'eth:NDI'],
+  ['enc', 'Magewell', 'Pro Convert HDMI 4K Plus', 'hdmi', 'eth:NDI'],
+  ['enc', 'Magewell', 'Pro Convert NDI to HDMI', 'eth:NDI', 'hdmi'],
+  ['enc', 'BirdDog', 'Flex 4K OUT', 'eth:NDI', 'hdmi,sdi12g'],
+  ['enc', 'Teradek', 'Prism Flex', 'sdi12g,hdmi', 'eth:LAN,hdmi:Loop'],
+  ['enc', 'Haivision', 'Makito X4 (SRT)', 'sdi3g*4', 'eth*2:LAN'],
+  ['enc', 'Teradek', 'Bolt 6 TX (беспроводной)', 'sdi12g,hdmi', 'sdi12g:Loop'],
+  ['enc', 'Teradek', 'Bolt 6 RX (беспроводной)', '', 'sdi12g*2,hdmi'],
+  ['enc', 'Hollyland', 'Mars 4K TX', 'sdi3g,hdmi', 'sdi3g:Loop'],
+  ['enc', 'Hollyland', 'Mars 4K RX', '', 'sdi3g,hdmi'],
+  // --- Сеть
+  ['net', 'Generic', 'Коммутатор 8×1G', 'eth*8:Port', ''],
+  ['net', 'Generic', 'Коммутатор 24×1G + 4×SFP+', 'eth*24:Port,sfp*4:SFP+', ''],
+  ['net', 'Generic', 'Коммутатор 48×1G PoE', 'eth*48:Port', ''],
+  ['net', 'Generic', 'Коммутатор 2110 32×100G', 'sfp*32:QSFP', ''],
+  ['net', 'Generic', 'Роутер / Wi-Fi', 'eth*4:LAN,eth:WAN', ''],
+  // --- Синхронизация
+  ['sync', 'Blackmagic', 'Mini Converter Sync Generator', '', 'ref*6'],
+  ['sync', 'Tektronix', 'SPG8000A', 'ref:Ext Ref,eth:PTP', 'ref*6,tc*2:LTC,eth:LAN'],
+  ['sync', 'Evertz', '5601MSC', 'ref,eth:PTP', 'ref*8,tc*2'],
+  ['sync', 'Generic', 'Генератор таймкода', '', 'tc*4'],
+  // --- Звук
+  ['aud', 'Generic', 'Микшерный пульт (аналог)', 'aud*16:Mic/Line', 'aud*8:Out'],
+  ['aud', 'Generic', 'Цифровой пульт (Dante)', 'aud*16:Mic,madi', 'aud*8:Out,aes*2,madi,eth*2:Dante'],
+  ['aud', 'Behringer', 'X32', 'aud*32:Mic,aes:AES50 A,aes:AES50 B', 'aud*16:Out,aes:AES Out,usb'],
+  ['aud', 'Generic', 'Радиомикрофон (приёмник)', '', 'aud'],
+  ['aud', 'Generic', 'Колонки / мониторы', 'aud*2', ''],
+  ['aud', 'Generic', 'Аудио эмбеддер SDI', 'sdi3g,aud*4', 'sdi3g'],
+  ['aud', 'Generic', 'Аудио де-эмбеддер SDI', 'sdi3g', 'sdi3g:Loop,aud*4'],
+  // --- Управление
+  ['ctl', 'Blackmagic', 'ATEM 1 M/E Advanced Panel', 'eth:LAN', ''],
+  ['ctl', 'Blackmagic', 'ATEM Camera Control Panel', 'eth:LAN', ''],
+  ['ctl', 'Panasonic', 'AW-RP150 PTZ пульт', 'eth:LAN,ctrl', ''],
+  ['ctl', 'Sony', 'RCP-3500', 'eth:LAN', ''],
+  ['ctl', 'Generic', 'Tally-контроллер', 'gpio*8,eth:LAN', 'gpio*8'],
+  ['ctl', 'Generic', 'Интерком базовая станция', 'aud*4:4W,eth:LAN', 'aud*4:4W'],
+  ['ctl', 'Generic', 'Stream Deck', '', 'usb'],
+  // --- Прочее
+  ['pp', 'Generic', 'Патч-панель BNC 24 (нормаль)', 'sdi12g*24:Rear', 'sdi12g*24:Front'],
+  ['pp', 'Generic', 'Проходной разъём (стена/пол)', 'sdi12g,hdmi,eth', 'sdi12g,hdmi,eth'],
+  ['pp', 'Generic', 'Кабельный барабан (SDI)', 'sdi12g', 'sdi12g'],
+  ['pp', 'Generic', 'Блок (пустой)', 'hdmi', 'hdmi'],
+];
+
+function parsePorts(spec, dir) {
+  const out = [];
+  if (!spec) return out;
+  const counters = {};
+  spec.split(',').map(s => s.trim()).filter(Boolean).forEach(item => {
+    let [tc, name] = item.split(':');
+    let [t, cnt] = tc.split('*');
+    let nm = name;
+    if (name && name.includes('*')) { [nm, cnt] = name.split('*'); }
+    cnt = parseInt(cnt || '1', 10);
+    if (!T[t]) t = 'sdi3g';
+    for (let i = 0; i < cnt; i++) {
+      const ck = T[t].s; counters[ck] = (counters[ck] || 0) + 1;
+      let label;
+      if (nm) label = cnt > 1 ? `${nm} ${i + 1}` : nm;
+      else label = `${T[t].s} ${dir === 'in' ? 'IN' : 'OUT'} ${counters[ck]}`;
+      out.push({ name: label, type: t, dir });
+    }
+  });
+  return out;
+}
+
+// eth/sfp всегда двунаправленные
+function normPorts(arr) {
+  return arr.map(p => (T[p.type] && T[p.type].fam === 'eth') ? { ...p, dir: 'io' } : p);
+}
+
+const BUILTIN_LIB = RAW.map((r, i) => ({
+  id: 'b' + i,
+  cat: r[0], maker: r[1], model: r[2],
+  ports: normPorts([...parsePorts(r[3], 'in'), ...parsePorts(r[4], 'out')]),
+}));
+
+'use strict';
+// ============================================================================
+//  SignalFlow — редактор схем видеосигнала
+// ============================================================================
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const svg = $('#svg'), vp = $('#vp'), stage = $('#stage');
+const LY = { f: $('#Lframes'), e: $('#Ledges'), n: $('#Lnodes'), t: $('#Ltexts'), x: $('#Lextra'), o: $('#Lover') };
+
+// ---------- хранилище (try/catch: в некоторых окружениях localStorage недоступен)
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('sf_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('sf_' + k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (e) { return false; } },
+};
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open('signalflow', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+  return {
+    async get(k) { try { const db = await open(); return await new Promise((res) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }); } catch (e) { return store.get(k); } },
+    async set(k, v) { try { const db = await open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return store.set(k, v); } },
+  };
+})();
+const cfg = Object.assign({ builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
+const saveCfg = () => store.set('cfg', cfg);
+const favs = new Set(store.get('favs', []));
+let customLib = [];
+const saveLib = () => idb.set('lib', customLib);
+const openCats = new Set(store.get('openCats', ['fav', 'Мои устройства', 'Камеры']));
+
+// ---------- SVG-стили (одни и те же для экрана и экспорта)
+const SVG_CSS = `
+text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.n-body{fill:var(--node);stroke:var(--nodeStroke);stroke-width:1}
+.n-title{fill:#fff;font-weight:600;font-size:12.5px}
+.n-sub{fill:#fff;fill-opacity:.85;font-size:10px}
+.n-loc{fill:var(--muted);font-size:10px}
+.n-ic{fill:none;stroke:#fff;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.p-t{fill:var(--portText);font-size:10.5px}
+.p-c{stroke:var(--node);stroke-width:1.5}
+.p-c.free{fill:var(--node)!important;stroke-width:2}
+.p-h{fill:transparent;cursor:crosshair}
+.node{cursor:move}
+.node.sel .n-body{stroke:var(--sel);stroke-width:2.5}
+.node.hl .n-body{stroke:var(--warn);stroke-width:4}
+.e-hit{fill:none;stroke:transparent;stroke-width:12;cursor:pointer}
+.e-line{fill:none;stroke-width:2;stroke-linejoin:round}
+.edge.warn .e-line{stroke-dasharray:8 4}
+.edge.bad .e-line{stroke-dasharray:3 4}
+.edge.sel .e-line{stroke-width:4}
+.edge:hover .e-line{stroke-width:3.2}
+.e-lb{fill:var(--labelBg);stroke:var(--nodeStroke);stroke-width:.5}
+.edge.bad .e-lb{fill:var(--bad)}
+.edge.bad .e-lt{fill:#fff}
+.e-lt{font-size:10px;fill:var(--nodeText);text-anchor:middle;dominant-baseline:central}
+.f-body{fill:var(--frameFill);stroke-width:1.5;stroke-dasharray:6 4;pointer-events:none}
+.f-head{cursor:move}
+.f-t{font-size:13px;font-weight:700;pointer-events:none}
+.f-rs{fill:var(--panel);stroke:var(--sel);cursor:nwse-resize;display:none}
+.frame.sel .f-rs{display:block}
+.frame.sel .f-body{stroke-width:2.5;stroke-dasharray:none}
+.txt{cursor:move}
+.txt text{fill:var(--nodeText)}
+.txt rect{fill:transparent}
+.txt.sel rect{stroke:var(--sel);stroke-dasharray:4 3}
+.handle{fill:var(--panel);stroke:var(--sel);stroke-width:2;cursor:ew-resize}
+.handle.v{cursor:ns-resize}
+.wire-tmp{fill:none;stroke-width:2.5;stroke-dasharray:6 4;pointer-events:none}
+.wiring .p-c.ok{stroke:#16a34a;stroke-width:3.5}
+.wiring .p-c.wn{stroke:var(--warn);stroke-width:3.5}
+.wiring .p-c.no{opacity:.25}
+.p-c.target{stroke:#16a34a!important;stroke-width:5!important}
+.lg-bg{fill:var(--node);stroke:var(--nodeStroke)}
+.lg-t{fill:var(--nodeText);font-size:11px}
+.lg-h{fill:var(--nodeText);font-size:12px;font-weight:700}
+.lod1 .p-t,.lod1 .e-lb,.lod1 .e-lt,.lod1 .n-loc,.lod1 .n-sub{display:none}
+.lod2 .p-c,.lod2 .p-h,.lod2 .n-ic{display:none}
+.lod2 .n-title{font-size:20px}
+.lod2 .e-line{stroke-width:3}
+.lod3 text,.lod3 .e-lb,.lod3 .n-img{display:none}
+.lod3 .e-line{stroke-width:5;stroke-dasharray:none!important}
+.lod3 .e-line{marker-end:none}
+`;
+const LIGHT = { node: '#ffffff', nodeStroke: '#cbd2dc', nodeText: '#111827', portText: '#374151', muted: '#6b7280', frameFill: 'rgba(37,99,235,.035)', labelBg: '#ffffff', sel: '#2563eb', warn: '#f59e0b', bad: '#ef4444', panel: '#ffffff' };
+const cssFor = vars => SVG_CSS.replace(/var\(--(\w+)\)/g, (m, k) => vars[k] || m);
+{ const st = document.createElement('style'); st.textContent = SVG_CSS; document.head.appendChild(st); }
+
+// стрелки на концах кабелей, по цвету каждого типа
+$('#defs').innerHTML = '<g id="imgDefs"></g>' + TYPE_KEYS.map(k => `<marker id="ar-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 1L10 5L0 9z" fill="${T[k].c}"/></marker>`).join('');
+
+// ---------- фото устройств: каждое фото один раз в <defs>, на схеме — <use>
+function imgId(src) { return 'im' + hash(src).toString(36) + src.length.toString(36); }
+function renderImgDefs() {
+  const used = new Set(P.nodes.map(n => n.img).filter(Boolean));
+  const have = new Set([...document.querySelectorAll('#imgDefs > symbol')].map(s => s.id.slice(4)));
+  let add = '';
+  for (const id of used) if (!have.has(id) && doc.images[id]) add += imgSymbol(id);
+  if (add) $('#imgDefs').insertAdjacentHTML('beforeend', add);
+}
+function imgSymbol(id) { const im = doc.images[id]; return `<symbol id="img-${id}" viewBox="0 0 ${im.w} ${im.h}" preserveAspectRatio="xMidYMid meet"><image href="${im.src}" width="${im.w}" height="${im.h}"/></symbol>`; }
+function putImage(img) { if (!img || !img.src) return null; const id = imgId(img.src); doc.images[id] = { src: img.src, w: img.w, h: img.h }; return id; }
+async function readImage(file) {
+  const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
+  const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  const s = Math.min(1, 420 / Math.max(im.width, im.height));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.width * s)); c.height = Math.max(1, Math.round(im.height * s));
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+  let src = c.toDataURL('image/webp', 0.86); if (!src.startsWith('data:image/webp')) src = c.toDataURL('image/png');
+  return { src, w: c.width, h: c.height };
+}
+
+// ============================================================================
+//  ДОКУМЕНТ
+// ============================================================================
+const newPage = name => ({ id: uid(), name, nodes: [], edges: [], frames: [], texts: [], view: { x: 40, y: 40, k: 1 } });
+const newDoc = () => ({ app: 'SignalFlow', v: 1, name: 'Новая схема', author: '', pages: [newPage('Страница 1')], cur: 0, images: {} });
+const replacer = (k, v) => (k[0] === '_' ? undefined : v);
+const snap = () => JSON.stringify(doc, replacer);
+
+let doc = null, P = null;
+let view = { x: 40, y: 40, k: 1 };
+const items = new Map();   // id -> {k:'n'|'e'|'f'|'t', o}
+const els = new Map();     // id -> svg element
+const adj = new Map();     // nodeId -> Set(edge)
+const portUse = new Map(); // nodeId:portId -> edge
+const sel = new Set();
+let undoS = [], redoS = [];
+let fileHandle = null, dirtyFile = false;
+
+const allLib = () => cfg.builtin ? customLib.concat(BUILTIN_LIB) : customLib;
+const libById = id => customLib.find(d => d.id === id) || BUILTIN_LIB.find(d => d.id === id);
+
+function reindex() {
+  items.clear(); adj.clear(); portUse.clear();
+  for (const n of P.nodes) { items.set(n.id, { k: 'n', o: n }); adj.set(n.id, new Set()); }
+  for (const f of P.frames) items.set(f.id, { k: 'f', o: f });
+  for (const t of P.texts) items.set(t.id, { k: 't', o: t });
+  P.edges = P.edges.filter(e => items.has(e.from.n) && items.has(e.to.n));
+  for (const e of P.edges) {
+    items.set(e.id, { k: 'e', o: e });
+    adj.get(e.from.n).add(e); adj.get(e.to.n).add(e);
+    portUse.set(e.from.n + ':' + e.from.p, e); portUse.set(e.to.n + ':' + e.to.p, e);
+  }
+}
+const node = id => { const it = items.get(id); return it && it.k === 'n' ? it.o : null; };
+const portOf = (n, pid) => n.ports.find(p => p.id === pid);
+
+// ============================================================================
+//  ГЕОМЕТРИЯ УСТРОЙСТВА
+// ============================================================================
+const HH = 40, RH = 18;
+function layout(n) {
+  if (n._L) return n._L;
+  const left = [], right = [];
+  for (const p of n.ports) ((p.dir === 'in') !== !!n.flip ? left : right).push(p);
+  const rows = Math.max(left.length, right.length, 1);
+  const ml = a => a.reduce((m, p) => Math.max(m, (p.name || '').length), 0);
+  const sub = ((n.maker || '') + ' ' + (n.model || '')).trim();
+  let w = Math.max(180, Math.round((ml(left) + ml(right)) * 6 + 54), Math.round((n.label || '').length * 7.6 + 46), Math.round(sub.length * 5.7 + 46));
+  w = Math.min(Math.ceil(w / 10) * 10, 380);
+  const im = n.img && doc.images[n.img];
+  if (im) w = Math.max(w, 200);
+  const iw = w - 16, ih = im ? Math.round(Math.min(130, Math.max(28, iw * im.h / im.w))) : 0;
+  const top = HH + 6 + (ih ? ih + 8 : 0);
+  const h = top + rows * RH + 4 + (n.loc ? 14 : 0);
+  const pos = {};
+  left.forEach((p, i) => pos[p.id] = { x: 0, y: top + i * RH + RH / 2, d: -1 });
+  right.forEach((p, i) => pos[p.id] = { x: w, y: top + i * RH + RH / 2, d: 1 });
+  return (n._L = { left, right, w, h, pos, ih, iw });
+}
+function portPos(ref) {
+  const n = node(ref.n); const L = layout(n); const q = L.pos[ref.p] || { x: 0, y: HH, d: -1 };
+  return { x: n.x + q.x, y: n.y + q.y, d: q.d };
+}
+
+// ============================================================================
+//  МАРШРУТИЗАЦИЯ КАБЕЛЕЙ
+// ============================================================================
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function route(e) {
+  const a = portPos(e.from), b = portPos(e.to);
+  const style = cfg.wire;
+  if (style === 'line') return { pts: [a, b], a, b };
+  if (style === 'curve') return { pts: [a, b], a, b, curve: true };
+  const o = 22 + (hash(e.id) % 4) * 5;         // разводим параллельные кабели
+  const spread = ((hash(e.id) % 7) - 3) * 5;
+  const ax = a.x + a.d * o, bx = b.x + b.d * o;
+  let pts, seg;
+  if (a.d !== b.d) {
+    const forward = (b.x - a.x) * a.d > 2 * o;
+    if (forward && e.my == null) {
+      const mx = e.mx != null ? e.mx : (a.x + b.x) / 2 + spread;
+      pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', x: mx, y: (a.y + b.y) / 2 };
+    } else {
+      let my = e.my;
+      if (my == null) {
+        const na = node(e.from.n), nb = node(e.to.n);
+        const aB = na.y + layout(na).h, bB = nb.y + layout(nb).h;
+        if (b.y > aB + 10 && b.y > a.y) my = (aB + nb.y) / 2;
+        else if (a.y > bB + 10) my = (bB + na.y) / 2;
+        else my = Math.max(aB, bB) + 24 + Math.abs(spread);
+      }
+      pts = [a, { x: ax, y: a.y }, { x: ax, y: my }, { x: bx, y: my }, { x: bx, y: b.y }, b]; seg = { k: 'my', x: (ax + bx) / 2, y: my };
+    }
+  } else {
+    const x = e.mx != null ? e.mx : (a.d > 0 ? Math.max(ax, bx) : Math.min(ax, bx));
+    pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', x, y: (a.y + b.y) / 2 };
+  }
+  return { pts, a, b, seg };
+}
+function pathD(r) {
+  const p = r.pts;
+  if (r.curve) {
+    const k = Math.max(40, Math.abs(r.b.x - r.a.x) * 0.45);
+    return `M${r.a.x} ${r.a.y}C${r.a.x + r.a.d * k} ${r.a.y} ${r.b.x + r.b.d * k} ${r.b.y} ${r.b.x} ${r.b.y}`;
+  }
+  if (p.length === 2) return `M${p[0].x} ${p[0].y}L${p[1].x} ${p[1].y}`;
+  let d = `M${p[0].x} ${p[0].y}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const A = p[i - 1], B = p[i], C = p[i + 1];
+    const r1 = Math.min(6, Math.hypot(B.x - A.x, B.y - A.y) / 2), r2 = Math.min(6, Math.hypot(C.x - B.x, C.y - B.y) / 2);
+    const ux = Math.sign(B.x - A.x), uy = Math.sign(B.y - A.y), vx = Math.sign(C.x - B.x), vy = Math.sign(C.y - B.y);
+    d += `L${B.x - ux * r1} ${B.y - uy * r1}Q${B.x} ${B.y} ${B.x + vx * r2} ${B.y + vy * r2}`;
+  }
+  const L = p[p.length - 1]; return d + `L${L.x} ${L.y}`;
+}
+function labelPt(r) {
+  if (r.curve || r.pts.length === 2) return { x: (r.a.x + r.b.x) / 2, y: (r.a.y + r.b.y) / 2 };
+  let best = null, bl = -1;
+  for (let i = 0; i < r.pts.length - 1; i++) {
+    const A = r.pts[i], B = r.pts[i + 1], l = Math.abs(B.x - A.x) + Math.abs(B.y - A.y);
+    if (l > bl) { bl = l; best = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 }; }
+  }
+  return best;
+}
+function edgeStatus(e) {
+  const na = node(e.from.n), nb = node(e.to.n);
+  const pa = na && portOf(na, e.from.p), pb = nb && portOf(nb, e.to.p);
+  if (!pa || !pb) return [0, 'Порт удалён'];
+  return compat(e.type || pa.type, pb.type);
+}
+function edgeText(e) {
+  if (!cfg.labels) return '';
+  const parts = [];
+  if (e.label) parts.push(e.label);
+  parts.push(T[e.type] ? T[e.type].s : e.type);
+  if (e.fmt) parts.push(e.fmt);
+  if (e.len) parts.push(e.len + ' м');
+  return (e._st === 0 ? '⚠ ' : '') + parts.join(' · ');
+}
+
+// ============================================================================
+//  SVG-ШАБЛОНЫ
+// ============================================================================
+function nodeSVG(n) {
+  const L = layout(n), w = L.w, h = L.h;
+  const cat = CATS[n.cat] || CATS.my, c = n.color || cat.c;
+  const sub = ((n.maker && n.maker !== 'Generic' ? n.maker + ' ' : '') + (n.model || '')).trim();
+  let s = `<g class="node" data-id="${n.id}" transform="translate(${n.x},${n.y})">`
+    + `<rect class="n-body" width="${w}" height="${h}" rx="6"/>`
+    + `<path d="M0 6a6 6 0 0 1 6-6h${w - 12}a6 6 0 0 1 6 6v${HH - 6}h${-w}z" fill="${c}"/>`
+    + `<path class="n-ic" transform="translate(8,12)" d="${ICONS[cat.ic] || ICONS.pp}"/>`
+    + `<text class="n-title" x="30" y="17">${esc(n.label)}</text>`
+    + `<text class="n-sub" x="30" y="31">${esc(sub)}</text>`
+    + (L.ih ? `<use class="n-img" href="#img-${n.img}" x="8" y="${HH + 6}" width="${L.iw}" height="${L.ih}"/>` : '');
+  for (const p of n.ports) {
+    const q = L.pos[p.id]; const col = (T[p.type] || T.sdi3g).c;
+    const used = portUse.has(n.id + ':' + p.id);
+    const tx = q.d < 0 ? 9 : w - 9, anc = q.d < 0 ? 'start' : 'end';
+    s += `<circle class="p-c${used ? '' : ' free'}" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="4.5" fill="${col}" stroke="${col}"/>`
+      + `<text class="p-t" x="${tx}" y="${q.y + 3.5}" text-anchor="${anc}">${p.dir === 'io' ? '⇄ ' : ''}${esc(p.name)}</text>`
+      + `<circle class="p-h" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="9"/>`;
+  }
+  if (n.loc) s += `<text class="n-loc" x="8" y="${h - 6}">📍 ${esc(n.loc)}</text>`;
+  return s + '</g>';
+}
+function edgeGeom(e) {
+  const r = route(e);
+  e._r = r;
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const p of r.pts) { x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y); }
+  if (r.curve) { x1 -= 80; x2 += 80; }
+  e._bb = [x1, y1, x2, y2];
+  const t = edgeText(e); const lp = labelPt(r);
+  return { d: pathD(r), t, lp, lw: t.length * 5.6 + 10 };
+}
+function edgeSVG(e) {
+  e._st = edgeStatus(e)[0];
+  const g = edgeGeom(e);
+  const col = e.color || (T[e.type] || T.sdi3g).c;
+  const cls = e._st === 0 ? ' bad' : e._st === 1 ? ' warn' : '';
+  let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${T[e.type] ? e.type : 'sdi3g'})"/>`;
+  if (g.t) s += `<rect class="e-lb" x="${g.lp.x - g.lw / 2}" y="${g.lp.y - 8}" width="${g.lw}" height="16" rx="3"/><text class="e-lt" x="${g.lp.x}" y="${g.lp.y}">${esc(g.t)}</text>`;
+  return s + '</g>';
+}
+function frameSVG(f) {
+  const c = f.color || '#2563eb';
+  return `<g class="frame" data-id="${f.id}" transform="translate(${f.x},${f.y})"><rect class="f-body" width="${f.w}" height="${f.h}" rx="8" stroke="${c}"/>`
+    + `<rect class="f-head" width="${f.w}" height="26" rx="8" fill="${c}" fill-opacity=".14"/><text class="f-t" x="10" y="18" fill="${c}">${esc(f.title)}</text>`
+    + `<rect class="f-rs" x="${f.w - 7}" y="${f.h - 7}" width="14" height="14" rx="2"/></g>`;
+}
+function textSVG(t) {
+  const lines = String(t.text || ' ').split('\n'); const sz = t.size || 14;
+  const w = Math.max(...lines.map(l => l.length)) * sz * 0.58 + 8, h = lines.length * sz * 1.3 + 6;
+  t._w = w; t._h = h;
+  return `<g class="txt" data-id="${t.id}" transform="translate(${t.x},${t.y})"><rect x="-4" y="-4" width="${w}" height="${h}" rx="3"/>`
+    + `<text font-size="${sz}" font-weight="${t.bold ? 700 : 400}"${t.color ? ` style="fill:${esc(t.color)}"` : ''}>`
+    + lines.map((l, i) => `<tspan x="0" y="${(i + 1) * sz * 1.3 - sz * 0.3}">${esc(l) || ' '}</tspan>`).join('') + '</text></g>';
+}
+function mk(str) { const g = document.createElementNS(NS, 'g'); g.innerHTML = str; return g.firstElementChild; }
+
+// ============================================================================
+//  ОТРИСОВКА
+// ============================================================================
+function renderAll() {
+  reindex(); els.clear(); renderImgDefs();
+  LY.f.innerHTML = P.frames.map(frameSVG).join('');
+  LY.e.innerHTML = P.edges.map(edgeSVG).join('');
+  LY.n.innerHTML = P.nodes.map(nodeSVG).join('');
+  LY.t.innerHTML = P.texts.map(textSVG).join('');
+  for (const L of [LY.f, LY.e, LY.n, LY.t]) for (const g of L.children) { els.set(g.dataset.id, g); g._v = true; }
+  applySel(); renderExtra(); renderOverlay(); cull(true); renderPages(); updateStatus();
+}
+let headless = false;
+function rerenderNode(n) {
+  n._L = null; if (headless) return;
+  if (n.img && !document.getElementById('img-' + n.img)) renderImgDefs();
+  const old = els.get(n.id), g = mk(nodeSVG(n));
+  if (old) old.replaceWith(g); else LY.n.appendChild(g);
+  els.set(n.id, g); g._v = true;
+  if (sel.has(n.id)) g.classList.add('sel');
+}
+function rerenderEdge(e) {
+  if (headless) return;
+  const old = els.get(e.id), g = mk(edgeSVG(e));
+  if (old) old.replaceWith(g); else LY.e.appendChild(g);
+  els.set(e.id, g); g._v = true;
+  if (sel.has(e.id)) g.classList.add('sel');
+}
+function rerenderItem(id) {
+  const it = items.get(id); if (!it) return;
+  if (it.k === 'n') { rerenderNode(it.o); for (const e of adj.get(id)) rerenderEdge(e); }
+  else if (it.k === 'e') rerenderEdge(it.o);
+  else {
+    const old = els.get(id), g = mk(it.k === 'f' ? frameSVG(it.o) : textSVG(it.o));
+    old ? old.replaceWith(g) : (it.k === 'f' ? LY.f : LY.t).appendChild(g);
+    els.set(id, g); if (sel.has(id)) g.classList.add('sel');
+  }
+}
+// быстрое обновление геометрии кабеля без пересоздания элементов
+function updateEdgeFast(e) {
+  const g = els.get(e.id); if (!g) return;
+  const r = edgeGeom(e); const c = g.children;
+  c[0].setAttribute('d', r.d); c[1].setAttribute('d', r.d);
+  if (c[2]) { c[2].setAttribute('x', r.lp.x - r.lw / 2); c[2].setAttribute('y', r.lp.y - 8); c[3].setAttribute('x', r.lp.x); c[3].setAttribute('y', r.lp.y); }
+}
+function applySel() {
+  for (const g of document.querySelectorAll('#vp .sel')) g.classList.remove('sel');
+  for (const id of sel) { const g = els.get(id); if (g) g.classList.add('sel'); }
+  renderOverlay(); renderProps(); updateStatus();
+}
+
+// ручка изгиба выделенного кабеля
+function renderOverlay() {
+  LY.o.innerHTML = '';
+  if (sel.size !== 1 || cfg.wire !== 'orth') return;
+  const it = items.get([...sel][0]); if (!it || it.k !== 'e' || !it.o._r || !it.o._r.seg) return;
+  const s = it.o._r.seg;
+  LY.o.innerHTML = `<rect class="handle${s.k === 'my' ? ' v' : ''}" data-h="${it.o.id}" x="${s.x - 6}" y="${s.y - 6}" width="12" height="12" rx="3"/>`;
+}
+
+// ---------- отсечение невидимого (главное для скорости на больших схемах)
+let cullRaf = 0;
+function scheduleCull() { if (!cullRaf) cullRaf = requestAnimationFrame(() => { cullRaf = 0; cull(); }); }
+function cull(force) {
+  const total = P.nodes.length + P.edges.length;
+  const big = total > 250;
+  const r = stage.getBoundingClientRect(), m = 150 / view.k;
+  const X1 = -view.x / view.k - m, Y1 = -view.y / view.k - m, X2 = (r.width - view.x) / view.k + m, Y2 = (r.height - view.y) / view.k + m;
+  for (const n of P.nodes) {
+    const g = els.get(n.id); if (!g) continue;
+    const L = layout(n);
+    const v = !big || !(n.x > X2 || n.y > Y2 || n.x + L.w < X1 || n.y + L.h < Y1);
+    if (v !== g._v || force) { g.style.display = v ? '' : 'none'; g._v = v; }
+  }
+  for (const e of P.edges) {
+    const g = els.get(e.id); if (!g || !e._bb) continue;
+    const b = e._bb;
+    const v = !big || !(b[0] > X2 || b[1] > Y2 || b[2] < X1 || b[3] < Y1);
+    if (v !== g._v || force) { g.style.display = v ? '' : 'none'; g._v = v; }
+  }
+}
+
+// ---------- вид
+function setView() {
+  vp.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  P.view = { ...view };
+  $('#zoomLbl').textContent = Math.round(view.k * 100) + '%';
+  svg.classList.toggle('lod1', view.k < 0.5);
+  svg.classList.toggle('lod2', view.k < 0.22);
+  svg.classList.toggle('lod3', view.k < 0.1);
+  stage.classList.toggle('grid', !!cfg.grid);
+  if (cfg.grid) {
+    const a = 100 * view.k, b = 20 * view.k;
+    const minor = b >= 7;
+    stage.style.backgroundSize = minor ? `${a}px ${a}px,${a}px ${a}px,${b}px ${b}px,${b}px ${b}px` : `${a}px ${a}px,${a}px ${a}px,0 0,0 0`;
+    stage.style.backgroundPosition = `${view.x}px ${view.y}px`;
+  }
+  scheduleCull();
+}
+function zoomAt(cx, cy, f) {
+  const r = svg.getBoundingClientRect();
+  const k = clamp(view.k * f, 0.04, 4);
+  const px = cx - r.left, py = cy - r.top;
+  view.x = px - (px - view.x) * (k / view.k); view.y = py - (py - view.y) * (k / view.k); view.k = k;
+  setView();
+}
+function contentBBox(withExtra) {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  const add = (a, b, c, d) => { x1 = Math.min(x1, a); y1 = Math.min(y1, b); x2 = Math.max(x2, c); y2 = Math.max(y2, d); };
+  for (const n of P.nodes) { const L = layout(n); add(n.x, n.y, n.x + L.w, n.y + L.h); }
+  for (const f of P.frames) add(f.x, f.y, f.x + f.w, f.y + f.h);
+  for (const t of P.texts) add(t.x, t.y, t.x + (t._w || 100), t.y + (t._h || 20));
+  for (const e of P.edges) if (e._bb) add(...e._bb);
+  if (withExtra && extraBB) add(...extraBB);
+  return x1 === Infinity ? null : { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+}
+function fit(bb) {
+  bb = bb || contentBBox(true);
+  const r = stage.getBoundingClientRect();
+  if (!bb) { view = { x: 40, y: 40, k: 1 }; return setView(); }
+  const k = clamp(Math.min((r.width - 80) / bb.w, (r.height - 80) / bb.h), 0.04, 1.4);
+  view.k = k; view.x = (r.width - bb.w * k) / 2 - bb.x * k; view.y = (r.height - bb.h * k) / 2 - bb.y * k;
+  setView();
+}
+function centerOn(x, y, k) {
+  const r = stage.getBoundingClientRect();
+  if (k) view.k = k;
+  view.x = r.width / 2 - x * view.k; view.y = r.height / 2 - y * view.k; setView();
+}
+const toDoc = (cx, cy) => { const r = svg.getBoundingClientRect(); return { x: (cx - r.left - view.x) / view.k, y: (cy - r.top - view.y) / view.k }; };
+
+// ---------- легенда и штамп
+let extraBB = null;
+function renderExtra() {
+  extraBB = null; LY.x.innerHTML = '';
+  if (!cfg.legend || !P.nodes.length) return;
+  const bb = contentBBox(false); if (!bb) return;
+  const used = {};
+  for (const e of P.edges) used[e.type] = (used[e.type] || 0) + 1;
+  const keys = Object.keys(used).filter(k => T[k]);
+  const lx = bb.x, ly = bb.y + bb.h + 40;
+  let s = '';
+  if (keys.length) {
+    const lh = 22 + keys.length * 18 + 8;
+    s += `<g class="legend"><rect class="lg-bg" x="${lx}" y="${ly}" width="250" height="${lh}" rx="6"/><text class="lg-h" x="${lx + 10}" y="${ly + 17}">Легенда сигналов</text>`;
+    keys.forEach((k, i) => { const y = ly + 34 + i * 18; s += `<line x1="${lx + 10}" y1="${y - 4}" x2="${lx + 40}" y2="${y - 4}" stroke="${T[k].c}" stroke-width="3"/><text class="lg-t" x="${lx + 48}" y="${y}">${esc(T[k].n)} — ${used[k]} шт.</text>`; });
+    s += '</g>';
+  }
+  const tw = 320, th = 96, tx = Math.max(bb.x + bb.w - tw, lx + 270), ty = ly;
+  const rows = [['Проект', doc.name], ['Лист', `${P.name} (${doc.cur + 1}/${doc.pages.length})`], ['Автор', doc.author || '—'], ['Дата', new Date().toLocaleDateString('ru-RU')]];
+  s += `<g class="stamp"><rect class="lg-bg" x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="4"/>`;
+  rows.forEach((r, i) => { const y = ty + 20 + i * 21; s += `<text class="lg-t" x="${tx + 10}" y="${y}" fill-opacity=".6">${r[0]}</text><text class="lg-h" x="${tx + 70}" y="${y}">${esc(r[1])}</text>`; if (i) s += `<line x1="${tx}" x2="${tx + tw}" y1="${y - 15}" y2="${y - 15}" stroke="#cbd2dc" stroke-width=".6"/>`; });
+  s += `<line x1="${tx + 62}" x2="${tx + 62}" y1="${ty}" y2="${ty + th}" stroke="#cbd2dc" stroke-width=".6"/></g>`;
+  LY.x.innerHTML = s;
+  extraBB = [lx, ly, tx + tw, ly + Math.max(th, keys.length ? 22 + keys.length * 18 + 8 : 0)];
+}
+
+// ============================================================================
+//  ИЗМЕНЕНИЯ / ИСТОРИЯ / АВТОСОХРАНЕНИЕ
+// ============================================================================
+let asTimer = 0, extraTimer = 0;
+function hist() {
+  const s = snap(); undoS.push(s); const max = s.length > 400000 ? 30 : 200; while (undoS.length > max) undoS.shift(); redoS.length = 0;
+  markDirty();
+}
+function markDirty() {
+  dirtyFile = true; setSaveState();
+  clearTimeout(asTimer); asTimer = setTimeout(() => idb.set('doc', snap()), 700);
+  clearTimeout(extraTimer); extraTimer = setTimeout(() => { renderExtra(); updateStatus(); }, 250);
+}
+function setSaveState() {
+  const s = $('#saveState');
+  s.className = dirtyFile ? 'dirty' : 'ok';
+  s.textContent = dirtyFile ? '● Не сохранено (Ctrl+S)' : (fileHandle ? 'Сохранено: ' + fileHandle.name : 'Автосохранено');
+}
+function loadState(str, keepView) {
+  doc = JSON.parse(str); doc.images ||= {}; P = doc.pages[doc.cur] || doc.pages[0];
+  if (keepView) P.view = { ...view };
+  sel.clear(); renderAll();
+  view = { ...(P.view || view) }; setView();
+}
+function undo() { if (!undoS.length) return toast('Нечего отменять'); redoS.push(snap()); loadState(undoS.pop(), true); markDirty(); }
+function redo() { if (!redoS.length) return; undoS.push(snap()); loadState(redoS.pop(), true); markDirty(); }
+
+function openDoc(d, handle) {
+  if (!d || !Array.isArray(d.pages)) return toast('Это не файл SignalFlow', 'e');
+  doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
+  $('#imgDefs').innerHTML = '';
+  for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) p.id ||= uid(); }
+  P = doc.pages[doc.cur]; fileHandle = handle || null; undoS = []; redoS = [];
+  $('#docName').value = doc.name; sel.clear(); renderAll();
+  if (P.view) { view = { ...P.view }; setView(); } else fit();
+  dirtyFile = false; setSaveState(); idb.set('doc', snap());
+}
+function switchPage(i) {
+  P.view = { ...view }; doc.cur = i; P = doc.pages[i]; sel.clear(); renderAll();
+  if (P.view) { view = { ...P.view }; setView(); } else fit();
+}
+
+// ============================================================================
+//  ОПЕРАЦИИ С ОБЪЕКТАМИ
+// ============================================================================
+function nextNum(prefix, list, field) {
+  let m = 0; const re = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*-?(\\d+)$');
+  for (const pg of doc.pages) for (const o of pg[list]) { const r = re.exec(o[field] || ''); if (r) m = Math.max(m, +r[1]); }
+  return m + 1;
+}
+const nextCable = type => { const pre = (T[type] || T.sdi3g).pre; return pre + String(nextNum(pre, 'edges', 'label')).padStart(3, '0'); };
+const nextLabel = cat => { const pre = (CATS[cat] || CATS.my).pre; return pre + ' ' + nextNum(pre, 'nodes', 'label'); };
+
+function addNode(dev, x, y, noHist) {
+  if (!noHist) hist();
+  const n = {
+    id: uid(), lib: dev.id, cat: dev.cat, maker: dev.maker, model: dev.model, label: nextLabel(dev.cat),
+    x: cfg.snap ? Math.round(x / 10) * 10 : x, y: cfg.snap ? Math.round(y / 10) * 10 : y,
+    ports: dev.ports.map(p => ({ id: uid(), name: p.name, type: p.type, dir: p.dir })), loc: '', notes: '',
+  };
+  if (dev.img) n.img = putImage(dev.img);
+  P.nodes.push(n); items.set(n.id, { k: 'n', o: n }); adj.set(n.id, new Set());
+  rerenderNode(n);
+  return n;
+}
+function connect(fromRef, toRef, noHist) {
+  if (!noHist) hist();
+  const fn = node(fromRef.n), pa = portOf(fn, fromRef.p);
+  const e = { id: uid(), from: { ...fromRef }, to: { ...toRef }, type: pa.type, label: nextCable(pa.type), fmt: '', len: '' };
+  P.edges.push(e); items.set(e.id, { k: 'e', o: e });
+  adj.get(e.from.n).add(e); adj.get(e.to.n).add(e);
+  portUse.set(e.from.n + ':' + e.from.p, e); portUse.set(e.to.n + ':' + e.to.p, e);
+  rerenderEdge(e); rerenderNode(fn); rerenderNode(node(e.to.n));
+  return e;
+}
+function deleteSel() {
+  if (!sel.size) return;
+  hist();
+  const ids = new Set(sel);
+  for (const id of ids) { const it = items.get(id); if (it && it.k === 'n') for (const e of adj.get(id)) ids.add(e.id); }
+  P.nodes = P.nodes.filter(o => !ids.has(o.id)); P.edges = P.edges.filter(o => !ids.has(o.id));
+  P.frames = P.frames.filter(o => !ids.has(o.id)); P.texts = P.texts.filter(o => !ids.has(o.id));
+  sel.clear(); renderAll();
+}
+function selectOnly(ids) { sel.clear(); for (const i of ids) sel.add(i); applySel(); }
+
+// ---------- буфер обмена
+let clip = null, pasteN = 0;
+function copySel() {
+  const ns = P.nodes.filter(n => sel.has(n.id)), ids = new Set(ns.map(n => n.id));
+  clip = JSON.parse(JSON.stringify({
+    nodes: ns, edges: P.edges.filter(e => ids.has(e.from.n) && ids.has(e.to.n)),
+    frames: P.frames.filter(f => sel.has(f.id)), texts: P.texts.filter(t => sel.has(t.id)),
+    images: Object.fromEntries(ns.filter(n => n.img && doc.images[n.img]).map(n => [n.img, doc.images[n.img]])),
+  }, replacer));
+  try { store.set('clip', clip); } catch (e) { } pasteN = 0;
+  toast(`Скопировано: ${ns.length} устр.`);
+}
+function paste(at) {
+  const c = clip || store.get('clip', null); if (!c) return;
+  hist(); pasteN++;
+  Object.assign(doc.images, c.images || {});
+  const map = {}, newIds = [];
+  let dx = 30 * pasteN, dy = 30 * pasteN;
+  if (at) {
+    const all = [...c.nodes, ...c.frames, ...c.texts];
+    if (all.length) { dx = at.x - Math.min(...all.map(o => o.x)); dy = at.y - Math.min(...all.map(o => o.y)); }
+  }
+  for (const n0 of c.nodes) {
+    const n = JSON.parse(JSON.stringify(n0)); map[n.id] = n.id = uid(); n.x += dx; n.y += dy;
+    const pm = {}; for (const p of n.ports) { const o = p.id; p.id = uid(); pm[o] = p.id; } n._pm = pm;
+    n.label = nextLabelLike(n.label, n.cat);
+    P.nodes.push(n); newIds.push(n.id);
+  }
+  const byOld = {}; for (const n of P.nodes) if (n._pm) byOld[Object.keys(map).find(k => map[k] === n.id)] = n;
+  for (const e0 of c.edges) {
+    const a = byOld[e0.from.n], b = byOld[e0.to.n]; if (!a || !b) continue;
+    const e = { ...e0, id: uid(), from: { n: a.id, p: a._pm[e0.from.p] }, to: { n: b.id, p: b._pm[e0.to.p] }, label: '' };
+    if (e.mx != null) e.mx += dx; if (e.my != null) e.my += dy;
+    P.edges.push(e);
+  }
+  for (const n of P.nodes) delete n._pm;
+  for (const f0 of c.frames) { const f = { ...f0, id: uid(), x: f0.x + dx, y: f0.y + dy }; P.frames.push(f); newIds.push(f.id); }
+  for (const t0 of c.texts) { const t = { ...t0, id: uid(), x: t0.x + dx, y: t0.y + dy }; P.texts.push(t); newIds.push(t.id); }
+  reindex();
+  for (const e of P.edges) if (!e.label) e.label = nextCable(e.type);
+  sel.clear(); newIds.forEach(i => sel.add(i)); renderAll();
+}
+function nextLabelLike(label, cat) {
+  const m = /^(.*?)(\d+)$/.exec(label || '');
+  if (!m) return nextLabel(cat);
+  const pre = m[1].trim(); const n = nextNum(pre, 'nodes', 'label');
+  return pre + (m[1].endsWith(' ') ? ' ' : '') + n;
+}
+
+// ============================================================================
+//  СОВМЕСТИМОСТЬ ПОРТОВ ДЛЯ ПОДКЛЮЧЕНИЯ
+// ============================================================================
+// fixed — порт, от которого тянем; возвращает [уровень, сообщение] или null если нельзя
+function canLink(fixed, fp, nid, p, ignoreEdge) {
+  if (nid === fixed.n) return null;
+  const used = portUse.get(nid + ':' + p.id);
+  if (used && used !== ignoreEdge) return null;
+  const fd = fp.dir, td = p.dir;
+  if (fd === 'out' && td === 'out') return null;
+  if (fd === 'in' && td === 'in') return null;
+  let src, dst;
+  if (fd === 'out') { src = fp.type; dst = p.type; }
+  else if (fd === 'in') { src = p.type; dst = fp.type; }
+  else if (td === 'out') { src = p.type; dst = fp.type; }
+  else { src = fp.type; dst = p.type; }
+  return compat(src, dst);
+}
+function bestPort(fixed, fp, n, y, ignoreEdge) {
+  let best = null, score = -Infinity;
+  const L = layout(n);
+  for (const p of n.ports) {
+    const c = canLink(fixed, fp, n.id, p, ignoreEdge); if (!c) continue;
+    const q = L.pos[p.id];
+    const s = c[0] * 10000 - Math.abs(n.y + q.y - y);
+    if (s > score) { score = s; best = { p, c }; }
+  }
+  return best;
+}
+
+// ============================================================================
+//  УКАЗАТЕЛЬ: перетаскивание, соединение, рамка выделения, панорама
+// ============================================================================
+let drag = null, spaceDown = false, pendingEv = null, moveRaf = 0;
+const hint = (t) => { const h = $('#hint'); if (t) { h.textContent = t; h.style.display = 'block'; } else h.style.display = 'none'; };
+
+svg.addEventListener('pointerdown', ev => {
+  hidePops();
+  if (typing(document.activeElement)) document.activeElement.blur();
+  if (ev.button === 2) return;
+  const pt = toDoc(ev.clientX, ev.clientY);
+  svg.setPointerCapture(ev.pointerId);
+  if (ev.button === 1 || spaceDown) { drag = { mode: 'pan', sx: ev.clientX, sy: ev.clientY, vx: view.x, vy: view.y }; stage.classList.add('panning'); return; }
+  const t = ev.target;
+  const h = t.closest('[data-h]');
+  if (h) { const e = items.get(h.dataset.h).o; drag = { mode: 'bend', e, started: false }; return; }
+  const g = t.closest('[data-id]');
+  const pEl = t.closest('[data-p]');
+  if (pEl && g) return startWire(g.dataset.id, pEl.dataset.p, ev);
+  if (t.closest('.f-rs')) { const f = items.get(g.dataset.id).o; drag = { mode: 'resize', f, sx: pt.x, sy: pt.y, w: f.w, h: f.h, started: false }; return; }
+  if (g) {
+    const id = g.dataset.id, it = items.get(id);
+    if (it.k === 'e') {
+      if (ev.shiftKey) sel.has(id) ? sel.delete(id) : sel.add(id); else { sel.clear(); sel.add(id); }
+      applySel(); drag = null; return;
+    }
+    if (ev.shiftKey || ev.metaKey || ev.ctrlKey) { if (sel.has(id)) { sel.delete(id); applySel(); return; } sel.add(id); }
+    else if (!sel.has(id)) { sel.clear(); sel.add(id); }
+    applySel();
+    // что двигаем: выделенное + содержимое выделенных зон
+    const mv = new Set(sel);
+    for (const id2 of sel) {
+      const it2 = items.get(id2);
+      if (it2 && it2.k === 'f' && !ev.altKey) {
+        const f = it2.o;
+        for (const n of P.nodes) { const L = layout(n); const cx = n.x + L.w / 2, cy = n.y + L.h / 2; if (cx > f.x && cx < f.x + f.w && cy > f.y && cy < f.y + f.h) mv.add(n.id); }
+        for (const tt of P.texts) if (tt.x > f.x && tt.x < f.x + f.w && tt.y > f.y && tt.y < f.y + f.h) mv.add(tt.id);
+        for (const f2 of P.frames) if (f2 !== f && f2.x >= f.x && f2.y >= f.y && f2.x + f2.w <= f.x + f.w && f2.y + f2.h <= f.y + f.h) mv.add(f2.id);
+      }
+    }
+    const list = [...mv].map(i => items.get(i)).filter(x => x && x.k !== 'e');
+    const edges = new Set();
+    for (const x of list) if (x.k === 'n') for (const e of adj.get(x.o.id)) edges.add(e);
+    drag = { mode: 'move', sx: pt.x, sy: pt.y, list: list.map(x => ({ it: x, x0: x.o.x, y0: x.o.y })), edges: [...edges], started: false, anchor: list[0] && list[0].o };
+    return;
+  }
+  // пустое место — рамка выделения
+  if (!ev.shiftKey) { sel.clear(); applySel(); }
+  drag = { mode: 'marquee', sx: ev.clientX, sy: ev.clientY, add: ev.shiftKey };
+});
+
+function startWire(nid, pid, ev) {
+  const n = node(nid); if (!n) return;
+  const p = portOf(n, pid);
+  let fixed = { n: nid, p: pid }, fp = p, rewire = null, movingEnd = null;
+  const used = portUse.get(nid + ':' + pid);
+  if (used && !ev.altKey) {
+    // берём за конец существующего кабеля — перекоммутация
+    rewire = used; movingEnd = (used.from.n === nid && used.from.p === pid) ? 'from' : 'to';
+    fixed = movingEnd === 'from' ? used.to : used.from;
+    fp = portOf(node(fixed.n), fixed.p);
+    els.get(used.id).style.opacity = '.25';
+  }
+  const start = portPos(fixed);
+  drag = { mode: 'wire', fixed, fp, rewire, movingEnd, start, target: null };
+  // подсветка совместимых портов
+  svg.classList.add('wiring');
+  for (const n2 of P.nodes) {
+    const g = els.get(n2.id); if (!g || !g._v) continue;
+    for (const c of g.querySelectorAll('.p-c')) {
+      const pp = portOf(n2, c.dataset.p); const r = canLink(fixed, fp, n2.id, pp, rewire);
+      c.classList.add(!r ? 'no' : r[0] === 2 ? 'ok' : r[0] === 1 ? 'wn' : 'no');
+    }
+  }
+  const col = (T[fp.type] || T.sdi3g).c;
+  LY.o.innerHTML = `<path class="wire-tmp" stroke="${col}" d=""/>`;
+  hint(rewire ? 'Перетащите конец кабеля на другой порт · отпустите в пустоте — отмена' : 'Отпустите на порту или устройстве · в пустом месте — выбрать устройство и подключить');
+}
+
+svg.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  pendingEv = ev;
+  if (!moveRaf) moveRaf = requestAnimationFrame(() => { moveRaf = 0; if (pendingEv && drag) onMove(pendingEv); });
+});
+function onMove(ev) {
+  const pt = toDoc(ev.clientX, ev.clientY);
+  if (drag.mode === 'pan') { view.x = drag.vx + ev.clientX - drag.sx; view.y = drag.vy + ev.clientY - drag.sy; setView(); return; }
+  if (drag.mode === 'move') {
+    let dx = pt.x - drag.sx, dy = pt.y - drag.sy;
+    if (!drag.started) { if (Math.hypot(dx, dy) * view.k < 3) return; drag.started = true; hist(); }
+    if (cfg.snap && drag.anchor) { const a = drag.list[0]; dx = Math.round((a.x0 + dx) / 10) * 10 - a.x0; dy = Math.round((a.y0 + dy) / 10) * 10 - a.y0; }
+    for (const m of drag.list) {
+      m.it.o.x = m.x0 + dx; m.it.o.y = m.y0 + dy;
+      const g = els.get(m.it.o.id); if (g) g.setAttribute('transform', `translate(${m.it.o.x},${m.it.o.y})`);
+    }
+    for (const e of drag.edges) updateEdgeFast(e);
+    return;
+  }
+  if (drag.mode === 'resize') {
+    if (!drag.started) { drag.started = true; hist(); }
+    const f = drag.f; f.w = Math.max(120, Math.round((drag.w + pt.x - drag.sx) / 10) * 10); f.h = Math.max(60, Math.round((drag.h + pt.y - drag.sy) / 10) * 10);
+    rerenderItem(f.id); return;
+  }
+  if (drag.mode === 'bend') {
+    const e = drag.e; if (!drag.started) { drag.started = true; hist(); }
+    if (e._r.seg.k === 'mx') e.mx = Math.round(pt.x / 5) * 5; else e.my = Math.round(pt.y / 5) * 5;
+    updateEdgeFast(e); renderOverlay(); return;
+  }
+  if (drag.mode === 'marquee') {
+    const m = $('#marquee'), r = stage.getBoundingClientRect();
+    const x = Math.min(ev.clientX, drag.sx) - r.left, y = Math.min(ev.clientY, drag.sy) - r.top;
+    Object.assign(m.style, { display: 'block', left: x + 'px', top: y + 'px', width: Math.abs(ev.clientX - drag.sx) + 'px', height: Math.abs(ev.clientY - drag.sy) + 'px' });
+    return;
+  }
+  if (drag.mode === 'wire') {
+    if (drag.target) { drag.target.el && drag.target.el.classList.remove('target'); drag.target = null; }
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    let end = pt, msg = '';
+    const g = el && el.closest && el.closest('.node');
+    if (g) {
+      const n = node(g.dataset.id); const pEl = el.closest('[data-p]');
+      let cand = null;
+      if (pEl) { const p = portOf(n, pEl.dataset.p); const c = canLink(drag.fixed, drag.fp, n.id, p, drag.rewire); if (c) cand = { p, c }; else msg = 'Сюда нельзя: порт занят или то же направление'; }
+      else cand = bestPort(drag.fixed, drag.fp, n, pt.y, drag.rewire);
+      if (cand) {
+        const ref = { n: n.id, p: cand.p.id };
+        const c = g.querySelector(`.p-c[data-p="${cand.p.id}"]`); c && c.classList.add('target');
+        drag.target = { ref, el: c, c: cand.c };
+        const pp = portPos(ref); end = pp;
+        msg = `→ ${n.label} · ${cand.p.name}` + (cand.c[1] ? '   ⚠ ' + cand.c[1] : '');
+      } else if (!msg) msg = 'На этом устройстве нет свободного подходящего порта';
+    }
+    const s = drag.start, k = Math.max(40, Math.abs(end.x - s.x) * 0.45);
+    const ed = end.d || -s.d;
+    LY.o.firstChild.setAttribute('d', `M${s.x} ${s.y}C${s.x + s.d * k} ${s.y} ${end.x + ed * k} ${end.y} ${end.x} ${end.y}`);
+    if (msg) hint(msg);
+  }
+}
+svg.addEventListener('pointerup', ev => {
+  if (!drag) return;
+  if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; if (pendingEv) onMove(pendingEv); }
+  const d = drag; drag = null; pendingEv = null;
+  stage.classList.remove('panning');
+  if (d.mode === 'move' && d.started) { markDirty(); renderOverlay(); cull(); }
+  if ((d.mode === 'resize' || d.mode === 'bend') && d.started) markDirty();
+  if (d.mode === 'marquee') {
+    const m = $('#marquee'); m.style.display = 'none';
+    const a = toDoc(d.sx, d.sy), b = toDoc(ev.clientX, ev.clientY);
+    const x1 = Math.min(a.x, b.x), y1 = Math.min(a.y, b.y), x2 = Math.max(a.x, b.x), y2 = Math.max(a.y, b.y);
+    if ((x2 - x1) * view.k > 4) {
+      for (const n of P.nodes) { const L = layout(n); if (n.x < x2 && n.x + L.w > x1 && n.y < y2 && n.y + L.h > y1) sel.add(n.id); }
+      for (const t of P.texts) if (t.x < x2 && t.x + (t._w || 50) > x1 && t.y < y2 && t.y + (t._h || 20) > y1) sel.add(t.id);
+      for (const f of P.frames) if (f.x >= x1 && f.y >= y1 && f.x + f.w <= x2 && f.y + f.h <= y2) sel.add(f.id);
+      for (const e of P.edges) if (sel.has(e.from.n) && sel.has(e.to.n) && ev.altKey) sel.add(e.id);
+      applySel();
+    }
+  }
+  if (d.mode === 'wire') finishWire(d, ev);
+});
+function finishWire(d, ev) {
+  svg.classList.remove('wiring'); hint('');
+  for (const c of svg.querySelectorAll('.p-c.ok,.p-c.wn,.p-c.no,.p-c.target')) c.classList.remove('ok', 'wn', 'no', 'target');
+  LY.o.innerHTML = '';
+  if (d.rewire) els.get(d.rewire.id).style.opacity = '';
+  if (d.target) {
+    const tn = node(d.target.ref.n), tp = portOf(tn, d.target.ref.p);
+    if (d.rewire) {
+      hist();
+      d.rewire[d.movingEnd] = { ...d.target.ref };
+      if (d.movingEnd === 'from') d.rewire.type = tp.type;
+      delete d.rewire.mx; delete d.rewire.my;
+      renderAll(); selectOnly([d.rewire.id]);
+    } else {
+      const fx = d.fixed, fd = d.fp.dir;
+      const fromFixed = fd === 'out' || (fd === 'io' && tp.dir !== 'out');
+      const e = fromFixed ? connect(fx, d.target.ref) : connect(d.target.ref, fx);
+      if (d.target.c[0] < 2) toast(d.target.c[1], d.target.c[0] === 0 ? 'e' : 'w');
+      selectOnly([e.id]); markDirty();
+    }
+    renderOverlay();
+    return;
+  }
+  // отпустили в пустоте — предложить устройство и подключить
+  if (!d.rewire) {
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (el === svg || (el && el.closest && !el.closest('[data-id]') && svg.contains(el))) openQuick(ev.clientX, ev.clientY, toDoc(ev.clientX, ev.clientY), d);
+  }
+  renderOverlay();
+}
+
+// колесо: тачпад — панорама, колесо мыши или Ctrl — масштаб
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const mouseWheel = ev.deltaMode === 1 || (ev.deltaX === 0 && Math.abs(ev.deltaY) >= 50 && Number.isInteger(ev.deltaY));
+  if (ev.ctrlKey || ev.metaKey || (mouseWheel && !ev.shiftKey)) {
+    const dy = ev.deltaMode === 1 ? ev.deltaY * 33 : ev.deltaY;
+    zoomAt(ev.clientX, ev.clientY, Math.exp(-clamp(dy, -120, 120) * (ev.ctrlKey && !mouseWheel ? 0.01 : 0.0018)));
+  } else {
+    view.x -= ev.shiftKey && !ev.deltaX ? ev.deltaY : ev.deltaX; view.y -= ev.shiftKey && !ev.deltaX ? 0 : ev.deltaY; setView();
+  }
+}, { passive: false });
+
+svg.addEventListener('dblclick', ev => {
+  const g = ev.target.closest('[data-id]');
+  if (!g) return openQuick(ev.clientX, ev.clientY, toDoc(ev.clientX, ev.clientY));
+  selectOnly([g.dataset.id]);
+  const f = $('#props [data-focus]'); if (f) { f.focus(); f.select && f.select(); }
+});
+
+// ============================================================================
+//  КЛАВИАТУРА
+// ============================================================================
+const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+document.addEventListener('keydown', ev => {
+  const mod = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase();
+  if (mod && k === 's') { ev.preventDefault(); return ev.shiftKey ? saveAs() : save(); }
+  if (mod && k === 'o') { ev.preventDefault(); return openFile(); }
+  if (mod && k === 'p') { ev.preventDefault(); return printDoc(); }
+  if (mod && k === 'f') { ev.preventDefault(); $('#findBox').focus(); $('#findBox').select(); return; }
+  if (ev.key === 'Escape') {
+    if (!$('#modal').classList.contains('hidden')) return closeModal();
+    hidePops(); if (typing(document.activeElement)) return document.activeElement.blur();
+    if (drag && drag.mode === 'wire') { finishWire({ ...drag, target: null, rewire: drag.rewire }, { clientX: -1, clientY: -1 }); drag = null; return; }
+    sel.clear(); applySel(); return;
+  }
+  if (typing(document.activeElement) || !$('#modal').classList.contains('hidden')) return;
+  if (ev.code === 'Space') { if (!spaceDown) { spaceDown = true; stage.classList.add('spacepan'); } ev.preventDefault(); return; }
+  if (mod && k === 'z') { ev.preventDefault(); return ev.shiftKey ? redo() : undo(); }
+  if (mod && k === 'y') { ev.preventDefault(); return redo(); }
+  if (mod && k === 'c') { ev.preventDefault(); return copySel(); }
+  if (mod && k === 'x') { ev.preventDefault(); copySel(); return deleteSel(); }
+  if (mod && k === 'v') { ev.preventDefault(); return paste(); }
+  if (mod && k === 'd') { ev.preventDefault(); copySel(); return paste(); }
+  if (mod && k === 'a') { ev.preventDefault(); return selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)); }
+  if (mod && k === 'k') { ev.preventDefault(); return quickAtCenter(); }
+  if (mod && (k === '0')) { ev.preventDefault(); const r = stage.getBoundingClientRect(); return zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / view.k); }
+  if (mod) return;
+  if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); return deleteSel(); }
+  if (k === 'f') return fit();
+  if (k === '/' || k === 'a' && !ev.shiftKey) { ev.preventDefault(); return quickAtCenter(); }
+  if (k === 'z') return addFrame();
+  if (k === 't') return addText();
+  if (k === 'r') return flipSel();
+  if (k === '+' || k === '=') { const r = stage.getBoundingClientRect(); return zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.2); }
+  if (k === '-') { const r = stage.getBoundingClientRect(); return zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.2); }
+  if (ev.key.startsWith('Arrow') && sel.size) {
+    ev.preventDefault(); const s = ev.shiftKey ? 50 : 10;
+    const dx = ev.key === 'ArrowLeft' ? -s : ev.key === 'ArrowRight' ? s : 0, dy = ev.key === 'ArrowUp' ? -s : ev.key === 'ArrowDown' ? s : 0;
+    nudge(dx, dy);
+  }
+});
+document.addEventListener('keyup', ev => { if (ev.code === 'Space') { spaceDown = false; stage.classList.remove('spacepan'); } });
+let nudgeT = 0;
+function nudge(dx, dy) {
+  if (!nudgeT) hist(); clearTimeout(nudgeT); nudgeT = setTimeout(() => nudgeT = 0, 600);
+  const es = new Set();
+  for (const id of sel) {
+    const it = items.get(id); if (!it || it.k === 'e') continue;
+    it.o.x += dx; it.o.y += dy; els.get(id).setAttribute('transform', `translate(${it.o.x},${it.o.y})`);
+    if (it.k === 'n') for (const e of adj.get(id)) es.add(e);
+  }
+  es.forEach(updateEdgeFast); renderOverlay(); markDirty();
+}
+function flipSel() {
+  const ns = [...sel].map(node).filter(Boolean); if (!ns.length) return;
+  hist(); for (const n of ns) { n.flip = !n.flip; rerenderItem(n.id); } renderProps();
+}
+
+// ============================================================================
+//  БЫСТРОЕ ДОБАВЛЕНИЕ (поиск устройства)
+// ============================================================================
+let quick = null;
+function quickAtCenter() { const r = stage.getBoundingClientRect(); openQuick(r.left + r.width / 2 - 200, r.top + 80, toDoc(r.left + r.width / 2, r.top + r.height / 2)); }
+function openQuick(cx, cy, docPt, wire) {
+  hidePops();
+  quick = { docPt, wire, idx: 0, list: [] };
+  const q = $('#quick'); q.classList.remove('hidden');
+  q.style.left = clamp(cx, 8, innerWidth - 410) + 'px'; q.style.top = clamp(cy, 8, innerHeight - 400) + 'px';
+  $('#quickIn').value = ''; renderQuick(); setTimeout(() => $('#quickIn').focus(), 0);
+}
+function devMatches(d, q) {
+  if (!q) return true;
+  const arrow = /^(\w+)\s*(?:→|->|>|2)\s*(\w+)$/.exec(q);
+  if (arrow) {
+    const fa = famOf(arrow[1]), fb = famOf(arrow[2]);
+    if (fa && fb) return d.ports.some(p => p.dir !== 'out' && T[p.type].fam === fa) && d.ports.some(p => p.dir !== 'in' && T[p.type].fam === fb);
+  }
+  const hay = (d.maker + ' ' + d.model + ' ' + (CATS[d.cat] || {}).n + ' ' + d.ports.map(p => T[p.type].n).join(' ')).toLowerCase();
+  return q.split(/\s+/).every(w => hay.includes(w));
+}
+function famOf(w) {
+  w = w.toLowerCase(); const map = { sdi: 'sdi', hdmi: 'hdmi', dp: 'dp', dvi: 'dvi', fiber: 'fiber', 'оптика': 'fiber', opt: 'fiber', ndi: 'eth', ip: 'eth', lan: 'eth', eth: 'eth', usb: 'usb', hdbt: 'hdbt', hdbaset: 'hdbt', cvbs: 'cvbs', aes: 'aes', audio: 'aud', xlr: 'aud' };
+  return map[w];
+}
+function renderQuick() {
+  const q = $('#quickIn').value.trim().toLowerCase();
+  let list = allLib().filter(d => devMatches(d, q));
+  if (quick.wire) {
+    const w = quick.wire;
+    list = list.map(d => {
+      const tmp = { id: '_tmp', ports: d.ports.map((p, i) => ({ ...p, id: 'p' + i })) };
+      let best = null;
+      for (const p of tmp.ports) { const c = canLink(w.fixed, w.fp, '_tmp', p, null); if (c && (!best || c[0] > best.c[0])) best = { p, c }; }
+      return best && best.c[0] > 0 ? { d, best } : null;
+    }).filter(Boolean).sort((a, b) => b.best.c[0] - a.best.c[0] || (favs.has(b.d.id) - favs.has(a.d.id)));
+  } else list = list.sort((a, b) => favs.has(b.id) - favs.has(a.id)).map(d => ({ d }));
+  quick.list = list.slice(0, 80); quick.idx = 0;
+  $('#quickList').innerHTML = (quick.wire ? `<div class="qh">Совместимо с ${esc(T[quick.wire.fp.type].n)} — устройство будет подключено автоматически</div>` : '')
+    + quick.list.map((x, i) => itemHTML(x.d, i, x.best ? '→ ' + x.best.p.name + (x.best.c[0] === 1 ? ' ⚠' : '') : null)).join('')
+    + (quick.list.length ? '' : '<div class="qh">Ничего не найдено. Создайте своё устройство: Вставка → Создать своё устройство</div>');
+  hlQuick();
+}
+function hlQuick() { [...$('#quickList').querySelectorAll('.item')].forEach((el, i) => el.classList.toggle('on', i === quick.idx)); const on = $('#quickList .item.on'); on && on.scrollIntoView({ block: 'nearest' }); }
+$('#quickIn').addEventListener('input', renderQuick);
+$('#quickIn').addEventListener('keydown', ev => {
+  if (ev.key === 'ArrowDown') { quick.idx = Math.min(quick.idx + 1, quick.list.length - 1); hlQuick(); ev.preventDefault(); }
+  if (ev.key === 'ArrowUp') { quick.idx = Math.max(quick.idx - 1, 0); hlQuick(); ev.preventDefault(); }
+  if (ev.key === 'Enter' && quick.list[quick.idx]) quickPick(quick.idx);
+  if (ev.key === 'Escape') hidePops();
+});
+$('#quickList').addEventListener('click', ev => { const it = ev.target.closest('.item'); if (it && !ev.target.closest('.fav')) quickPick(+it.dataset.i); });
+function quickPick(i) {
+  const x = quick.list[i]; if (!x) return;
+  const q = quick; hidePops();
+  hist();
+  const n = addNode(x.d, q.docPt.x, q.docPt.y - 20, true);
+  if (q.wire && x.best) {
+    const p = n.ports[x.best.p.id.slice(1)];
+    const L = layout(n); const pos = L.pos[p.id];
+    // ставим устройство так, чтобы порт оказался под курсором
+    n.x = Math.round((q.docPt.x - pos.x - (pos.d < 0 ? -40 : 40)) / 10) * 10; n.y = Math.round((q.docPt.y - pos.y) / 10) * 10;
+    rerenderNode(n);
+    const fd = q.wire.fp.dir; const fromFixed = fd === 'out' || (fd === 'io' && p.dir !== 'out');
+    const e = fromFixed ? connect(q.wire.fixed, { n: n.id, p: p.id }, true) : connect({ n: n.id, p: p.id }, q.wire.fixed, true);
+    selectOnly([n.id]);
+    if (x.best.c[0] < 2) toast(x.best.c[1], 'w');
+  } else selectOnly([n.id]);
+  markDirty(); cull();
+}
+
+// ============================================================================
+//  БИБЛИОТЕКА
+// ============================================================================
+const typeFilter = new Set();
+function portSummary(d) {
+  const agg = {};
+  for (const p of d.ports) { const k = (p.dir === 'out' ? 'out' : p.dir === 'io' ? 'io' : 'in') + ':' + T[p.type].s; agg[k] = (agg[k] || 0) + 1; }
+  const f = dir => Object.entries(agg).filter(([k]) => k.startsWith(dir)).map(([k, v]) => (v > 1 ? v + '×' : '') + k.split(':')[1]).join(' ');
+  const i = f('in:'), o = f('out:'), io = f('io:');
+  return [i && 'вх ' + i, o && 'вых ' + o, io && '⇄ ' + io].filter(Boolean).join(' · ');
+}
+function itemHTML(d, i, extra) {
+  const cat = CATS[d.cat] || CATS.my;
+  return `<div class="item" draggable="true" data-dev="${esc(d.id)}" ${i != null ? `data-i="${i}"` : ''} title="${esc(d.maker + ' ' + d.model + '\n' + portSummary(d))}">`
+    + (d.img ? `<div class="ic ph"><img src="${d.img.src}" alt="" draggable="false"></div>` : `<div class="ic" style="background:${cat.c}"><svg viewBox="0 0 16 16"><path d="${ICONS[cat.ic]}" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`)
+    + `<div class="t"><div class="m">${esc(d.model)}</div><div class="k">${esc(d.maker !== 'Generic' ? d.maker + ' · ' : '')}${esc(extra || portSummary(d))}</div></div>`
+    + `<span class="fav${favs.has(d.id) ? ' on' : ''}" data-fav="${esc(d.id)}" title="В избранное">★</span></div>`;
+}
+function renderTypeFilter() {
+  const keys = ['sdi12g', 'sdi3g', 'hdmi', 'dp', 'fiber', 'eth', 'hdbt', 'ref', 'aud'];
+  $('#libTypeFilter').innerHTML = keys.map(k => `<span data-tf="${k}" class="${typeFilter.has(k) ? 'on' : ''}" style="${typeFilter.has(k) ? 'background:' + T[k].c : 'border-color:' + T[k].c}">${T[k].s === 'SDI' ? T[k].n.replace('-SDI', '') + ' SDI' : T[k].s}</span>`).join('');
+}
+const groupOf = d => (d.group && d.group.trim()) || (CATS[d.cat] || CATS.my).n;
+function renderLib() {
+  const q = $('#libSearch').value.trim().toLowerCase();
+  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.size || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g'))));
+  const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
+  const gmap = new Map();
+  for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
+  const order = [...new Set(customLib.map(groupOf))];
+  for (const c of Object.keys(CATS)) if (!order.includes(CATS[c].n)) order.push(CATS[c].n);
+  for (const g of gmap.keys()) if (!order.includes(g)) order.push(g);
+  for (const g of order) if (gmap.has(g)) groups.push([g, g, gmap.get(g)]);
+  const searching = q || typeFilter.size;
+  $('#libList').innerHTML = groups.filter(g => g[2].length || (g[0] === 'fav' && !searching)).map(([c, name, list]) => {
+    const open = searching || openCats.has(c);
+    return `<div class="cat${open ? '' : ' closed'}" data-cat="${esc(c)}"><div class="catH"><span class="arr">▼</span>${esc(name)}<span class="cnt">${list.length}</span></div><div class="items">`
+      + (list.length ? list.map(d => itemHTML(d)).join('') : '<div class="small muted" style="padding:2px 12px 6px">Нажмите ★ у устройства, чтобы добавить сюда</div>') + '</div></div>';
+  }).join('') || `<div class="muted" style="padding:12px;line-height:1.5">${customLib.length || q ? 'Ничего не найдено' : 'Ваша база пуста.<br>Нажмите «＋ Своё устройство» или просто перетащите фото устройства сюда.'}</div>`;
+}
+$('#libSearch').addEventListener('input', renderLib);
+$('#libBuiltin').checked = cfg.builtin;
+$('#libBuiltin').addEventListener('change', ev => { cfg.builtin = ev.target.checked; saveCfg(); renderLib(); });
+$('#libTypeFilter').addEventListener('click', ev => { const s = ev.target.closest('[data-tf]'); if (!s) return; const k = s.dataset.tf; typeFilter.has(k) ? typeFilter.delete(k) : typeFilter.add(k); renderTypeFilter(); renderLib(); });
+function onFavClick(ev) {
+  const f = ev.target.closest('[data-fav]'); if (!f) return false;
+  const id = f.dataset.fav; favs.has(id) ? favs.delete(id) : favs.add(id); store.set('favs', [...favs]); renderLib(); if (quick) renderQuick(); return true;
+}
+let libAddN = 0;
+$('#libList').addEventListener('click', ev => {
+  if (onFavClick(ev)) return;
+  const h = ev.target.closest('.catH');
+  if (h) { const c = h.parentNode.dataset.cat; openCats.has(c) ? openCats.delete(c) : openCats.add(c); store.set('openCats', [...openCats]); h.parentNode.classList.toggle('closed'); return; }
+  const it = ev.target.closest('.item'); if (!it) return;
+  const r = stage.getBoundingClientRect(); const c = toDoc(r.left + r.width / 2, r.top + r.height / 2);
+  libAddN = (libAddN + 1) % 8;
+  const n = addNode(libById(it.dataset.dev), c.x - 90 + libAddN * 20, c.y - 60 + libAddN * 20);
+  selectOnly([n.id]); markDirty();
+});
+$('#quickList').addEventListener('mousedown', ev => { if (ev.target.closest('[data-fav]')) { ev.preventDefault(); onFavClick(ev); } });
+$('#libList').addEventListener('dragstart', ev => { const it = ev.target.closest('.item'); if (!it) return; ev.dataTransfer.setData('text/sf-dev', it.dataset.dev); ev.dataTransfer.effectAllowed = 'copy'; });
+$('#libList').addEventListener('contextmenu', ev => {
+  const it = ev.target.closest('.item'); if (!it) return; ev.preventDefault();
+  const d = libById(it.dataset.dev), custom = customLib.includes(d);
+  showCtx(ev.clientX, ev.clientY, [
+    ['Добавить на схему', () => it.click()],
+    [custom ? 'Редактировать (фото, порты)…' : 'Скопировать в свою базу…', () => deviceEditor(custom ? d : { ...JSON.parse(JSON.stringify(d)), id: null })],
+    custom && ['Удалить из базы', () => { customLib = customLib.filter(x => x !== d); saveLib(); renderLib(); }],
+  ]);
+});
+stage.addEventListener('dragover', ev => { if (ev.dataTransfer.types.includes('text/sf-dev')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
+stage.addEventListener('drop', ev => {
+  const id = ev.dataTransfer.getData('text/sf-dev'); if (!id) return; ev.preventDefault();
+  const p = toDoc(ev.clientX, ev.clientY); const n = addNode(libById(id), p.x - 20, p.y - 20); selectOnly([n.id]); markDirty();
+});
+
+// ============================================================================
+//  ПАНЕЛЬ СВОЙСТВ
+// ============================================================================
+const typeOpts = cur => TYPE_KEYS.map(k => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(T[k].n)}</option>`).join('');
+const dirOpts = cur => [['in', 'Вход'], ['out', 'Выход'], ['io', '⇄ Двунапр.']].map(([v, n]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${n}</option>`).join('');
+const FORMATS = ['720p50', '1080i50', '1080p25', '1080p50', '1080p60', '2160p25', '2160p50', '2160p60', '3840x2160', '1920x1080', '1280x720'];
+function fld(label, key, val, opt = {}) {
+  const a = `data-k="${key}"${opt.focus ? ' data-focus="1"' : ''}${opt.list ? ` list="${opt.list}"` : ''}`;
+  const input = opt.area ? `<textarea ${a} rows="${opt.rows || 3}">${esc(val)}</textarea>`
+    : opt.select ? `<select ${a}>${opt.select}</select>`
+      : `<input ${a} value="${esc(val)}" type="${opt.type || 'text'}"${opt.ph ? ` placeholder="${esc(opt.ph)}"` : ''}>`;
+  return `<div class="fld"><label>${label}</label>${input}</div>`;
+}
+function portsTable(ports) {
+  return `<table class="ports"><tbody>` + ports.map((p, i) => `<tr data-pi="${i}"><td style="width:28%"><select data-pk="dir">${dirOpts(p.dir)}</select></td><td><input data-pk="name" value="${esc(p.name)}"></td><td style="width:34%"><select data-pk="type">${typeOpts(p.type)}</select></td><td class="x" data-pdel="${i}" title="Удалить порт">✕</td></tr>`).join('') + '</tbody></table>'
+    + `<div class="btns"><button data-padd="in">＋ Вход</button><button data-padd="out">＋ Выход</button><button data-padd="bulk">＋ Несколько…</button></div>`;
+}
+function renderProps() {
+  const el = $('#props');
+  const list = [...sel].map(id => items.get(id)).filter(Boolean);
+  if (!list.length) return renderDocProps(el);
+  if (list.length > 1) {
+    const ns = list.filter(x => x.k === 'n');
+    el.innerHTML = `<h3>Выделено: ${list.length}</h3><div class="small muted">Устройств: ${ns.length}, кабелей: ${list.filter(x => x.k === 'e').length}</div>
+      <h4>Выравнивание</h4><div class="btns"><button data-al="l" title="По левому краю">⇤</button><button data-al="cx" title="По центру">⇹</button><button data-al="r" title="По правому краю">⇥</button><button data-al="t" title="По верху">⤒</button><button data-al="cy" title="По середине">⇳</button><button data-al="b" title="По низу">⤓</button></div>
+      <div class="btns"><button data-al="dh">Распределить ↔</button><button data-al="dv">Распределить ↕</button></div>
+      ${ns.length ? `<h4>Для всех устройств</h4>${fld('Помещение / рэк', 'mloc', '', { ph: 'например: Аппаратная, рэк 2' })}<div class="btns"><button data-act="flip">⇆ Зеркально (R)</button><button data-act="frameSel">▢ Обвести зоной</button></div>` : ''}
+      <div class="btns"><button data-act="dup">Дублировать</button><button data-act="del">Удалить</button></div>`;
+    return;
+  }
+  const it = list[0];
+  if (it.k === 'n') return renderNodeProps(el, it.o);
+  if (it.k === 'e') return renderEdgeProps(el, it.o);
+  if (it.k === 'f') {
+    const f = it.o;
+    el.innerHTML = `<h3>▢ Зона</h3>${fld('Название', 'title', f.title, { focus: 1 })}${fld('Цвет', 'color', f.color || '#2563eb', { type: 'color' })}
+      <div class="small muted">Перетаскивайте за заголовок — устройства внутри поедут вместе (Alt — двигать только рамку). Угол справа внизу — размер.</div><div class="btns"><button data-act="del">Удалить зону</button></div>`;
+    return;
+  }
+  if (it.k === 't') {
+    const t = it.o;
+    el.innerHTML = `<h3>T Текст</h3>${fld('Текст', 'text', t.text, { area: 1, rows: 4, focus: 1 })}<div class="row">${fld('Размер', 'size', t.size || 14, { type: 'number' })}${fld('Цвет', 'color', t.color || '#111827', { type: 'color' })}</div>
+      <label class="small"><input type="checkbox" data-k="bold"${t.bold ? ' checked' : ''}> Жирный</label><div class="btns"><button data-act="del">Удалить</button></div>`;
+  }
+}
+function renderNodeProps(el, n) {
+  const cat = CATS[n.cat] || CATS.my;
+  const conns = n.ports.map(p => {
+    const e = portUse.get(n.id + ':' + p.id); if (!e) return '';
+    const other = e.from.n === n.id ? e.to : e.from; const on = node(other.n), op = on && portOf(on, other.p);
+    const arrow = e.from.n === n.id ? '→' : '←';
+    return `<tr class="clk" data-goto="${e.id}"><td><span class="dot" style="background:${T[e.type].c}"></span></td><td>${esc(p.name)}</td><td>${arrow}</td><td><b>${esc(on && on.label)}</b> ${esc(op && op.name)}</td><td class="muted">${esc(e.label)}</td></tr>`;
+  }).join('');
+  el.innerHTML = `<h3><span class="dot" style="background:${n.color || cat.c}"></span>${esc(cat.n)}</h3>
+    ${fld('Обозначение на схеме', 'label', n.label, { focus: 1 })}
+    <div class="row">${fld('Производитель', 'maker', n.maker)}${fld('Модель', 'model', n.model)}</div>
+    ${fld('Помещение / рэк / позиция', 'loc', n.loc, { ph: 'Аппаратная, рэк 2, U14', list: 'locList' })}
+    ${fld('Примечание', 'notes', n.notes, { area: 1, rows: 2 })}
+    <div class="row">${fld('Цвет шапки', 'color', n.color || cat.c, { type: 'color' })}<div class="fld"><label>&nbsp;</label><button data-act="flip">⇆ Зеркально (R)</button></div></div>
+    <h4>Фото</h4>${n.img && doc.images[n.img] ? `<img class="propImg" src="${doc.images[n.img].src}">` : '<div class="small muted">Нет фото. Выделите устройство и вставьте картинку Ctrl+V или перетащите файл на блок.</div>'}<div class="btns"><button data-act="photo">${n.img ? 'Заменить фото' : 'Добавить фото'}</button>${n.img ? '<button data-act="photoDel">Убрать</button>' : ''}</div>
+    <h4>Порты (${n.ports.length})</h4>${portsTable(n.ports)}
+    ${conns ? `<h4>Подключения</h4><table class="grid">${conns}</table>` : ''}
+    <div class="btns" style="margin-top:12px"><button data-act="dup">Дублировать</button><button data-act="toLib">★ Сохранить в базу</button><button data-act="del">Удалить</button></div>
+    <datalist id="locList">${[...new Set(doc.pages.flatMap(pg => pg.nodes.map(x => x.loc)).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('')}</datalist>`;
+}
+function renderEdgeProps(el, e) {
+  const a = node(e.from.n), b = node(e.to.n), pa = portOf(a, e.from.p), pb = portOf(b, e.to.p);
+  const st = edgeStatus(e);
+  let conv = '';
+  if (st[0] < 2) {
+    const list = convertersFor(e.type, pb.type).slice(0, 6);
+    conv = `<div class="${st[0] === 0 ? 'badbox' : 'warnbox'}">⚠ ${esc(st[1])}</div>` + (list.length ? `<div class="small muted">Вставить в разрыв:</div><div class="btns">${list.map(d => `<button data-conv="${d.id}" title="${esc(d.maker)}">${esc(d.model)}</button>`).join('')}</div>` : '');
+  }
+  el.innerHTML = `<h3><span class="dot" style="background:${e.color || T[e.type].c}"></span>Кабель</h3>
+    <div class="small" style="margin-bottom:10px;line-height:1.6"><b>${esc(a.label)}</b> · ${esc(pa.name)}<br>→ <b>${esc(b.label)}</b> · ${esc(pb.name)}</div>${conv}
+    ${fld('Номер / маркировка', 'label', e.label, { focus: 1 })}
+    ${fld('Тип сигнала', 'type', '', { select: typeOpts(e.type) })}
+    <div class="row">${fld('Формат', 'fmt', e.fmt, { list: 'fmtList', ph: '1080p50' })}${fld('Длина, м', 'len', e.len, { type: 'number' })}</div>
+    ${fld('Примечание', 'notes', e.notes, { area: 1, rows: 2 })}
+    ${fld('Свой цвет', 'color', e.color || T[e.type].c, { type: 'color' })}
+    <div class="btns"><button data-act="resetColor">Цвет по типу</button><button data-act="resetBend">Сбросить изгиб</button>${pa.dir === 'io' && pb.dir === 'io' ? '<button data-act="reverse">⇄ Направление</button>' : ''}<button data-act="del">Удалить</button></div>
+    <div class="small muted" style="margin-top:8px">Перетащите конец кабеля за порт, чтобы переключить его. Квадратик на линии — изгиб.</div>
+    <datalist id="fmtList">${FORMATS.map(f => `<option value="${f}">`).join('')}</datalist>`;
+}
+function renderDocProps(el) {
+  const used = {}; let bad = 0;
+  for (const pg of doc.pages) for (const e of pg.edges) used[e.type] = (used[e.type] || 0) + 1;
+  for (const e of P.edges) if (e._st === 0) bad++;
+  el.innerHTML = `<h3>Проект</h3>${fld('Название', 'docname', doc.name)}${fld('Автор / инженер', 'author', doc.author)}
+    <h4>Лист «${esc(P.name)}»</h4>
+    <div class="stat"><span>Устройств</span><b>${P.nodes.length}</b></div><div class="stat"><span>Кабелей</span><b>${P.edges.length}</b></div>
+    <div class="stat"><span>Несовместимых соединений</span><b style="color:${bad ? 'var(--bad)' : ''}">${bad}</b></div>
+    ${Object.keys(used).length ? `<h4>Сигналы в проекте</h4><div class="legend">${Object.entries(used).map(([k, v]) => `<i style="background:${T[k].c}"></i><span>${esc(T[k].n)} — ${v}</span>`).join('')}</div>` : ''}
+    <h4>Как работать</h4><div class="small muted" style="line-height:1.55">
+    • Перетащите устройство из библиотеки или <b>дважды кликните</b> по холсту — быстрый поиск.<br>
+    • Тяните от <b>порта</b> к порту или просто на устройство — порт подберётся сам. Отпустите в пустоте — предложит совместимое устройство и подключит его.<br>
+    • Зелёные порты — совместимы, оранжевые — с оговоркой.<br>
+    • Тяните за конец существующего кабеля — перекоммутация.<br>
+    • <b>Пробел</b>+мышь или средняя кнопка — панорама; колесо — масштаб.<br>
+    • Z — зона, T — текст, R — зеркально, F — показать всё.</div>`;
+}
+function convertersFor(ft, tt) {
+  return allLib().filter(d => ['conv', 'da', 'ext', 'enc', 'aud'].includes(d.cat)
+    && d.ports.some(p => p.dir !== 'out' && compat(ft, p.type)[0] === 2) && d.ports.some(p => p.dir !== 'in' && compat(p.type, tt)[0] === 2));
+}
+function insertConverter(e, devId) {
+  const dev = libById(devId); hist();
+  const a = portPos(e.from), b = portPos(e.to);
+  const n = addNode(dev, (a.x + b.x) / 2 - 90, (a.y + b.y) / 2 - 40, true);
+  n.label = nextLabel('conv');
+  const pin = n.ports.find(p => p.dir !== 'out' && compat(e.type, p.type)[0] === 2);
+  const pb = portOf(node(e.to.n), e.to.p);
+  const pout = n.ports.find(p => p.dir !== 'in' && p !== pin && compat(p.type, pb.type)[0] === 2);
+  const oldTo = e.to;
+  e.to = { n: n.id, p: pin.id }; delete e.mx; delete e.my;
+  reindex();
+  const e2 = { id: uid(), from: { n: n.id, p: pout.id }, to: oldTo, type: pout.type, label: nextCable(pout.type), fmt: e.fmt || '', len: '' };
+  P.edges.push(e2);
+  renderAll(); selectOnly([n.id]); markDirty();
+  toast('Конвертер вставлен: ' + dev.model);
+}
+
+// изменения в панели свойств — с одной точкой отмены на поле
+let editing = null;
+$('#props').addEventListener('focusin', () => { editing = null; });
+$('#props').addEventListener('input', ev => propChange(ev, false));
+$('#props').addEventListener('change', ev => propChange(ev, true));
+function propChange(ev, commit) {
+  const t = ev.target; const key = t.dataset.k, pk = t.dataset.pk;
+  if (!key && !pk) return;
+  if (key === 'docname') { doc.name = t.value; $('#docName').value = t.value; markDirty(); return; }
+  if (key === 'author') { doc.author = t.value; markDirty(); return; }
+  if (editing !== t) { hist(); editing = t; }
+  const val = t.type === 'checkbox' ? t.checked : t.value;
+  const list = [...sel].map(id => items.get(id)).filter(Boolean);
+  if (key === 'mloc') { for (const x of list) if (x.k === 'n') { x.o.loc = val; rerenderItem(x.o.id); } markDirty(); return; }
+  const it = list[0]; if (!it) return;
+  const o = it.o;
+  if (pk) {
+    const i = +t.closest('tr').dataset.pi; const p = o.ports[i];
+    p[pk] = val;
+    if (pk === 'type' && T[val].fam === 'eth') { p.dir = 'io'; }
+    if (pk === 'dir' || pk === 'type') { const e = portUse.get(o.id + ':' + p.id); if (e && e.from.n === o.id && e.from.p === p.id) e.type = p.type; }
+    rerenderItem(o.id); markDirty(); if (commit) renderProps(); return;
+  }
+  if (key === 'size') o.size = +val || 14;
+  else if (key === 'len') o.len = val;
+  else o[key] = val;
+  if (it.k === 'e' && key === 'type') o.color = o.color && o.color !== T[o.type].c ? o.color : undefined;
+  rerenderItem(o.id); markDirty();
+  if (commit && (key === 'type' || key === 'color')) renderProps();
+}
+$('#props').addEventListener('click', ev => {
+  const t = ev.target;
+  const list = [...sel].map(id => items.get(id)).filter(Boolean); const it = list[0];
+  if (t.dataset.al) return align(t.dataset.al);
+  if (t.dataset.conv) return insertConverter(it.o, t.dataset.conv);
+  const gt = t.closest('[data-goto]'); if (gt) return goTo(gt.dataset.goto);
+  if (t.dataset.pdel != null) { hist(); const n = it.o; const p = n.ports[+t.dataset.pdel]; const e = portUse.get(n.id + ':' + p.id); n.ports.splice(+t.dataset.pdel, 1); if (e) P.edges = P.edges.filter(x => x !== e); renderAll(); return; }
+  if (t.dataset.padd) {
+    const n = it.o;
+    if (t.dataset.padd === 'bulk') return bulkPorts(ps => { hist(); n.ports.push(...ps); rerenderItem(n.id); renderProps(); markDirty(); });
+    hist(); const dir = t.dataset.padd, type = (n.ports.find(p => p.dir === dir) || n.ports[0] || { type: 'sdi3g' }).type;
+    n.ports.push({ id: uid(), name: `${T[type].s} ${dir === 'in' ? 'IN' : 'OUT'} ${n.ports.filter(p => p.dir === dir).length + 1}`, type, dir: T[type].fam === 'eth' ? 'io' : dir });
+    rerenderItem(n.id); renderProps(); markDirty(); return;
+  }
+  const act = t.dataset.act; if (!act) return;
+  if (act === 'del') deleteSel();
+  if (act === 'dup') { copySel(); paste(); }
+  if (act === 'flip') flipSel();
+  if (act === 'frameSel') frameAroundSel();
+  if (act === 'toLib') deviceEditor(nodeToDev(it.o));
+  if (act === 'photo') { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = async () => { if (!i.files[0]) return; const im = await readImage(i.files[0]); hist(); it.o.img = putImage(im); rerenderItem(it.o.id); renderProps(); markDirty(); }; i.click(); }
+  if (act === 'photoDel') { hist(); delete it.o.img; rerenderItem(it.o.id); renderProps(); markDirty(); }
+  if (act === 'resetColor') { hist(); delete it.o.color; rerenderItem(it.o.id); renderProps(); markDirty(); }
+  if (act === 'resetBend') { hist(); delete it.o.mx; delete it.o.my; rerenderItem(it.o.id); renderOverlay(); markDirty(); }
+  if (act === 'reverse') { hist(); const e = it.o; [e.from, e.to] = [e.to, e.from]; rerenderItem(e.id); renderProps(); markDirty(); }
+});
+function align(mode) {
+  const list = [...sel].map(id => items.get(id)).filter(x => x && x.k !== 'e');
+  if (list.length < 2) return;
+  hist();
+  const bb = x => x.k === 'n' ? { w: layout(x.o).w, h: layout(x.o).h } : x.k === 'f' ? { w: x.o.w, h: x.o.h } : { w: x.o._w || 50, h: x.o._h || 20 };
+  const L = list.map(x => ({ x, o: x.o, ...bb(x) }));
+  const minX = Math.min(...L.map(a => a.o.x)), maxX = Math.max(...L.map(a => a.o.x + a.w)), minY = Math.min(...L.map(a => a.o.y)), maxY = Math.max(...L.map(a => a.o.y + a.h));
+  if (mode === 'l') L.forEach(a => a.o.x = minX); if (mode === 'r') L.forEach(a => a.o.x = maxX - a.w); if (mode === 'cx') L.forEach(a => a.o.x = Math.round((minX + maxX) / 2 - a.w / 2));
+  if (mode === 't') L.forEach(a => a.o.y = minY); if (mode === 'b') L.forEach(a => a.o.y = maxY - a.h); if (mode === 'cy') L.forEach(a => a.o.y = Math.round((minY + maxY) / 2 - a.h / 2));
+  if (mode === 'dh') { L.sort((a, b) => a.o.x - b.o.x); const tot = L.reduce((s, a) => s + a.w, 0), gap = (maxX - minX - tot) / (L.length - 1); let x = minX; L.forEach(a => { a.o.x = Math.round(x); x += a.w + gap; }); }
+  if (mode === 'dv') { L.sort((a, b) => a.o.y - b.o.y); const tot = L.reduce((s, a) => s + a.h, 0), gap = (maxY - minY - tot) / (L.length - 1); let y = minY; L.forEach(a => { a.o.y = Math.round(y); y += a.h + gap; }); }
+  renderAll(); markDirty();
+}
+function goTo(id) {
+  const it = items.get(id); if (!it) return;
+  selectOnly([id]);
+  if (it.k === 'e') { const b = it.o._bb; centerOn((b[0] + b[2]) / 2, (b[1] + b[3]) / 2); }
+  else { const L = it.k === 'n' ? layout(it.o) : { w: 100, h: 40 }; centerOn(it.o.x + L.w / 2, it.o.y + L.h / 2); }
+  const g = els.get(id); if (g && it.k === 'n') { g.classList.add('hl'); setTimeout(() => g.classList.remove('hl'), 1200); }
+}
+
+// ============================================================================
+//  ЗОНЫ И ТЕКСТ
+// ============================================================================
+function centerDoc() { const r = stage.getBoundingClientRect(); return toDoc(r.left + r.width / 2, r.top + r.height / 2); }
+function addFrame() {
+  if ([...sel].some(id => items.get(id) && items.get(id).k === 'n')) return frameAroundSel();
+  hist(); const c = centerDoc();
+  const f = { id: uid(), x: Math.round((c.x - 250) / 10) * 10, y: Math.round((c.y - 150) / 10) * 10, w: 500, h: 300, title: 'Помещение', color: '#2563eb' };
+  P.frames.push(f); items.set(f.id, { k: 'f', o: f }); rerenderItem(f.id); selectOnly([f.id]); markDirty();
+}
+function frameAroundSel() {
+  const ns = [...sel].map(id => items.get(id)).filter(x => x && (x.k === 'n' || x.k === 't')); if (!ns.length) return;
+  hist();
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const x of ns) { const L = x.k === 'n' ? layout(x.o) : { w: x.o._w, h: x.o._h }; x1 = Math.min(x1, x.o.x); y1 = Math.min(y1, x.o.y); x2 = Math.max(x2, x.o.x + L.w); y2 = Math.max(y2, x.o.y + L.h); }
+  const f = { id: uid(), x: x1 - 30, y: y1 - 50, w: x2 - x1 + 60, h: y2 - y1 + 80, title: ns[0].o.loc || 'Зона', color: '#2563eb' };
+  P.frames.push(f); items.set(f.id, { k: 'f', o: f }); rerenderItem(f.id); selectOnly([f.id]); markDirty();
+}
+function addText() {
+  hist(); const c = centerDoc();
+  const t = { id: uid(), x: Math.round(c.x / 10) * 10, y: Math.round(c.y / 10) * 10, text: 'Текст', size: 16 };
+  P.texts.push(t); items.set(t.id, { k: 't', o: t }); rerenderItem(t.id); selectOnly([t.id]); markDirty();
+  setTimeout(() => { const f = $('#props [data-focus]'); f && (f.focus(), f.select()); }, 0);
+}
+
+// ============================================================================
+//  КОНТЕКСТНОЕ МЕНЮ
+// ============================================================================
+function showCtx(x, y, list) {
+  hidePops();
+  const c = $('#ctx'); const acts = list.filter(Boolean);
+  c.innerHTML = acts.map((a, i) => a === '-' ? '<hr>' : `<a data-i="${i}">${esc(a[0])}</a>`).join('');
+  c.classList.remove('hidden');
+  c.style.left = Math.min(x, innerWidth - 240) + 'px'; c.style.top = Math.min(y, innerHeight - c.offsetHeight - 8) + 'px';
+  c.onclick = ev => { const a = ev.target.closest('[data-i]'); if (a) { hidePops(); acts[+a.dataset.i][1](); } };
+}
+svg.addEventListener('contextmenu', ev => {
+  ev.preventDefault();
+  const g = ev.target.closest('[data-id]'); const pt = toDoc(ev.clientX, ev.clientY);
+  if (g) {
+    const id = g.dataset.id; if (!sel.has(id)) selectOnly([id]);
+    const it = items.get(id);
+    if (it.k === 'e') {
+      const e = it.o, pb = portOf(node(e.to.n), e.to.p);
+      const cv = convertersFor(e.type, pb.type).slice(0, 5);
+      return showCtx(ev.clientX, ev.clientY, [...cv.map(d => ['Вставить: ' + d.model, () => insertConverter(e, d.id)]), cv.length && '-', ['Сбросить изгиб', () => { hist(); delete e.mx; delete e.my; rerenderItem(e.id); renderOverlay(); markDirty(); }], ['Удалить кабель', deleteSel]]);
+    }
+    return showCtx(ev.clientX, ev.clientY, [
+      ['Дублировать  Ctrl+D', () => { copySel(); paste(); }], ['Копировать  Ctrl+C', copySel],
+      it.k === 'n' && ['Зеркально (входы справа)  R', flipSel], it.k === 'n' && ['Обвести зоной', frameAroundSel],
+      it.k === 'n' && ['Сохранить / обновить в базе…', () => deviceEditor(nodeToDev(it.o))],
+      ['На передний план', () => toFront(1)], ['На задний план', () => toFront(0)], '-', ['Удалить  Del', deleteSel]]);
+  }
+  showCtx(ev.clientX, ev.clientY, [
+    ['Добавить устройство…', () => openQuick(ev.clientX, ev.clientY, pt)],
+    (clip || store.get('clip', null)) && ['Вставить сюда', () => paste(pt)],
+    ['Зона (помещение/рэк)', addFrame], ['Текст', addText], '-', ['Показать всё', () => fit()], ['Выделить всё', () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id))]]);
+});
+function toFront(front) {
+  hist();
+  for (const key of ['nodes', 'frames', 'texts']) {
+    const a = P[key].filter(o => sel.has(o.id)), b = P[key].filter(o => !sel.has(o.id));
+    P[key] = front ? b.concat(a) : a.concat(b);
+  }
+  renderAll(); markDirty();
+}
+function hidePops() { $('#quick').classList.add('hidden'); $('#ctx').classList.add('hidden'); quick = null; document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')); }
+document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.pop') && !ev.target.closest('#svg')) hidePops(); });
+
+// ============================================================================
+//  СТРАНИЦЫ
+// ============================================================================
+function renderPages() {
+  $('#pages').innerHTML = doc.pages.map((pg, i) => `<div class="pg${i === doc.cur ? ' on' : ''}" data-pg="${i}" title="Двойной клик — переименовать, правый клик — меню">${esc(pg.name)}</div>`).join('') + '<button class="add" data-cmd="addPage" title="Новый лист">＋</button>';
+}
+$('#pages').addEventListener('click', ev => { const p = ev.target.closest('[data-pg]'); if (p && +p.dataset.pg !== doc.cur) switchPage(+p.dataset.pg); });
+$('#pages').addEventListener('dblclick', ev => { const p = ev.target.closest('[data-pg]'); if (p) renamePage(+p.dataset.pg, p); });
+$('#pages').addEventListener('contextmenu', ev => {
+  const p = ev.target.closest('[data-pg]'); if (!p) return; ev.preventDefault(); const i = +p.dataset.pg;
+  showCtx(ev.clientX, ev.clientY - 120, [['Переименовать', () => renamePage(i, p)], ['Дублировать лист', () => { hist(); const c = JSON.parse(JSON.stringify(doc.pages[i], replacer)); c.id = uid(); c.name += ' (копия)'; doc.pages.splice(i + 1, 0, c); switchPage(i + 1); markDirty(); }],
+  doc.pages.length > 1 && ['Удалить лист', () => { hist(); doc.pages.splice(i, 1); doc.cur = Math.min(doc.cur, doc.pages.length - 1); P = doc.pages[doc.cur]; switchPage(doc.cur); markDirty(); toast('Лист удалён. Ctrl+Z — вернуть'); }]]);
+});
+function renamePage(i, el) {
+  const inp = document.createElement('input'); inp.value = doc.pages[i].name; inp.style.width = '140px';
+  el.replaceWith(inp); inp.focus(); inp.select();
+  const done = () => { if (inp.value.trim() && inp.value !== doc.pages[i].name) { hist(); doc.pages[i].name = inp.value.trim(); markDirty(); } renderPages(); renderExtra(); };
+  inp.addEventListener('blur', done); inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = doc.pages[i].name; inp.blur(); } });
+}
+
+// ============================================================================
+//  ПРОВЕРКА, ЖУРНАЛЫ, ЭКСПОРТ
+// ============================================================================
+function updateStatus() {
+  let bad = 0, warn = 0; for (const e of P.edges) { if (e._st === 0) bad++; else if (e._st === 1) warn++; }
+  $('#status').innerHTML = `Устройств: <b>${P.nodes.length}</b> · Кабелей: <b>${P.edges.length}</b>` + (bad ? ` · <span style="color:var(--bad)">⚠ несовместимо: ${bad}</span>` : '') + (warn ? ` · <span style="color:var(--warn)">внимание: ${warn}</span>` : '') + (sel.size ? ` · Выделено: ${sel.size}` : '');
+}
+function openModal(title, html) { $('#mTitle').textContent = title; $('#mBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function closeModal() { $('#modal').classList.add('hidden'); editorPaste = null; }
+$('#mClose').onclick = closeModal;
+$('#modal').addEventListener('pointerdown', ev => { if (ev.target.id === 'modal') closeModal(); });
+
+function cableRows() {
+  const rows = [];
+  doc.pages.forEach((pg, pi) => {
+    const nm = new Map(pg.nodes.map(n => [n.id, n]));
+    for (const e of pg.edges) {
+      const a = nm.get(e.from.n), b = nm.get(e.to.n); if (!a || !b) continue;
+      const pa = a.ports.find(p => p.id === e.from.p), pb = b.ports.find(p => p.id === e.to.p);
+      const st = pa && pb ? compat(e.type, pb.type) : [0, 'порт удалён'];
+      rows.push({ pi, e, page: pg.name, label: e.label, type: (T[e.type] || {}).n, fmt: e.fmt || '', from: a.label, fromPort: pa ? pa.name : '?', fromLoc: a.loc || '', to: b.label, toPort: pb ? pb.name : '?', toLoc: b.loc || '', len: e.len || '', notes: e.notes || '', st });
+    }
+  });
+  return rows.sort((x, y) => String(x.label).localeCompare(String(y.label), 'ru', { numeric: true }));
+}
+function showCables() {
+  const rows = cableRows();
+  openModal(`Кабельный журнал — ${rows.length} шт.`, `<div class="btns"><button class="pri" data-m="csvCables">⇩ Скачать CSV (Excel)</button><button data-m="renumber">Перенумеровать по порядку</button></div>
+   <table class="grid"><thead><tr><th>№</th><th>Тип</th><th>Формат</th><th>Откуда</th><th>Куда</th><th>Длина</th><th>Лист</th><th></th></tr></thead><tbody>
+   ${rows.map((r, i) => `<tr class="clk" data-row="${i}"><td><b>${esc(r.label)}</b></td><td><span class="dot" style="background:${(T[r.e.type] || {}).c}"></span> ${esc(r.type)}</td><td>${esc(r.fmt)}</td><td><b>${esc(r.from)}</b> · ${esc(r.fromPort)}<div class="small muted">${esc(r.fromLoc)}</div></td><td><b>${esc(r.to)}</b> · ${esc(r.toPort)}<div class="small muted">${esc(r.toLoc)}</div></td><td>${esc(r.len)}</td><td class="muted">${esc(r.page)}</td><td>${r.st[0] === 0 ? '⚠' : r.st[0] === 1 ? '!' : ''}</td></tr>`).join('')}
+   </tbody></table>`);
+  $('#mBody').onclick = ev => {
+    const m = ev.target.dataset.m; if (m === 'csvCables') return exportCablesCSV(); if (m === 'renumber') { renumber(); return showCables(); }
+    const tr = ev.target.closest('[data-row]'); if (tr) { const r = rows[+tr.dataset.row]; closeModal(); if (r.pi !== doc.cur) switchPage(r.pi); goTo(r.e.id); }
+  };
+}
+function renumber() {
+  hist(); const cnt = {};
+  doc.pages.forEach(pg => {
+    const nm = new Map(pg.nodes.map(n => [n.id, n]));
+    const es = [...pg.edges].sort((a, b) => { const A = nm.get(a.from.n), B = nm.get(b.from.n); return (A.x - B.x) || (A.y - B.y) || (portPos(a.from).y - portPos(b.from).y || 0); });
+    for (const e of es) { const pre = (T[e.type] || T.sdi3g).pre; cnt[pre] = (cnt[pre] || 0) + 1; e.label = pre + String(cnt[pre]).padStart(3, '0'); }
+  });
+  renderAll(); markDirty(); toast('Кабели перенумерованы');
+}
+function bomRows() {
+  const m = new Map();
+  for (const pg of doc.pages) for (const n of pg.nodes) {
+    const k = n.maker + '|' + n.model;
+    if (!m.has(k)) m.set(k, { cat: (CATS[n.cat] || CATS.my).n, maker: n.maker, model: n.model, qty: 0, labels: [] });
+    const r = m.get(k); r.qty++; r.labels.push(n.label);
+  }
+  return [...m.values()].sort((a, b) => a.cat.localeCompare(b.cat) || a.model.localeCompare(b.model));
+}
+function cableBOM() {
+  const m = {};
+  for (const r of cableRows()) { const k = r.type; m[k] ||= { n: 0, len: 0 }; m[k].n++; m[k].len += +r.len || 0; }
+  return m;
+}
+function showBOM() {
+  const rows = bomRows(), cb = cableBOM();
+  openModal('Спецификация оборудования', `<div class="btns"><button class="pri" data-m="csv">⇩ Скачать CSV (Excel)</button></div>
+  <table class="grid"><thead><tr><th>Категория</th><th>Производитель</th><th>Модель</th><th>Кол-во</th><th>Обозначения</th></tr></thead><tbody>
+  ${rows.map(r => `<tr><td class="muted">${esc(r.cat)}</td><td>${esc(r.maker)}</td><td><b>${esc(r.model)}</b></td><td><b>${r.qty}</b></td><td class="small">${esc(r.labels.join(', '))}</td></tr>`).join('')}</tbody></table>
+  <h4 style="margin-top:18px">Кабели</h4><table class="grid"><thead><tr><th>Тип</th><th>Штук</th><th>Суммарная длина, м</th></tr></thead><tbody>${Object.entries(cb).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${v.len || '—'}</td></tr>`).join('')}</tbody></table>`);
+  $('#mBody').onclick = ev => { if (ev.target.dataset.m === 'csv') exportBOMCSV(); };
+}
+function runCheck() {
+  const issues = [];
+  doc.pages.forEach((pg, pi) => {
+    const prev = P; P = pg; reindex();
+    const labels = {};
+    for (const e of pg.edges) {
+      const st = edgeStatus(e);
+      if (st[0] < 2) issues.push({ pi, id: e.id, lvl: st[0], txt: `${e.label}: ${node(e.from.n).label} → ${node(e.to.n).label}. ${st[1]}` });
+      if (e.label) (labels[e.label] ||= []).push(e);
+    }
+    for (const [l, arr] of Object.entries(labels)) if (arr.length > 1) issues.push({ pi, id: arr[1].id, lvl: 1, txt: `Номер кабеля ${l} повторяется ${arr.length} раза` });
+    const nl = {};
+    for (const n of pg.nodes) {
+      (nl[n.label] ||= []).push(n);
+      const conn = n.ports.filter(p => portUse.has(n.id + ':' + p.id)).length;
+      if (!conn && n.ports.length) issues.push({ pi, id: n.id, lvl: 1, txt: `${n.label} (${n.model}) ни к чему не подключено` });
+      const isDisplay = ['mon', 'led'].includes(n.cat);
+      if (isDisplay && !n.ports.some(p => p.dir !== 'out' && portUse.has(n.id + ':' + p.id))) issues.push({ pi, id: n.id, lvl: 1, txt: `${n.label}: на экран не приходит сигнал` });
+      const refIn = n.ports.find(p => p.type === 'ref' && p.dir === 'in');
+      if (refIn && pg.nodes.some(x => x.cat === 'sync') && !portUse.has(n.id + ':' + refIn.id)) issues.push({ pi, id: n.id, lvl: 1, txt: `${n.label}: не подключён Genlock/Ref, хотя генератор синхры есть` });
+    }
+    for (const [l, arr] of Object.entries(nl)) if (arr.length > 1) issues.push({ pi, id: arr[1].id, lvl: 1, txt: `Обозначение «${l}» повторяется ${arr.length} раза` });
+    P = prev; reindex();
+  });
+  issues.sort((a, b) => a.lvl - b.lvl);
+  openModal(issues.length ? `Проверка схемы — найдено замечаний: ${issues.length}` : 'Проверка схемы',
+    issues.length ? `<table class="grid"><tbody>${issues.map((x, i) => `<tr class="clk" data-row="${i}"><td style="width:24px">${x.lvl === 0 ? '⛔' : '⚠'}</td><td>${esc(x.txt)}</td><td class="muted">${esc(doc.pages[x.pi].name)}</td></tr>`).join('')}</tbody></table>` : '<p>✅ Замечаний нет: все соединения совместимы, номера уникальны.</p>');
+  $('#mBody').onclick = ev => { const tr = ev.target.closest('[data-row]'); if (tr) { const x = issues[+tr.dataset.row]; closeModal(); if (x.pi !== doc.cur) switchPage(x.pi); goTo(x.id); } };
+}
+
+const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
+async function download(name, data, type) {
+  const blob = data instanceof Blob ? data : new Blob([data], { type });
+  if (inClaude()) {
+    try {
+      const dl = await window.claude.use('downloads');
+      if (dl) { await dl.save({ filename: name, data: blob }); toast('Файл сохранён: ' + name); return; }
+    } catch (e) { if (e && e.code === 'declined') return; toast('Не удалось сохранить: ' + ((e && (e.message || e.code)) || e), 'e'); return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+const safeName = () => (doc.name || 'схема').replace(/[\\/:*?"<>|]+/g, '_');
+const csv = rows => '﻿' + rows.map(r => r.map(v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';')).join('\r\n');
+function exportCablesCSV() {
+  download(safeName() + ' — кабельный журнал.csv', csv([['№ кабеля', 'Тип', 'Формат', 'Откуда', 'Порт', 'Помещение (откуда)', 'Куда', 'Порт', 'Помещение (куда)', 'Длина, м', 'Примечание', 'Лист', 'Статус'],
+  ...cableRows().map(r => [r.label, r.type, r.fmt, r.from, r.fromPort, r.fromLoc, r.to, r.toPort, r.toLoc, r.len, r.notes, r.page, r.st[0] === 2 ? 'OK' : r.st[1]])]), 'text/csv');
+}
+function exportBOMCSV() {
+  const cb = cableBOM();
+  download(safeName() + ' — спецификация.csv', csv([['Категория', 'Производитель', 'Модель', 'Кол-во', 'Обозначения'], ...bomRows().map(r => [r.cat, r.maker, r.model, r.qty, r.labels.join(', ')]), [], ['Кабели', 'Тип', '', 'Штук', 'Длина, м'], ...Object.entries(cb).map(([k, v]) => ['', k, '', v.n, v.len || ''])]), 'text/csv');
+}
+function buildExportSVG() {
+  const bb = contentBBox(true); if (!bb) { toast('Схема пустая', 'w'); return null; }
+  const pad = 30, x = bb.x - pad, y = bb.y - pad, w = bb.w + pad * 2, h = bb.h + pad * 2;
+  for (const e of P.edges) e._st = edgeStatus(e)[0];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
+    + `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>`
+    + P.frames.map(frameSVG).join('') + P.edges.map(edgeSVG).join('') + P.nodes.map(nodeSVG).join('') + P.texts.map(textSVG).join('') + LY.x.innerHTML + '</svg>';
+}
+function exportSVG() { const s = buildExportSVG(); if (s) download(safeName() + ' — ' + P.name + '.svg', s, 'image/svg+xml'); }
+function exportPNG() {
+  const s = buildExportSVG(); if (!s) return;
+  const w = +/width="(\d+)"/.exec(s)[1], h = +/height="(\d+)"/.exec(s)[1];
+  const scale = Math.min(2, 14000 / Math.max(w, h));
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => b ? download(safeName() + ' — ' + P.name + '.png', b) : toast('Схема слишком большая для PNG — используйте SVG', 'e'), 'image/png');
+  };
+  img.onerror = () => toast('Не удалось построить PNG — используйте SVG', 'e');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+}
+function printDoc() {
+  if (inClaude()) return toast('Печать в окне просмотра Claude недоступна — сделайте «Экспорт PNG/SVG» или откройте приложение в браузере', 'w');
+  const s = buildExportSVG(); if (!s) return;
+  let pa = $('#printArea'); if (!pa) { pa = document.createElement('div'); pa.id = 'printArea'; document.body.appendChild(pa); }
+  pa.innerHTML = s; const sv = pa.firstChild; sv.removeAttribute('width'); sv.removeAttribute('height');
+  setTimeout(() => window.print(), 50);
+}
+
+// ============================================================================
+//  ФАЙЛЫ
+// ============================================================================
+const FILE_TYPES = [{ description: 'Схема SignalFlow', accept: { 'application/json': ['.json', '.vsf'] } }];
+async function writeHandle(h) { const w = await h.createWritable(); await w.write(snap()); await w.close(); }
+async function save() {
+  if (fileHandle) { try { await writeHandle(fileHandle); dirtyFile = false; setSaveState(); toast('Сохранено'); return; } catch (e) { } }
+  return saveAs();
+}
+async function saveAs() {
+  if (window.showSaveFilePicker) {
+    try {
+      const h = await showSaveFilePicker({ suggestedName: safeName() + '.sflow.json', types: FILE_TYPES });
+      await writeHandle(h); fileHandle = h; dirtyFile = false; setSaveState(); toast('Сохранено: ' + h.name); return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  download(safeName() + '.sflow.json', snap(), 'application/json'); dirtyFile = false; setSaveState();
+}
+async function openFile() {
+  if (window.showOpenFilePicker) {
+    try { const [h] = await showOpenFilePicker({ types: FILE_TYPES }); const f = await h.getFile(); openDoc(JSON.parse(await f.text()), h); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  $('#fileIn').click();
+}
+$('#fileIn').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { openDoc(JSON.parse(await f.text())); } catch (e) { toast('Не удалось открыть файл', 'e'); }
+  ev.target.value = '';
+});
+// перетаскивание файла .vsf прямо в окно
+document.addEventListener('dragover', ev => { if (ev.dataTransfer.types.includes('Files')) ev.preventDefault(); });
+document.addEventListener('drop', async ev => {
+  const f = ev.dataTransfer.files && ev.dataTransfer.files[0]; if (!f) return; ev.preventDefault();
+  if (f.type.startsWith('image/')) {
+    let im; try { im = await readImage(f); } catch (e) { return toast('Не удалось прочитать фото', 'e'); }
+    const g = ev.target.closest && ev.target.closest('.node');
+    if (g) { const n = node(g.dataset.id); hist(); n.img = putImage(im); rerenderItem(n.id); selectOnly([n.id]); markDirty(); return; }
+    return deviceEditor({ id: null, cat: 'my', maker: '', model: f.name.replace(/\.[^.]+$/, ''), img: im, ports: [] });
+  }
+  try { const d = JSON.parse(await f.text()); if (d.pages) openDoc(d); else if (Array.isArray(d.devices)) importLib(d); } catch (e) { toast('Не удалось открыть файл', 'e'); }
+});
+
+// ---------- база устройств: свой редактор, импорт/экспорт
+function bulkPorts(cb) {
+  openModal('Добавить несколько портов', `<div class="row">${fld('Направление', 'b_dir', '', { select: dirOpts('in') })}${fld('Тип', 'b_type', '', { select: typeOpts('sdi12g') })}</div>
+   <div class="row">${fld('Количество', 'b_n', 4, { type: 'number' })}${fld('Имя (будет добавлен номер)', 'b_name', '', { ph: 'например: IN или AUX' })}</div>
+   <div class="row">${fld('Начать нумерацию с', 'b_start', 1, { type: 'number' })}<div></div></div><div class="btns"><button class="pri" id="bOk">Добавить</button></div>`);
+  $('#bOk').onclick = () => {
+    const g = k => $(`#mBody [data-k="${k}"]`).value;
+    const type = g('b_type'), dir = T[type].fam === 'eth' ? 'io' : g('b_dir'), n = clamp(+g('b_n') || 1, 1, 256), st = +g('b_start') || 1;
+    const nm = g('b_name').trim() || `${T[type].s} ${dir === 'in' ? 'IN' : dir === 'out' ? 'OUT' : ''}`.trim();
+    const ps = []; for (let i = 0; i < n; i++) ps.push({ id: uid(), name: `${nm} ${st + i}`, type, dir });
+    closeModal(); cb(ps);
+  };
+}
+let editorPaste = null;
+function deviceEditor(dev) {
+  const d = JSON.parse(JSON.stringify(dev)); d.ports = (d.ports || []).map(p => ({ ...p }));
+  d.cat = d.cat || 'my';
+  const groups = [...new Set(customLib.map(groupOf).concat(Object.values(CATS).map(c => c.n)))];
+  const draw = () => {
+    const catOpts = Object.keys(CATS).map(k => `<option value="${k}"${k === d.cat ? ' selected' : ''}>${esc(CATS[k].n)}</option>`).join('');
+    openModal(dev.id ? 'Редактировать устройство' : 'Новое устройство в базе', `
+    <div class="devGrid">
+      <div>
+        <div id="dPhoto" class="photoDrop" title="Перетащите фото сюда, вставьте Ctrl+V или нажмите">${d.img ? `<img src="${d.img.src}">` : '<div>📷<br>Фото устройства<br><span class="small muted">перетащите файл, Ctrl+V<br>или нажмите для выбора</span></div>'}</div>
+        <div class="btns">${d.img ? '<button data-ph="del">Убрать фото</button>' : ''}<button data-ph="pick">Выбрать файл…</button></div>
+        <div class="small muted">Лучше фото передней или задней панели на белом или прозрачном фоне. Уменьшается автоматически.</div>
+      </div>
+      <div>
+        <div class="row">${fld('Производитель', 'd_maker', d.maker === 'Generic' ? '' : (d.maker || ''))}${fld('Модель', 'd_model', d.model || '', { focus: 1 })}</div>
+        <div class="row">${fld('Группа в библиотеке', 'd_group', d.group || '', { list: 'grpList', ph: CATS[d.cat].n })}${fld('Тип (цвет шапки и префикс)', 'd_cat', '', { select: catOpts })}</div>
+        <datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        <h4>Порты (${d.ports.length})</h4><div id="dPorts">${portsTable(d.ports)}</div>
+        <div class="small muted">Ethernet/SFP порты автоматически становятся двунаправленными (⇄).</div>
+      </div>
+    </div>
+    <div class="btns" style="margin-top:14px"><button class="pri" id="dSave">Сохранить в базу</button>${dev.id && customLib.some(x => x.id === dev.id) ? '<button id="dDel">Удалить из базы</button>' : ''}</div>`);
+    const body = $('#mBody');
+    const setPhoto = async f => { if (!f || !f.type.startsWith('image/')) return toast('Это не изображение', 'w'); try { d.img = await readImage(f); draw(); } catch (e) { toast('Не удалось прочитать фото', 'e'); } };
+    editorPaste = setPhoto;
+    const drop = $('#dPhoto');
+    drop.ondragover = ev => { ev.preventDefault(); ev.stopPropagation(); drop.classList.add('over'); };
+    drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = ev => { ev.preventDefault(); ev.stopPropagation(); setPhoto(ev.dataTransfer.files[0]); };
+    body.oninput = ev => { const t = ev.target; if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; } };
+    body.onchange = body.oninput;
+    body.onclick = ev => {
+      const t = ev.target;
+      if (t.closest('#dPhoto') || t.dataset.ph === 'pick') { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => setPhoto(i.files[0]); i.click(); return; }
+      if (t.dataset.ph === 'del') { delete d.img; draw(); return; }
+      if (t.dataset.pdel != null) { d.ports.splice(+t.dataset.pdel, 1); draw(); }
+      if (t.dataset.padd) {
+        if (t.dataset.padd === 'bulk') return bulkPorts(ps => { d.ports.push(...ps); deviceEditorRedraw(); });
+        const dir = t.dataset.padd, last = [...d.ports].reverse().find(p => p.dir === dir || (dir === 'out' && p.dir === 'io'));
+        const type = last ? last.type : 'sdi12g';
+        d.ports.push({ name: `${T[type].s} ${dir === 'in' ? 'IN' : 'OUT'} ${d.ports.filter(p => p.dir === dir).length + 1}`, type, dir: T[type].fam === 'eth' ? 'io' : dir }); draw();
+      }
+      if (t.id === 'dDel') { customLib = customLib.filter(x => x.id !== dev.id); saveLib(); renderLib(); closeModal(); toast('Удалено из базы'); }
+      if (t.id === 'dSave') {
+        if (!d.model || !d.model.trim()) return toast('Укажите модель', 'w');
+        const clean = { id: dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
+        if (d.img) clean.img = d.img;
+        const i = customLib.findIndex(x => x.id === clean.id);
+        if (i >= 0) customLib[i] = clean; else customLib.push(clean);
+        saveLib(); openCats.add(groupOf(clean)); store.set('openCats', [...openCats]); renderLib(); closeModal();
+        toast((i >= 0 ? 'Обновлено в базе: ' : 'Добавлено в базу: ') + clean.model);
+        if (dev._fromNode) { const n = node(dev._fromNode); if (n) { hist(); n.lib = clean.id; if (clean.img) n.img = putImage(clean.img); rerenderItem(n.id); renderProps(); markDirty(); } }
+      }
+    };
+  };
+  const deviceEditorRedraw = draw;
+  draw();
+}
+const nodeToDev = n => ({ id: n.lib && customLib.some(x => x.id === n.lib) ? n.lib : null, _fromNode: n.id, cat: n.cat, maker: n.maker, model: n.model, img: n.img && doc.images[n.img] ? { ...doc.images[n.img] } : undefined, ports: n.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) });
+// Ctrl+V с картинкой: в редакторе устройства — фото; на схеме — фото выделенного устройства
+document.addEventListener('paste', async ev => {
+  const f = [...(ev.clipboardData ? ev.clipboardData.files : [])].find(f => f.type.startsWith('image/'));
+  if (!f) return;
+  if (!$('#modal').classList.contains('hidden') && editorPaste) { ev.preventDefault(); return editorPaste(f); }
+  const n = [...sel].map(node).filter(Boolean)[0];
+  if (n && !typing(document.activeElement)) { ev.preventDefault(); const im = await readImage(f); hist(); n.img = putImage(im); rerenderItem(n.id); renderProps(); markDirty(); }
+});
+function importLib(data) {
+  const list = Array.isArray(data) ? data : data.devices; let n = 0;
+  for (const d of list || []) {
+    if (!d.model || !Array.isArray(d.ports)) continue;
+    const c = { id: d.id && String(d.id).startsWith('c') ? d.id : 'c' + uid(), cat: CATS[d.cat] ? d.cat : 'my', group: d.group || '', img: d.img && d.img.src ? d.img : undefined, maker: d.maker || 'Generic', model: d.model, ports: normPorts(d.ports.filter(p => T[p.type]).map(p => ({ name: p.name, type: p.type, dir: p.dir || 'in' }))) };
+    const i = customLib.findIndex(x => x.id === c.id); if (i >= 0) customLib[i] = c; else customLib.push(c); n++;
+  }
+  saveLib(); renderLib(); toast(`Импортировано устройств: ${n}`);
+}
+$('#libIn').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; try { importLib(JSON.parse(await f.text())); } catch (e) { toast('Не удалось прочитать базу', 'e'); } ev.target.value = ''; });
+
+// ============================================================================
+//  КОМАНДЫ МЕНЮ
+// ============================================================================
+function toast(msg, kind) {
+  const d = document.createElement('div'); d.textContent = msg; if (kind) d.className = kind;
+  $('#toast').appendChild(d); setTimeout(() => d.remove(), kind === 'e' ? 5000 : 2800);
+}
+const CMD = {
+  new: () => { if (P.nodes.length) { idb.set('doc_backup', snap()); } openDoc(newDoc()); toast('Новый проект. Предыдущий сохранён в резервной копии браузера'); },
+  open: openFile, save, saveAs, exportPNG, exportSVG, print: printDoc,
+  cables: exportCablesCSV, bom: exportBOMCSV, cablesView: showCables, bomView: showBOM, check: runCheck,
+  demo: () => { openDoc(buildDemo()); fit(); }, stress: () => { const t0 = performance.now(); openDoc(buildStress(1000)); fit(); toast(`Построено за ${Math.round(performance.now() - t0)} мс`); },
+  undo, redo, copy: copySel, paste: () => paste(), dup: () => { copySel(); paste(); }, del: deleteSel,
+  selAll: () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)), find: () => $('#findBox').focus(), renumber,
+  quick: quickAtCenter, addFrame, addText, newDevice: () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] }),
+  libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('signalflow-база-устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
+  libImport: () => $('#libIn').click(),
+  fit: () => fit(), zoom100: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / view.k); },
+  zoomIn: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); },
+  zoomOut: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 0.8); },
+  toggleGrid: () => { cfg.grid = !cfg.grid; cfg.snap = cfg.grid; saveCfg(); setView(); toast(cfg.grid ? 'Сетка и привязка включены' : 'Сетка выключена'); },
+  toggleLegend: () => { cfg.legend = !cfg.legend; saveCfg(); renderExtra(); },
+  toggleLabels: () => { cfg.labels = !cfg.labels; saveCfg(); renderAll(); },
+  theme: () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); document.documentElement.classList.toggle('dark', cfg.theme === 'dark'); },
+  addPage: () => { hist(); doc.pages.push(newPage('Страница ' + (doc.pages.length + 1))); switchPage(doc.pages.length - 1); markDirty(); },
+  help: () => openModal('Горячие клавиши и приёмы', `<table class="grid"><tbody>${[
+    ['Двойной клик по холсту, A, /, Ctrl+K', 'Быстрый поиск и добавление устройства'],
+    ['Тянуть от порта', 'Новый кабель (зелёные порты — совместимы)'],
+    ['Отпустить кабель на устройстве', 'Порт подберётся автоматически'],
+    ['Отпустить кабель в пустоте', 'Выбрать устройство — оно встанет и подключится'],
+    ['Тянуть за занятый порт', 'Перекоммутировать кабель (Alt — новый кабель)'],
+    ['Пробел + мышь, средняя кнопка', 'Панорама'], ['Колесо / Ctrl+колесо / щипок', 'Масштаб'], ['Тачпад двумя пальцами', 'Панорама'],
+    ['F', 'Показать всё'], ['Ctrl+0', 'Масштаб 100%'], ['Shift+клик, рамка', 'Множественное выделение'],
+    ['Стрелки (Shift — ×5)', 'Сдвиг выделенного'], ['Ctrl+C / V / D / X', 'Копировать / вставить / дублировать / вырезать'],
+    ['Ctrl+Z / Ctrl+Y', 'Отмена / повтор'], ['Del', 'Удалить'], ['Z', 'Зона вокруг выделенного (или новая)'], ['T', 'Текст'], ['R', 'Зеркально: входы справа'],
+    ['Ctrl+S / Ctrl+O', 'Сохранить / открыть проект (.sflow.json)'], ['Ctrl+F', 'Найти на схеме'], ['Ctrl+P', 'Печать / PDF'],
+    ['Поиск «sdi>hdmi»', 'Конвертеры из одного сигнала в другой'], ['Правый клик по кабелю', 'Вставить конвертер в разрыв'],
+  ].map(r => `<tr><td style="white-space:nowrap"><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`),
+};
+document.addEventListener('click', ev => {
+  const c = ev.target.closest('[data-cmd]'); if (!c) return;
+  const cmd = c.dataset.cmd;
+  document.querySelectorAll('.menu').forEach(m => { m.classList.remove('open'); });
+  c.closest('.dd') && (c.closest('.dd').style.display = 'none', setTimeout(() => c.closest('.dd').style.display = '', 200));
+  if (cmd.startsWith('wire:')) { cfg.wire = cmd.slice(5); $('#wireStyle').value = cfg.wire; saveCfg(); renderAll(); return; }
+  CMD[cmd] && CMD[cmd]();
+});
+$('#wireStyle').addEventListener('change', ev => { cfg.wire = ev.target.value; saveCfg(); renderAll(); });
+$('#docName').addEventListener('input', ev => { doc.name = ev.target.value; markDirty(); });
+$('#saveState').addEventListener('click', () => dirtyFile && save());
+// поиск по схеме
+let findIdx = 0;
+$('#findBox').addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter') return;
+  const q = ev.target.value.trim().toLowerCase(); if (!q) return;
+  const hits = [...P.nodes.filter(n => (n.label + ' ' + n.model + ' ' + n.maker + ' ' + (n.loc || '') + ' ' + (n.notes || '')).toLowerCase().includes(q)),
+  ...P.edges.filter(e => (e.label + ' ' + (e.notes || '')).toLowerCase().includes(q))];
+  if (!hits.length) return toast('Не найдено на этом листе');
+  findIdx = (findIdx + (ev.shiftKey ? -1 : 1) + hits.length) % hits.length;
+  goTo(hits[findIdx].id); hint(`Найдено: ${findIdx + 1} из ${hits.length} (Enter — дальше)`); setTimeout(() => hint(''), 1800);
+});
+addEventListener('resize', () => scheduleCull());
+addEventListener('beforeunload', ev => { idb.set('doc', snap()); });
+
+// ============================================================================
+//  ПРИМЕР И НАГРУЗОЧНЫЙ ТЕСТ
+// ============================================================================
+function buildDemo() {
+  headless = true; const saved = { doc, P }; doc = newDoc(); doc.name = 'Пример: студия и аппаратная'; doc.author = '';
+  P = doc.pages[0]; P.name = 'Видео'; reindex();
+  const D = m => allLib().find(d => d.model === m);
+  const add = (m, x, y, label, loc) => { const n = addNode(D(m), x, y, true); if (label) n.label = label; if (loc) n.loc = loc; n._L = null; return n; };
+  const pid = (n, name) => (n.ports.find(p => p.name === name) || {}).id;
+  const C = (a, ap, b, bp, fmt, len) => { const fa = pid(a, ap), fb = pid(b, bp); if (!fa || !fb) { console.warn('demo port', a.label, ap, b.label, bp); return; } const e = connect({ n: a.id, p: fa }, { n: b.id, p: fb }, true); if (fmt) e.fmt = fmt; if (len) e.len = len; };
+  const cams = [0, 1, 2, 3].map(i => add('Studio Camera 4K Pro G2', 60, 80 + i * 150, 'CAM ' + (i + 1), 'Студия'));
+  const ptz = add('AW-UE150', 60, 700, 'CAM 5', 'Студия');
+  const vh = add('Videohub 12G 20x20', 520, 60, 'RTR 1', 'Аппаратная, рэк 1');
+  const sync = add('Mini Converter Sync Generator', 520, 560, 'SYNC 1', 'Аппаратная, рэк 1');
+  const mac = add('Mac mini / MacBook', 60, 900, 'PC 1', 'Аппаратная');
+  const h2s = add('Micro Converter HDMI→SDI 12G', 300, 900, null, 'Аппаратная');
+  const gfx = add('Графический сервер (CasparCG)', 520, 760, 'GFX 1', 'Аппаратная, рэк 1');
+  const atem = add('ATEM 2 M/E Constellation 4K', 900, 60, 'SW 1', 'Аппаратная, рэк 1');
+  const rec = add('HyperDeck Studio 4K Pro', 1340, 60, 'REC 1', 'Аппаратная, рэк 1');
+  const web = add('Web Presenter HD', 1340, 260, 'ENC 1', 'Аппаратная, рэк 1');
+  const mv1 = add('SmartView 4K G2', 1340, 430, 'MON 1', 'Аппаратная');
+  const s2h = add('Micro Converter SDI→HDMI 12G', 1340, 600, null, 'Сцена');
+  const nova = add('MCTRL4K', 1640, 560, 'LED 1', 'Сцена');
+  const scr = add('LED-экран (кабинеты)', 1960, 600, 'LED экран', 'Сцена');
+  const swn = add('Коммутатор 24×1G + 4×SFP+', 1640, 1000, 'NET 1', 'Аппаратная, рэк 1');
+  cams.forEach((c, i) => C(c, 'SDI OUT 1', vh, 'SDI IN ' + (i + 1), '2160p50', 30));
+  C(ptz, 'SDI OUT 1', vh, 'SDI IN 5', '2160p50', 40);
+  C(mac, 'HDMI OUT 1', h2s, 'HDMI IN 1', '1080p50', 2); C(h2s, 'SDI OUT 1', vh, 'SDI IN 6');
+  for (let i = 1; i <= 6; i++) C(vh, 'SDI OUT ' + i, atem, 'SDI IN ' + i);
+  C(gfx, 'Fill/Key 1', atem, 'SDI IN 7'); C(gfx, 'Fill/Key 2', atem, 'SDI IN 8');
+  C(atem, 'AUX 1', rec, 'SDI IN 1', '2160p50'); C(atem, 'AUX 2', web, 'SDI IN 1', '1080p50');
+  C(atem, 'MV 1', mv1, 'SDI IN 1'); C(atem, 'AUX 3', s2h, 'SDI IN 1');
+  C(s2h, 'HDMI OUT 1', nova, 'HDMI 2.0', '2160p50', 50);
+  C(nova, 'Port 1', scr, 'Data In 1'); C(nova, 'Port 2', scr, 'Data In 2');
+  C(atem, 'AUX 4', vh, 'SDI IN 7', '2160p50');
+  cams.forEach((c, i) => C(vh, 'SDI OUT ' + (7 + i), c, 'PGM Return', '2160p50', 30));
+  C(sync, 'REF OUT 1', atem, 'REF IN 1'); C(sync, 'REF OUT 2', vh, 'REF IN 1'); C(sync, 'REF OUT 3', rec, 'REF IN 1'); C(sync, 'REF OUT 4', gfx, 'REF IN 1'); C(sync, 'REF OUT 5', ptz, 'REF IN 1');
+  C(atem, 'LAN', swn, 'Port 1'); C(vh, 'LAN', swn, 'Port 2'); C(web, 'LAN', swn, 'Port 3'); C(nova, 'Port 16', swn, 'Port 4');
+  P.frames.push({ id: uid(), x: 20, y: 20, w: 380, h: 860, title: 'Студия', color: '#2563eb' });
+  P.frames.push({ id: uid(), x: 470, y: 0, w: 1150, h: 1180, title: 'Аппаратная', color: '#7c3aed' });
+  P.frames.push({ id: uid(), x: 1300, y: 540, w: 980, h: 360, title: 'Сцена', color: '#db2777' });
+  P.texts.push({ id: uid(), x: 20, y: -60, text: 'Пример схемы: 5 камер → роутер → ATEM → запись / стрим / LED', size: 22, bold: true });
+  const out = doc; doc = saved.doc; P = saved.P; headless = false; if (P) reindex();
+  for (const pg of out.pages) for (const n of pg.nodes) delete n._L;
+  return JSON.parse(JSON.stringify(out, replacer));
+}
+function buildStress(N) {
+  headless = true; const saved = { doc, P }; doc = newDoc(); doc.name = `Тест нагрузки: ${N} устройств`; P = doc.pages[0]; reindex();
+  const lib = BUILTIN_LIB.filter(d => d.ports.length <= 24 && d.ports.some(p => p.dir === 'in') && d.ports.some(p => p.dir === 'out'));
+  const cols = 40; const ns = [];
+  for (let i = 0; i < N; i++) ns.push(addNode(lib[(i * 7) % lib.length], (i % cols) * 320, Math.floor(i / cols) * 360, true));
+  let ec = 0;
+  for (let i = 0; i < N; i++) {
+    const a = ns[i];
+    for (const j of [i + 1, i + cols, i + 2]) {
+      const b = ns[j]; if (!b) continue;
+      const pa = a.ports.find(p => p.dir === 'out' && !portUse.has(a.id + ':' + p.id));
+      const pb = pa && b.ports.find(p => p.dir === 'in' && !portUse.has(b.id + ':' + p.id) && T[p.type].fam === T[pa.type].fam);
+      if (pa && pb) { connect({ n: a.id, p: pa.id }, { n: b.id, p: pb.id }, true); ec++; }
+    }
+  }
+  const out = JSON.parse(JSON.stringify(doc, replacer)); doc = saved.doc; P = saved.P; headless = false; if (P) reindex();
+  return out;
+}
+
+// ============================================================================
+//  СТАРТ
+// ============================================================================
+document.documentElement.classList.toggle('dark', cfg.theme === 'dark');
+$('#wireStyle').value = cfg.wire;
+renderTypeFilter();
+doc = newDoc(); P = doc.pages[0];
+(async () => {
+  let lib = await idb.get('lib');
+  if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
+  customLib = Array.isArray(lib) ? lib : [];
+  renderLib();
+  let saved = await idb.get('doc');
+  if (!saved) saved = store.get('doc', null);
+  let d = null;
+  try { d = typeof saved === 'string' ? JSON.parse(saved) : saved; if (!d || !d.pages) d = null; } catch (e) { d = null; }
+  openDoc(d || buildDemo());
+  if (!d) setTimeout(() => fit(), 30);
+  dirtyFile = false; setSaveState();
+})();
+// открытие файла проекта двойным кликом, когда приложение установлено (PWA file handler)
+try { if ('launchQueue' in window) launchQueue.setConsumer(async p => { if (!p.files || !p.files.length) return; const h = p.files[0]; const f = await h.getFile(); try { openDoc(JSON.parse(await f.text()), h); } catch (e) { toast('Не удалось открыть файл', 'e'); } }); } catch (e) { }
+// PWA (установка как приложение) — только при хостинге на своём сайте
+try { if ('serviceWorker' in navigator && location.protocol === 'https:' && window.top === window && document.querySelector('link[rel=manifest]')) navigator.serviceWorker.register('sw.js'); } catch (e) { }
+</script>
+</body>
+</html>
