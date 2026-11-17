@@ -1,5 +1,5 @@
 // Офлайн-кэш: сначала сеть (чтобы обновления приходили сразу), без сети — из кэша
-const CACHE = 'signalflow-1.4.0';
+const CACHE = 'signalflow-1.5.0';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './devices.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x))))); self.clients.claim(); });

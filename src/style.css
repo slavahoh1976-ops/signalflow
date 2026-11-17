@@ -154,6 +154,8 @@ table.bm td{vertical-align:middle}
 #toast div.e{background:#991b1b}
 
 #printArea{display:none}
+.item .ic.art{width:34px;background:#eef1f5;border:1px solid var(--line);padding:1px}
+.item .ic.art svg{width:100%;height:100%}
 .item .ic.ph{background:#fff;border:1px solid var(--line);overflow:hidden}
 .item .ic.ph img{width:100%;height:100%;object-fit:contain}
 .devGrid{display:grid;grid-template-columns:230px 1fr;gap:16px}

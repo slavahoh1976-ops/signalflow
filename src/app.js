@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.4.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.5.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.5.0', '17.11.2026', ['Цвета кабелей одинаковые в режимах «С портами» и «Картинки»', 'Свои иллюстрации для всех устройств без фото (≈25 видов: рэки, коммутаторы, серверы d3, конвертеры, камеры, мониторы, ноутбуки, пульты, свет, ИБП)', 'Умные направляющие при перетаскивании — выравнивание по краям и центрам (Alt — без них)']],
   ['1.4.0', '17.11.2026', ['База с фото догружается сама в любой браузер (раньше пропускалась, если в браузере уже была база)', 'Фильтр «📷 С фото» в библиотеке и «Файл → Пример из ваших фото»', 'Линии не накладываются: совпадающие участки разводятся по параллельным дорожкам', 'Концы линий равномерно распределяются по сторонам устройства', 'Подписи на линиях не перекрывают друг друга и устройства — автоматически ищут свободное место']],
   ['1.3.0', '17.11.2026', ['Режим «Картинки» (как draw.io): устройства фото с подписью, тонкие линии с подписями, подключение синими кружками', 'Фигуры: экран, лампа, кнопка, блок — с изменением размера', 'Редактор базы: изменить / удалить / копировать любое устройство, правки переносятся на схему', 'База с фото: 98 устройств из ваших картинок, подгружается автоматически', 'Новые типы: DMX (свет), группы «Свет», «Питание», «Периферия»', 'Номер версии в шапке']],
   ['1.2.0', '17.11.2026', ['Медиасерверы disguise (d3): VX, GX, EX, RX, PX и снятые модели', 'Двунаправленные SDI-порты']],
@@ -97,6 +98,7 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .hn path{stroke:#fff;stroke-width:2;pointer-events:none}
 .hn:hover circle{fill-opacity:1}
 .hv-zone{fill:transparent}
+.guide{stroke:#ec4899;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
 .rsn{fill:var(--panel);stroke:var(--sel);stroke-width:2;cursor:nwse-resize}
 .lod1 .p-t,.lod1 .e-lb,.lod1 .e-lt,.lod1 .n-loc,.lod1 .n-sub{display:none}
 .lod2 .p-c,.lod2 .p-h,.lod2 .n-ic{display:none}
@@ -111,7 +113,7 @@ const cssFor = vars => SVG_CSS.replace(/var\(--(\w+)\)/g, (m, k) => vars[k] || m
 { const st = document.createElement('style'); st.textContent = SVG_CSS; document.head.appendChild(st); }
 
 // стрелки на концах кабелей, по цвету каждого типа
-$('#defs').innerHTML = '<g id="imgDefs"></g>' + TYPE_KEYS.map(k => `<marker id="ar-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 1L10 5L0 9z" fill="${T[k].c}"/></marker>`).join('');
+$('#defs').innerHTML = '<g id="imgDefs"></g>' + ART._defs + TYPE_KEYS.map(k => `<marker id="ar-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 1L10 5L0 9z" fill="${T[k].c}"/></marker>`).join('');
 
 // ---------- фото устройств: каждое фото один раз в <defs>, на схеме — <use>
 function imgId(src) { return 'im' + hash(src).toString(36) + src.length.toString(36); }
@@ -191,7 +193,7 @@ function layout(n) {
     const im = n.img && doc.images[n.img];
     let w, ih;
     if (im) { const ar = im.w / im.h; w = n.pw || Math.round(clamp(ar * 110, 70, 220)); ih = Math.round(w / ar); }
-    else { w = n.pw || 130; ih = Math.round(w * 0.62); }
+    else { const art = ART[artKey(n.cat)]; const ar = art.w / art.h; w = n.pw || Math.round(clamp(ar * 95, 80, 230)); ih = Math.round(w / ar); }
     return (n._L = { left: [], right: [], w, h: ih + 26, ih, pos: {}, pic: 1 });
   }
   const left = [], right = [];
@@ -363,7 +365,7 @@ function nodeSVGpic(n) {
     return s + '</g>';
   }
   if (n.img && doc.images[n.img]) s += `<use class="n-img" href="#img-${n.img}" width="${w}" height="${ih}"/>`;
-  else s += `<rect width="${w}" height="${ih}" rx="10" fill="${n.color || cat.c}"/><path class="n-ic" transform="translate(${w / 2 - 16},${ih / 2 - 24}) scale(2)" d="${ICONS[cat.ic] || ICONS.pp}"/><text class="n-sub" x="${w / 2}" y="${ih - 9}" text-anchor="middle">${esc(n.model)}</text>`;
+  else s += `<use class="n-img" href="#art-${artKey(n.cat)}" width="${w}" height="${ih}"/>`;
   s += `<text class="n-plabel" x="${w / 2}" y="${ih + 18}" text-anchor="middle">${esc(n.label)}</text>`;
   return s + '</g>';
 }
@@ -502,9 +504,9 @@ function edgeGeom(e, cached) {
 function edgeSVG(e, cached) {
   if (!cached) e._st = edgeStatus(e)[0];
   const g = edgeGeom(e, cached === true);
-  const col = e.color || (isPic() ? 'var(--picLine)' : (T[e.type] || T.sdi3g).c);
+  const col = e.color || (T[e.type] || T.sdi3g).c;
   const cls = e._st === 0 ? ' bad' : e._st === 1 ? ' warn' : '';
-  let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${isPic() && !e.color ? 'any' : (T[e.type] ? e.type : 'sdi3g')})"/>`;
+  let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${T[e.type] ? e.type : 'sdi3g'})"/>`;
   if (g.t) s += `<rect class="e-lb" x="${g.lp.x - g.lw / 2}" y="${g.lp.y - 8}" width="${g.lw}" height="16" rx="3"/><text class="e-lt" x="${g.lp.x}" y="${g.lp.y}">${esc(g.t)}</text>`;
   return s + '</g>';
 }
@@ -959,6 +961,27 @@ function onMove(ev) {
     let dx = pt.x - drag.sx, dy = pt.y - drag.sy;
     if (!drag.started) { if (Math.hypot(dx, dy) * view.k < 3) return; drag.started = true; hist(); }
     if (cfg.snap && drag.anchor) { const a = drag.list[0]; dx = Math.round((a.x0 + dx) / 10) * 10 - a.x0; dy = Math.round((a.y0 + dy) / 10) * 10 - a.y0; }
+    // умные направляющие: выравнивание по краям и центрам соседних устройств
+    const an = drag.list[0] && drag.list[0].it.k === 'n' ? drag.list[0] : null;
+    let guides = '';
+    if (an && !ev.altKey) {
+      const L0 = layout(an.it.o), h0 = L0.ih || L0.h, nx = an.x0 + dx, ny = an.y0 + dy, tol = 7 / view.k;
+      const moving = drag.moveSet || (drag.moveSet = new Set(drag.list.map(m => m.it.o.id)));
+      const fx = [nx, nx + L0.w / 2, nx + L0.w], fy = [ny, ny + h0 / 2, ny + h0];
+      let bx = null, by = null;
+      for (const n of P.nodes) {
+        if (moving.has(n.id)) continue; const g = els.get(n.id); if (!g || !g._v) continue;
+        const L = layout(n), h = L.ih || L.h, cx = [n.x, n.x + L.w / 2, n.x + L.w], cy = [n.y, n.y + h / 2, n.y + h];
+        for (let i = 0; i < 3; i++) { const d = cx[i] - fx[i]; if (Math.abs(d) < tol && (!bx || Math.abs(d) < Math.abs(bx.d))) bx = { d, x: cx[i], n, L, h }; }
+        for (let i = 0; i < 3; i++) { const d = cy[i] - fy[i]; if (Math.abs(d) < tol && (!by || Math.abs(d) < Math.abs(by.d))) by = { d, y: cy[i], n, L, h }; }
+      }
+      if (bx) dx += bx.d;
+      if (by) dy += by.d;
+      const fxN = an.x0 + dx, fyN = an.y0 + dy;
+      if (bx) guides += `<line class="guide" x1="${bx.x}" y1="${Math.min(fyN, bx.n.y) - 20}" x2="${bx.x}" y2="${Math.max(fyN + h0, bx.n.y + bx.h) + 20}"/>`;
+      if (by) guides += `<line class="guide" x1="${Math.min(fxN, by.n.x) - 20}" y1="${by.y}" x2="${Math.max(fxN + L0.w, by.n.x + by.L.w) + 20}" y2="${by.y}"/>`;
+    }
+    LY.o.innerHTML = guides;
     for (const m of drag.list) {
       m.it.o.x = m.x0 + dx; m.it.o.y = m.y0 + dy;
       const g = els.get(m.it.o.id); if (g) g.setAttribute('transform', `translate(${m.it.o.x},${m.it.o.y})`);
@@ -1309,7 +1332,7 @@ function portSummary(d) {
 function itemHTML(d, i, extra) {
   const cat = CATS[d.cat] || CATS.my;
   return `<div class="item" draggable="true" data-dev="${esc(d.id)}" ${i != null ? `data-i="${i}"` : ''} title="${esc(d.maker + ' ' + d.model + '\n' + portSummary(d))}">`
-    + (d.img ? `<div class="ic ph"><img src="${d.img.src}" alt="" draggable="false"></div>` : `<div class="ic" style="background:${cat.c}"><svg viewBox="0 0 16 16"><path d="${ICONS[cat.ic]}" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`)
+    + (d.img ? `<div class="ic ph"><img src="${d.img.src}" alt="" draggable="false"></div>` : d.cat !== 'shape' ? `<div class="ic art"><svg viewBox="0 0 ${ART[artKey(d.cat)].w} ${ART[artKey(d.cat)].h}"><use href="#art-${artKey(d.cat)}"/></svg></div>` : `<div class="ic" style="background:${cat.c}"><svg viewBox="0 0 16 16"><path d="${ICONS[cat.ic]}" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`)
     + `<div class="t"><div class="m">${esc(d.model)}</div><div class="k">${esc(d.maker !== 'Generic' ? d.maker + ' · ' : '')}${esc(extra || portSummary(d))}</div></div>`
     + `<span class="edt" data-edt="${esc(d.id)}" title="Изменить устройство">✎</span><span class="fav${favs.has(d.id) ? ' on' : ''}" data-fav="${esc(d.id)}" title="В избранное">★</span></div>`;
 }
@@ -1798,7 +1821,7 @@ function buildExportSVG() {
   const bb = contentBBox(true); if (!bb) { toast('Схема пустая', 'w'); return null; }
   const pad = 30, x = bb.x - pad, y = bb.y - pad, w = bb.w + pad * 2, h = bb.h + pad * 2;
   for (const e of P.edges) e._st = edgeStatus(e)[0];
-  return `<svg xmlns="http://www.w3.org/2000/svg"${isPic() ? ' class="picmode"' : ''} width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
+  return `<svg xmlns="http://www.w3.org/2000/svg"${isPic() ? ' class="picmode"' : ''} width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${isPic() ? ART._defs : ''}${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
     + `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>`
     + P.frames.map(frameSVG).join('') + (layoutEdges(), P.edges.map(e => edgeSVG(e, true)).join('')) + P.nodes.map(nodeSVG).join('') + P.texts.map(textSVG).join('') + LY.x.innerHTML + '</svg>';
 }
