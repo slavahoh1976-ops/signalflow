@@ -22,7 +22,9 @@ const T = {
   usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#475569', pre: 'U' },
   ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#64748b', pre: 'C' },
   gpio:   { n: 'GPIO / Tally', s: 'GPIO', fam: 'gpio', c: '#84cc16', pre: 'G' },
-  pwr:    { n: 'Питание', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
+  pwr:    { n: 'Питание 220 В', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
+  dmx:    { n: 'DMX 512 (свет)', s: 'DMX', fam: 'dmx', c: '#a855f7', pre: 'L' },
+  any:    { n: 'Любой (простая схема)', s: '', fam: 'any', c: '#374151', pre: 'C' },
 };
 const TYPE_KEYS = Object.keys(T);
 
@@ -34,6 +36,7 @@ function compat(a, b) {
   if (A.fam === 'sdi' && B.fam === 'sdi') {
     return A.rate <= B.rate ? [2, ''] : [1, `${A.n} → вход ${B.n}: вход может не принять такой формат`];
   }
+  if (A.fam === 'any' || B.fam === 'any') return [2, ''];
   if (A.fam === B.fam) return [1, `${A.n} ↔ ${B.n}: проверьте скорость/модуль`];
   const pair = [A.fam, B.fam].sort().join('+');
   if (pair === 'dvi+hdmi') return [1, 'HDMI ↔ DVI: нужен пассивный переходник, звука не будет'];
@@ -63,7 +66,11 @@ const CATS = {
   sync: { n: 'Синхронизация', pre: 'SYNC', c: '#a16207', ic: 'sync' },
   aud:  { n: 'Звук', pre: 'AUD', c: '#be123c', ic: 'aud' },
   ctl:  { n: 'Управление / tally / интерком', pre: 'CTL', c: '#4d7c0f', ic: 'ctl' },
+  light:{ n: 'Свет / DMX', pre: 'LT', c: '#7e22ce', ic: 'light' },
+  power:{ n: 'Питание', pre: 'PWR', c: '#1f2937', ic: 'power' },
+  per:  { n: 'Периферия / офис', pre: 'PER', c: '#64748b', ic: 'pc' },
   pp:   { n: 'Патч-панели / прочее', pre: 'PP', c: '#57534e', ic: 'pp' },
+  shape:{ n: 'Фигуры', pre: '', c: '#475569', ic: 'shape' },
   my:   { n: 'Мои устройства', pre: 'DEV', c: '#0369a1', ic: 'star' },
 };
 
@@ -89,6 +96,9 @@ const ICONS = {
   aud: 'M2 6h3l4-3v10l-4-3H2zM11 5a4 4 0 0 1 0 6M13 3a7 7 0 0 1 0 10',
   ctl: 'M3 2h10v12H3zM6 5a2 2 0 1 0 0.01 0M5 10h6M5 12h6',
   pp: 'M1 5h14v6H1zM3 8a1 1 0 1 0 0.01 0M6 8a1 1 0 1 0 0.01 0M9 8a1 1 0 1 0 0.01 0M12 8a1 1 0 1 0 0.01 0',
+  light: 'M5 2h6l-1 6H6zM8 8v3M5 14h6M6 11h4',
+  power: 'M9 1L3 9h5l-1 6 6-8H8z',
+  shape: 'M2 3h7v7H2zM11.5 9a3 3 0 1 0 .01 0',
   star: 'M8 1.5l2 4.3 4.6.5-3.4 3.1 1 4.6L8 11.7 3.8 14l1-4.6L1.4 6.3 6 5.8z',
 };
 
@@ -382,3 +392,13 @@ const BUILTIN_LIB = RAW.map((r, i) => ({
   cat: r[0], maker: r[1], model: r[2],
   ports: normPorts([...parsePorts(r[3], 'in'), ...parsePorts(r[4], 'out'), ...parsePorts(r[5], 'io')]),
 }));
+
+// ---------- простые фигуры (для схем «картинками»)
+const SHAPE_PORTS = Array.from({ length: 8 }, (_, i) => ({ name: 'Связь ' + (i + 1), type: 'any', dir: 'io' }));
+[
+  ['sh1', 'Прямоугольник (экран, блок)', 'rect', '#ffffff', 'Экран', 200, 120],
+  ['sh2', 'Скруглённый блок', 'round', '#ffffff', 'Устройство', 150, 50],
+  ['sh3', 'Круг — сигнальная лампа', 'ellipse', '#22c55e', 'Сигнальная\nлампа', 90, 90],
+  ['sh4', 'Круг — кнопка', 'ellipse', '#ef4444', 'Кнопка', 44, 44],
+  ['sh5', 'Маленький блок (мышь, датчик)', 'round', '#ffffff', 'Мышка', 30, 54],
+].forEach(([id, model, shape, fill, label, sw, sh]) => BUILTIN_LIB.push({ id, cat: 'shape', maker: 'Generic', model, shape, fill, label, sw, sh, ports: SHAPE_PORTS.map(p => ({ ...p })) }));

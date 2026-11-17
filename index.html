@@ -12,14 +12,14 @@
   --bg:#f4f5f7; --panel:#ffffff; --panel2:#f8fafc; --line:#e2e5ea; --text:#1f2937; --muted:#6b7280; --acc:#2563eb; --accs:#dbeafe;
   --canvas:#ffffff; --grid:#eef0f3; --grid2:#e1e4e9;
   --node:#ffffff; --nodeStroke:#cbd2dc; --nodeText:#111827; --portText:#374151; --frameFill:rgba(37,99,235,.035);
-  --labelBg:#ffffff; --sel:#2563eb; --warn:#f59e0b; --bad:#ef4444;
+  --labelBg:#ffffff; --sel:#2563eb; --picLine:#3f3f46; --warn:#f59e0b; --bad:#ef4444;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
 }
 .dark{
   --bg:#0f1115; --panel:#171a21; --panel2:#1d2129; --line:#2a2f3a; --text:#e5e7eb; --muted:#9ca3af; --acc:#60a5fa; --accs:#1e3a5f;
   --canvas:#12151b; --grid:#1a1e26; --grid2:#232835;
   --node:#1c2029; --nodeStroke:#3a4150; --nodeText:#f3f4f6; --portText:#cbd5e1; --frameFill:rgba(96,165,250,.05);
-  --labelBg:#12151b; --sel:#60a5fa;
+  --labelBg:#12151b; --sel:#60a5fa; --picLine:#cbd5e1;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-size:13px}
@@ -35,7 +35,9 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 #app{display:grid;grid-template-columns:270px 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
 #top{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap;min-width:0}
 .brand{display:flex;align-items:center;gap:6px;color:var(--acc)}
-#docName{border:1px solid transparent;font-weight:600;font-size:15px;width:220px;color:var(--text);background:transparent}
+.appName{color:var(--text);font-size:14px}
+.ver{font-size:11px;font-weight:600;color:var(--acc);background:var(--accs);border-radius:9px;padding:1px 7px;cursor:pointer;white-space:nowrap}
+#docName{border:1px solid transparent;font-weight:600;font-size:15px;width:200px;color:var(--text);background:transparent}
 #docName:hover{border-color:var(--line)}
 .menus{display:flex}
 .menu{position:relative}
@@ -52,6 +54,11 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .tools{display:flex;align-items:center;gap:4px;margin-left:auto}
 .tools .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
 #zoomLbl{min-width:58px}
+.seg{display:flex}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:6px 0 0 6px}
+.seg button:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
+.seg button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 #findBox{width:150px}
 @media (max-width:1350px){#findBox,#wireStyle{display:none}}
 @media (max-width:1150px){#app{grid-template-columns:230px 1fr 250px}}
@@ -78,6 +85,9 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .item .t{min-width:0;flex:1}
 .item .m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .k{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .edt{opacity:0;color:var(--muted);cursor:pointer;padding:0 3px}
+.item:hover .edt{opacity:1}
+.item .edt:hover{color:var(--acc)}
 .item .fav{opacity:0;color:var(--muted);cursor:pointer;padding:0 3px}
 .item:hover .fav,.item .fav.on{opacity:1}
 .item .fav.on{color:#f59e0b}
@@ -145,6 +155,9 @@ table.grid th,table.grid td{border-bottom:1px solid var(--line);padding:5px 7px;
 table.grid th{position:sticky;top:-14px;background:var(--panel);font-weight:600}
 table.grid tr.clk{cursor:pointer}
 table.grid tr.clk:hover td{background:var(--accs)}
+table.grid tr.muted td{opacity:.5}
+table.bm td{vertical-align:middle}
+#toast div u{color:#93c5fd}
 #toast{position:fixed;right:16px;bottom:44px;z-index:300;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
 #toast div{background:#111827;color:#fff;padding:8px 13px;border-radius:8px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:420px}
 #toast div.w{background:#92400e}
@@ -170,7 +183,7 @@ table.grid tr.clk:hover td{background:var(--accs)}
 <body>
 <div id="app">
   <header id="top">
-    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
+    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="appName">SignalFlow</b><span id="appVer" class="ver" data-cmd="about" title="Версия программы — что нового"></span><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
     <div class="menus">
       <div class="menu"><button>Файл</button><div class="dd">
         <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
@@ -185,20 +198,22 @@ table.grid tr.clk:hover td{background:var(--accs)}
       </div></div>
       <div class="menu"><button>Вставка</button><div class="dd">
         <a data-cmd="quick">Устройство… <kbd>A / двойной клик</kbd></a><a data-cmd="addFrame">Зона (помещение/рэк) <kbd>Z</kbd></a><a data-cmd="addText">Текст <kbd>T</kbd></a><hr>
-        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a>
+        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="baseManager">База устройств — редактировать / удалить…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a><a data-cmd="libDefault">Загрузить базу с фото (по умолчанию)</a>
       </div></div>
       <div class="menu"><button>Вид</button><div class="dd">
-        <a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
+        <a data-cmd="viewPorts">Режим: блоки с портами</a><a data-cmd="viewPic">Режим: картинки (как draw.io)</a><hr><a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
         <a data-cmd="toggleGrid">Сетка и привязка</a><a data-cmd="toggleLegend">Легенда и штамп на схеме</a><a data-cmd="toggleLabels">Подписи кабелей</a><a data-cmd="theme">Тёмная / светлая тема</a><hr>
         <a data-cmd="wire:orth">Кабели: ортогональные</a><a data-cmd="wire:curve">Кабели: кривые</a><a data-cmd="wire:line">Кабели: прямые</a>
       </div></div>
       <div class="menu"><button>Проверка</button><div class="dd">
         <a data-cmd="check">Проверить схему</a><a data-cmd="cablesView">Кабельный журнал</a><a data-cmd="bomView">Спецификация</a>
       </div></div>
-      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a></div></div>
+      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a><a data-cmd="about">О программе и что нового</a></div></div>
     </div>
     <div id="saveState" class="ok">Сохранено</div>
     <div class="tools">
+      <div class="seg"><button data-cmd="viewPorts" title="Блоки с портами">▤ С портами</button><button data-cmd="viewPic" title="Картинки, как в draw.io">🖼 Картинки</button></div>
+      <span class="sep"></span>
       <button data-cmd="undo" title="Отменить (Ctrl+Z)">↶</button><button data-cmd="redo" title="Повторить (Ctrl+Y)">↷</button>
       <span class="sep"></span>
       <button data-cmd="zoomOut" title="Уменьшить">−</button><button id="zoomLbl" data-cmd="fit" title="Показать всё (F)">100%</button><button data-cmd="zoomIn" title="Увеличить">+</button>
@@ -214,14 +229,14 @@ table.grid tr.clk:hover td{background:var(--accs)}
     <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
     <div id="libTypeFilter"></div>
     <div id="libList"></div>
-    <div class="libFoot"><button data-cmd="newDevice">＋ Своё устройство</button><button data-cmd="libExport" title="Экспорт базы">⇩ База</button><button data-cmd="libImport" title="Импорт базы">⇧ База</button></div>
+    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
   </aside>
 
   <main id="stage">
     <svg id="svg" xmlns="http://www.w3.org/2000/svg">
       <defs id="defs"></defs>
       <g id="vp">
-        <g id="Lframes"></g><g id="Ledges"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
+        <g id="Lframes"></g><g id="Ledges"></g><g id="Lhover"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
       </g>
     </svg>
     <div id="marquee"></div>
@@ -266,7 +281,9 @@ const T = {
   usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#475569', pre: 'U' },
   ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#64748b', pre: 'C' },
   gpio:   { n: 'GPIO / Tally', s: 'GPIO', fam: 'gpio', c: '#84cc16', pre: 'G' },
-  pwr:    { n: 'Питание', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
+  pwr:    { n: 'Питание 220 В', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
+  dmx:    { n: 'DMX 512 (свет)', s: 'DMX', fam: 'dmx', c: '#a855f7', pre: 'L' },
+  any:    { n: 'Любой (простая схема)', s: '', fam: 'any', c: '#374151', pre: 'C' },
 };
 const TYPE_KEYS = Object.keys(T);
 
@@ -278,6 +295,7 @@ function compat(a, b) {
   if (A.fam === 'sdi' && B.fam === 'sdi') {
     return A.rate <= B.rate ? [2, ''] : [1, `${A.n} → вход ${B.n}: вход может не принять такой формат`];
   }
+  if (A.fam === 'any' || B.fam === 'any') return [2, ''];
   if (A.fam === B.fam) return [1, `${A.n} ↔ ${B.n}: проверьте скорость/модуль`];
   const pair = [A.fam, B.fam].sort().join('+');
   if (pair === 'dvi+hdmi') return [1, 'HDMI ↔ DVI: нужен пассивный переходник, звука не будет'];
@@ -307,7 +325,11 @@ const CATS = {
   sync: { n: 'Синхронизация', pre: 'SYNC', c: '#a16207', ic: 'sync' },
   aud:  { n: 'Звук', pre: 'AUD', c: '#be123c', ic: 'aud' },
   ctl:  { n: 'Управление / tally / интерком', pre: 'CTL', c: '#4d7c0f', ic: 'ctl' },
+  light:{ n: 'Свет / DMX', pre: 'LT', c: '#7e22ce', ic: 'light' },
+  power:{ n: 'Питание', pre: 'PWR', c: '#1f2937', ic: 'power' },
+  per:  { n: 'Периферия / офис', pre: 'PER', c: '#64748b', ic: 'pc' },
   pp:   { n: 'Патч-панели / прочее', pre: 'PP', c: '#57534e', ic: 'pp' },
+  shape:{ n: 'Фигуры', pre: '', c: '#475569', ic: 'shape' },
   my:   { n: 'Мои устройства', pre: 'DEV', c: '#0369a1', ic: 'star' },
 };
 
@@ -333,6 +355,9 @@ const ICONS = {
   aud: 'M2 6h3l4-3v10l-4-3H2zM11 5a4 4 0 0 1 0 6M13 3a7 7 0 0 1 0 10',
   ctl: 'M3 2h10v12H3zM6 5a2 2 0 1 0 0.01 0M5 10h6M5 12h6',
   pp: 'M1 5h14v6H1zM3 8a1 1 0 1 0 0.01 0M6 8a1 1 0 1 0 0.01 0M9 8a1 1 0 1 0 0.01 0M12 8a1 1 0 1 0 0.01 0',
+  light: 'M5 2h6l-1 6H6zM8 8v3M5 14h6M6 11h4',
+  power: 'M9 1L3 9h5l-1 6 6-8H8z',
+  shape: 'M2 3h7v7H2zM11.5 9a3 3 0 1 0 .01 0',
   star: 'M8 1.5l2 4.3 4.6.5-3.4 3.1 1 4.6L8 11.7 3.8 14l1-4.6L1.4 6.3 6 5.8z',
 };
 
@@ -627,17 +652,34 @@ const BUILTIN_LIB = RAW.map((r, i) => ({
   ports: normPorts([...parsePorts(r[3], 'in'), ...parsePorts(r[4], 'out'), ...parsePorts(r[5], 'io')]),
 }));
 
+// ---------- простые фигуры (для схем «картинками»)
+const SHAPE_PORTS = Array.from({ length: 8 }, (_, i) => ({ name: 'Связь ' + (i + 1), type: 'any', dir: 'io' }));
+[
+  ['sh1', 'Прямоугольник (экран, блок)', 'rect', '#ffffff', 'Экран', 200, 120],
+  ['sh2', 'Скруглённый блок', 'round', '#ffffff', 'Устройство', 150, 50],
+  ['sh3', 'Круг — сигнальная лампа', 'ellipse', '#22c55e', 'Сигнальная\nлампа', 90, 90],
+  ['sh4', 'Круг — кнопка', 'ellipse', '#ef4444', 'Кнопка', 44, 44],
+  ['sh5', 'Маленький блок (мышь, датчик)', 'round', '#ffffff', 'Мышка', 30, 54],
+].forEach(([id, model, shape, fill, label, sw, sh]) => BUILTIN_LIB.push({ id, cat: 'shape', maker: 'Generic', model, shape, fill, label, sw, sh, ports: SHAPE_PORTS.map(p => ({ ...p })) }));
+
 'use strict';
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
+const APP_VERSION = '1.3.0', APP_DATE = '17.11.2026';
+const CHANGELOG = [
+  ['1.3.0', '17.11.2026', ['Режим «Картинки» (как draw.io): устройства фото с подписью, тонкие линии с подписями, подключение синими кружками', 'Фигуры: экран, лампа, кнопка, блок — с изменением размера', 'Редактор базы: изменить / удалить / копировать любое устройство, правки переносятся на схему', 'База с фото: 98 устройств из ваших картинок, подгружается автоматически', 'Новые типы: DMX (свет), группы «Свет», «Питание», «Периферия»', 'Номер версии в шапке']],
+  ['1.2.0', '17.11.2026', ['Медиасерверы disguise (d3): VX, GX, EX, RX, PX и снятые модели', 'Двунаправленные SDI-порты']],
+  ['1.1.0', '17.11.2026', ['Процессоры Magnimage, Barco Event Master, PixelHue, Datapath', 'Ноутбуки, Novastar, удлинители, тип VGA', 'Прямые кабели между близкими устройствами']],
+  ['1.0.0', '17.11.2026', ['Первая веб-версия: устройства с портами, кабели, проверка, кабельный журнал, экспорт', 'Фото устройств, своя база, публикация на GitHub Pages']],
+];
 const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const svg = $('#svg'), vp = $('#vp'), stage = $('#stage');
-const LY = { f: $('#Lframes'), e: $('#Ledges'), n: $('#Lnodes'), t: $('#Ltexts'), x: $('#Lextra'), o: $('#Lover') };
+const LY = { f: $('#Lframes'), e: $('#Ledges'), hv: $('#Lhover'), n: $('#Lnodes'), t: $('#Ltexts'), x: $('#Lextra'), o: $('#Lover') };
 
 // ---------- хранилище (try/catch: в некоторых окружениях localStorage недоступен)
 const store = {
@@ -652,7 +694,7 @@ const idb = (() => {
     async set(k, v) { try { const db = await open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return store.set(k, v); } },
   };
 })();
-const cfg = Object.assign({ builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
+const cfg = Object.assign({ hidden: [], builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
 const saveCfg = () => store.set('cfg', cfg);
 const favs = new Set(store.get('favs', []));
 let customLib = [];
@@ -704,6 +746,21 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .lg-bg{fill:var(--node);stroke:var(--nodeStroke)}
 .lg-t{fill:var(--nodeText);font-size:11px}
 .lg-h{fill:var(--nodeText);font-size:12px;font-weight:700}
+.n-frame{fill:transparent;stroke:none}
+.node.sel .n-frame{stroke:var(--sel);stroke-width:1.5;stroke-dasharray:5 3}
+.node.hl .n-frame{stroke:var(--warn);stroke-width:3;stroke-dasharray:none}
+.n-plabel{fill:var(--nodeText);font-size:15px}
+.n-stext{font-size:14px}
+.picmode .e-line{stroke-width:1.3}
+.picmode .edge.sel .e-line{stroke-width:2.6}
+.picmode .edge:hover .e-line{stroke-width:2.2}
+.picmode .e-lb{stroke:none;fill-opacity:.9}
+.picmode .e-lt{font-size:12px}
+.hn circle{fill:#2563eb;fill-opacity:.85;cursor:crosshair}
+.hn path{stroke:#fff;stroke-width:2;pointer-events:none}
+.hn:hover circle{fill-opacity:1}
+.hv-zone{fill:transparent}
+.rsn{fill:var(--panel);stroke:var(--sel);stroke-width:2;cursor:nwse-resize}
 .lod1 .p-t,.lod1 .e-lb,.lod1 .e-lt,.lod1 .n-loc,.lod1 .n-sub{display:none}
 .lod2 .p-c,.lod2 .p-h,.lod2 .n-ic{display:none}
 .lod2 .n-title{font-size:20px}
@@ -712,7 +769,7 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .lod3 .e-line{stroke-width:5;stroke-dasharray:none!important}
 .lod3 .e-line{marker-end:none}
 `;
-const LIGHT = { node: '#ffffff', nodeStroke: '#cbd2dc', nodeText: '#111827', portText: '#374151', muted: '#6b7280', frameFill: 'rgba(37,99,235,.035)', labelBg: '#ffffff', sel: '#2563eb', warn: '#f59e0b', bad: '#ef4444', panel: '#ffffff' };
+const LIGHT = { picLine: '#3f3f46', node: '#ffffff', nodeStroke: '#cbd2dc', nodeText: '#111827', portText: '#374151', muted: '#6b7280', frameFill: 'rgba(37,99,235,.035)', labelBg: '#ffffff', sel: '#2563eb', warn: '#f59e0b', bad: '#ef4444', panel: '#ffffff' };
 const cssFor = vars => SVG_CSS.replace(/var\(--(\w+)\)/g, (m, k) => vars[k] || m);
 { const st = document.createElement('style'); st.textContent = SVG_CSS; document.head.appendChild(st); }
 
@@ -744,9 +801,9 @@ async function readImage(file) {
 //  ДОКУМЕНТ
 // ============================================================================
 const newPage = name => ({ id: uid(), name, nodes: [], edges: [], frames: [], texts: [], view: { x: 40, y: 40, k: 1 } });
-const newDoc = () => ({ app: 'SignalFlow', v: 1, name: 'Новая схема', author: '', pages: [newPage('Страница 1')], cur: 0, images: {} });
+const newDoc = () => ({ app: 'SignalFlow', appVersion: APP_VERSION, v: 1, name: 'Новая схема', author: '', pages: [newPage('Страница 1')], cur: 0, images: {} });
 const replacer = (k, v) => (k[0] === '_' ? undefined : v);
-const snap = () => JSON.stringify(doc, replacer);
+const snap = () => { if (doc) doc.appVersion = APP_VERSION; return JSON.stringify(doc, replacer); };
 
 let doc = null, P = null;
 let view = { x: 40, y: 40, k: 1 };
@@ -758,7 +815,14 @@ const sel = new Set();
 let undoS = [], redoS = [];
 let fileHandle = null, dirtyFile = false;
 
-const allLib = () => cfg.builtin ? customLib.concat(BUILTIN_LIB) : customLib;
+const devKey = d => ((d.maker || '') + '|' + (d.model || '')).toLowerCase();
+const isPic = () => !!(doc && doc.view === 'pic');
+// встроенные модели, для которых есть своя версия (с фото), не дублируем
+const allLib = () => {
+  if (!cfg.builtin) return customLib.concat(BUILTIN_LIB.filter(d => d.cat === 'shape'));
+  const mine = new Set(customLib.map(devKey)), hid = new Set(cfg.hidden || []);
+  return customLib.concat(BUILTIN_LIB.filter(d => !mine.has(devKey(d)) && !hid.has(d.id)));
+};
 const libById = id => customLib.find(d => d.id === id) || BUILTIN_LIB.find(d => d.id === id);
 
 function reindex() {
@@ -782,6 +846,17 @@ const portOf = (n, pid) => n.ports.find(p => p.id === pid);
 const HH = 40, RH = 18;
 function layout(n) {
   if (n._L) return n._L;
+  if (isPic()) {
+    if (n.shape) {
+      const w = n.sw || (n.shape === 'ellipse' ? 90 : 160), h = n.sh || (n.shape === 'ellipse' ? 90 : 100);
+      return (n._L = { left: [], right: [], w, h, ih: h, pos: {}, pic: 1 });
+    }
+    const im = n.img && doc.images[n.img];
+    let w, ih;
+    if (im) { const ar = im.w / im.h; w = n.pw || Math.round(clamp(ar * 110, 70, 220)); ih = Math.round(w / ar); }
+    else { w = n.pw || 130; ih = Math.round(w * 0.62); }
+    return (n._L = { left: [], right: [], w, h: ih + 26, ih, pos: {}, pic: 1 });
+  }
   const left = [], right = [];
   for (const p of n.ports) ((p.dir === 'in') !== !!n.flip ? left : right).push(p);
   const rows = Math.max(left.length, right.length, 1);
@@ -808,7 +883,33 @@ function portPos(ref) {
 //  МАРШРУТИЗАЦИЯ КАБЕЛЕЙ
 // ============================================================================
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function picRoute(e) {
+  const na = node(e.from.n), nb = node(e.to.n), LA = layout(na), LB = layout(nb);
+  const A = { x: na.x, y: na.y, w: LA.w, h: LA.h, ih: LA.ih }, B = { x: nb.x, y: nb.y, w: LB.w, h: LB.h, ih: LB.ih };
+  const acx = A.x + A.w / 2, acy = A.y + A.ih / 2, bcx = B.x + B.w / 2, bcy = B.y + B.ih / 2;
+  const off = k => ((hash(e.id + k) % 5) - 2) * 6;
+  const hgap = B.x > A.x + A.w + 16 ? 1 : (A.x > B.x + B.w + 16 ? -1 : 0);
+  const vgap = B.y > A.y + A.h + 16 ? 1 : (A.y > B.y + B.h + 16 ? -1 : 0);
+  const horiz = hgap && (!vgap || Math.abs(bcx - acx) >= Math.abs(bcy - acy));
+  let a, b, pts, seg;
+  if (horiz) {
+    a = { x: hgap > 0 ? A.x + A.w : A.x, y: clamp(acy + off('a'), A.y + 3, A.y + A.ih - 3), nx: hgap, ny: 0, d: hgap };
+    b = { x: hgap > 0 ? B.x : B.x + B.w, y: clamp(bcy + off('b'), B.y + 3, B.y + B.ih - 3), nx: -hgap, ny: 0, d: -hgap };
+  } else if (vgap) {
+    a = { x: clamp(acx + off('a'), A.x + 3, A.x + A.w - 3), y: vgap > 0 ? A.y + A.h : A.y, nx: 0, ny: vgap, d: 0 };
+    b = { x: clamp(bcx + off('b'), B.x + 3, B.x + B.w - 3), y: vgap > 0 ? B.y : B.y + B.h, nx: 0, ny: -vgap, d: 0 };
+  } else {
+    a = { x: A.x + A.w, y: acy, nx: 1, ny: 0, d: 1 }; b = { x: B.x + B.w, y: bcy, nx: 1, ny: 0, d: 1 };
+  }
+  if (cfg.wire === 'line') return { pts: [a, b], a, b };
+  if (cfg.wire === 'curve') return { pts: [a, b], a, b, curve: true };
+  if (horiz) { const mx = e.pmx != null ? e.pmx : (a.x + b.x) / 2 + off('m'); pts = [a, { x: mx, y: a.y }, { x: mx, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', x: mx, y: (a.y + b.y) / 2 }; }
+  else if (vgap) { const my = e.pmy != null ? e.pmy : (a.y + b.y) / 2 + off('m'); pts = [a, { x: a.x, y: my }, { x: b.x, y: my }, b]; seg = { k: 'my', key: 'pmy', x: (a.x + b.x) / 2, y: my }; }
+  else { const x = e.pmx != null ? e.pmx : Math.max(a.x, b.x) + 30; pts = [a, { x, y: a.y }, { x, y: b.y }, b]; seg = { k: 'mx', key: 'pmx', x, y: (a.y + b.y) / 2 }; }
+  return { pts, a, b, seg };
+}
 function route(e) {
+  if (isPic()) return picRoute(e);
   const a = portPos(e.from), b = portPos(e.to);
   const style = cfg.wire;
   if (style === 'line') return { pts: [a, b], a, b };
@@ -842,8 +943,9 @@ function route(e) {
 function pathD(r) {
   const p = r.pts;
   if (r.curve) {
-    const k = Math.max(40, Math.abs(r.b.x - r.a.x) * 0.45);
-    return `M${r.a.x} ${r.a.y}C${r.a.x + r.a.d * k} ${r.a.y} ${r.b.x + r.b.d * k} ${r.b.y} ${r.b.x} ${r.b.y}`;
+    const ax = r.a.nx ?? r.a.d, ay = r.a.ny ?? 0, bx = r.b.nx ?? r.b.d, by = r.b.ny ?? 0;
+    const k = Math.max(40, Math.hypot(r.b.x - r.a.x, r.b.y - r.a.y) * 0.4);
+    return `M${r.a.x} ${r.a.y}C${r.a.x + ax * k} ${r.a.y + ay * k} ${r.b.x + bx * k} ${r.b.y + by * k} ${r.b.x} ${r.b.y}`;
   }
   if (p.length === 2) return `M${p[0].x} ${p[0].y}L${p[1].x} ${p[1].y}`;
   let d = `M${p[0].x} ${p[0].y}`;
@@ -871,7 +973,9 @@ function edgeStatus(e) {
   return compat(e.type || pa.type, pb.type);
 }
 function edgeText(e) {
+  if (e.caption) return e.caption;
   if (!cfg.labels) return '';
+  if (isPic()) { const t = [T[e.type] ? T[e.type].s : '', e.fmt].filter(Boolean).join(' '); return (e._st === 0 && t ? '⚠ ' : '') + t; }
   const parts = [];
   if (e.label) parts.push(e.label);
   parts.push(T[e.type] ? T[e.type].s : e.type);
@@ -883,7 +987,25 @@ function edgeText(e) {
 // ============================================================================
 //  SVG-ШАБЛОНЫ
 // ============================================================================
+const lum = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return 1; const v = parseInt(m[1], 16); return ((v >> 16 & 255) * .299 + (v >> 8 & 255) * .587 + (v & 255) * .114) / 255; };
+function nodeSVGpic(n) {
+  const L = layout(n), w = L.w, ih = L.ih, cat = CATS[n.cat] || CATS.my;
+  let s = `<g class="node pic" data-id="${n.id}" transform="translate(${n.x},${n.y})"><rect class="n-frame" x="-4" y="-4" width="${w + 8}" height="${L.h + 8}" rx="4"/>`;
+  if (n.shape) {
+    const f = n.fill || '#ffffff', st = n.stroke || '#1f2937', fs = n.fs || 14;
+    s += n.shape === 'ellipse' ? `<ellipse cx="${w / 2}" cy="${ih / 2}" rx="${w / 2}" ry="${ih / 2}" fill="${esc(f)}" stroke="${esc(st)}" stroke-width="1.2"/>`
+      : `<rect width="${w}" height="${ih}" rx="${n.shape === 'round' ? 10 : 0}" fill="${esc(f)}" stroke="${esc(st)}" stroke-width="1.2"/>`;
+    const lines = String(n.label || '').split('\n'), tc = lum(f) < 0.5 ? '#ffffff' : '#111827';
+    s += `<text class="n-stext" text-anchor="middle" font-size="${fs}" fill="${tc}">` + lines.map((l, i) => `<tspan x="${w / 2}" y="${ih / 2 + (i - (lines.length - 1) / 2) * fs * 1.2 + fs * 0.35}">${esc(l)}</tspan>`).join('') + '</text>';
+    return s + '</g>';
+  }
+  if (n.img && doc.images[n.img]) s += `<use class="n-img" href="#img-${n.img}" width="${w}" height="${ih}"/>`;
+  else s += `<rect width="${w}" height="${ih}" rx="10" fill="${n.color || cat.c}"/><path class="n-ic" transform="translate(${w / 2 - 16},${ih / 2 - 24}) scale(2)" d="${ICONS[cat.ic] || ICONS.pp}"/><text class="n-sub" x="${w / 2}" y="${ih - 9}" text-anchor="middle">${esc(n.model)}</text>`;
+  s += `<text class="n-plabel" x="${w / 2}" y="${ih + 18}" text-anchor="middle">${esc(n.label)}</text>`;
+  return s + '</g>';
+}
 function nodeSVG(n) {
+  if (isPic()) return nodeSVGpic(n);
   const L = layout(n), w = L.w, h = L.h;
   const cat = CATS[n.cat] || CATS.my, c = n.color || cat.c;
   const sub = ((n.maker && n.maker !== 'Generic' ? n.maker + ' ' : '') + (n.model || '')).trim();
@@ -918,9 +1040,9 @@ function edgeGeom(e) {
 function edgeSVG(e) {
   e._st = edgeStatus(e)[0];
   const g = edgeGeom(e);
-  const col = e.color || (T[e.type] || T.sdi3g).c;
+  const col = e.color || (isPic() ? 'var(--picLine)' : (T[e.type] || T.sdi3g).c);
   const cls = e._st === 0 ? ' bad' : e._st === 1 ? ' warn' : '';
-  let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${T[e.type] ? e.type : 'sdi3g'})"/>`;
+  let s = `<g class="edge${cls}" data-id="${e.id}"><path class="e-hit" d="${g.d}"/><path class="e-line" d="${g.d}" stroke="${col}" marker-end="url(#ar-${isPic() && !e.color ? 'any' : (T[e.type] ? e.type : 'sdi3g')})"/>`;
   if (g.t) s += `<rect class="e-lb" x="${g.lp.x - g.lw / 2}" y="${g.lp.y - 8}" width="${g.lw}" height="16" rx="3"/><text class="e-lt" x="${g.lp.x}" y="${g.lp.y}">${esc(g.t)}</text>`;
   return s + '</g>';
 }
@@ -944,7 +1066,7 @@ function mk(str) { const g = document.createElementNS(NS, 'g'); g.innerHTML = st
 //  ОТРИСОВКА
 // ============================================================================
 function renderAll() {
-  reindex(); els.clear(); renderImgDefs();
+  reindex(); els.clear(); renderImgDefs(); updateModeUI(); hoverId = null; if (LY.hv) LY.hv.innerHTML = '';
   LY.f.innerHTML = P.frames.map(frameSVG).join('');
   LY.e.innerHTML = P.edges.map(edgeSVG).join('');
   LY.n.innerHTML = P.nodes.map(nodeSVG).join('');
@@ -994,8 +1116,11 @@ function applySel() {
 // ручка изгиба выделенного кабеля
 function renderOverlay() {
   LY.o.innerHTML = '';
-  if (sel.size !== 1 || cfg.wire !== 'orth') return;
-  const it = items.get([...sel][0]); if (!it || it.k !== 'e' || !it.o._r || !it.o._r.seg) return;
+  if (sel.size !== 1) return;
+  const it0 = items.get([...sel][0]);
+  if (it0 && it0.k === 'n' && isPic()) { const n = it0.o, L = layout(n); LY.o.innerHTML = `<rect class="rsn" data-rsn="${n.id}" x="${n.x + L.w - 5}" y="${n.y + L.ih - 5}" width="10" height="10" rx="2"/>`; return; }
+  if (cfg.wire !== 'orth') return;
+  const it = it0; if (!it || it.k !== 'e' || !it.o._r || !it.o._r.seg) return;
   const s = it.o._r.seg;
   LY.o.innerHTML = `<rect class="handle${s.k === 'my' ? ' v' : ''}" data-h="${it.o.id}" x="${s.x - 6}" y="${s.y - 6}" width="12" height="12" rx="3"/>`;
 }
@@ -1134,6 +1259,18 @@ function openDoc(d, handle) {
   if (P.view) { view = { ...P.view }; setView(); } else fit();
   dirtyFile = false; setSaveState(); idb.set('doc', snap());
 }
+function setMode(m) {
+  if ((doc.view || 'ports') === m) return;
+  hist(); doc.view = m;
+  for (const pg of doc.pages) for (const n of pg.nodes) n._L = null;
+  renderAll(); updateModeUI(); markDirty();
+  toast(m === 'pic' ? 'Режим «Картинки»: наведите на устройство и тяните от синего кружка' : 'Режим «С портами»');
+}
+function updateModeUI() {
+  const pic = isPic();
+  svg.classList.toggle('picmode', pic);
+  document.querySelectorAll('[data-cmd=viewPorts],[data-cmd=viewPic]').forEach(b => b.classList.toggle('on', (b.dataset.cmd === 'viewPic') === pic));
+}
 function switchPage(i) {
   P.view = { ...view }; doc.cur = i; P = doc.pages[i]; sel.clear(); renderAll();
   if (P.view) { view = { ...P.view }; setView(); } else fit();
@@ -1158,6 +1295,7 @@ function addNode(dev, x, y, noHist) {
     ports: dev.ports.map(p => ({ id: uid(), name: p.name, type: p.type, dir: p.dir })), loc: '', notes: '',
   };
   if (dev.img) n.img = putImage(dev.img);
+  if (dev.shape) { n.shape = dev.shape; n.fill = dev.fill; if (dev.sw) n.sw = dev.sw; if (dev.sh) n.sh = dev.sh; n.label = dev.label || dev.model; }
   P.nodes.push(n); items.set(n.id, { k: 'n', o: n }); adj.set(n.id, new Set());
   rerenderNode(n);
   return n;
@@ -1276,6 +1414,11 @@ svg.addEventListener('pointerdown', ev => {
   svg.setPointerCapture(ev.pointerId);
   if (ev.button === 1 || spaceDown) { drag = { mode: 'pan', sx: ev.clientX, sy: ev.clientY, vx: view.x, vy: view.y }; stage.classList.add('panning'); return; }
   const t = ev.target;
+  hoverId = null; LY.hv.innerHTML = '';
+  const hn = t.closest('[data-hn]');
+  if (hn) return startNodeWire(hn.dataset.hn, ev);
+  const rsn = t.closest('[data-rsn]');
+  if (rsn) { const n = node(rsn.dataset.rsn), L = layout(n); drag = { mode: 'nresize', n, sx: pt.x, sy: pt.y, w0: L.w, h0: L.ih, edges: [...adj.get(n.id)], started: false }; return; }
   const h = t.closest('[data-h]');
   if (h) { const e = items.get(h.dataset.h).o; drag = { mode: 'bend', e, started: false }; return; }
   const g = t.closest('[data-id]');
@@ -1365,9 +1508,27 @@ function onMove(ev) {
     const f = drag.f; f.w = Math.max(120, Math.round((drag.w + pt.x - drag.sx) / 10) * 10); f.h = Math.max(60, Math.round((drag.h + pt.y - drag.sy) / 10) * 10);
     rerenderItem(f.id); return;
   }
+  if (drag.mode === 'nresize') {
+    const n = drag.n; if (!drag.started) { drag.started = true; hist(); }
+    const dx = pt.x - drag.sx, dy = pt.y - drag.sy;
+    if (n.shape) { n.sw = Math.max(16, Math.round((drag.w0 + dx) / 5) * 5); n.sh = Math.max(16, Math.round((drag.h0 + dy) / 5) * 5); }
+    else n.pw = Math.max(40, Math.round((drag.w0 + dx) / 5) * 5);
+    rerenderNode(n); drag.edges.forEach(updateEdgeFast); renderOverlay(); return;
+  }
+  if (drag.mode === 'nwire') {
+    if (drag.target) { const g0 = els.get(drag.target); g0 && g0.classList.remove('hl'); drag.target = null; }
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const g = el && el.closest && el.closest('.node');
+    let end = pt;
+    if (g && g.dataset.id !== drag.from) { drag.target = g.dataset.id; g.classList.add('hl'); const n = node(drag.target), L = layout(n); end = { x: n.x + L.w / 2, y: n.y + L.ih / 2 }; hint('Отпустите — порты подберутся автоматически'); }
+    else hint('Отпустите на другом устройстве · в пустом месте — выбрать новое устройство');
+    LY.o.firstChild.setAttribute('d', `M${drag.sx} ${drag.sy}L${end.x} ${end.y}`);
+    return;
+  }
   if (drag.mode === 'bend') {
     const e = drag.e; if (!drag.started) { drag.started = true; hist(); }
-    if (e._r.seg.k === 'mx') e.mx = Math.round(pt.x / 5) * 5; else e.my = Math.round(pt.y / 5) * 5;
+    const key = e._r.seg.key || e._r.seg.k;
+    e[key] = e._r.seg.k === 'mx' ? Math.round(pt.x / 5) * 5 : Math.round(pt.y / 5) * 5;
     updateEdgeFast(e); renderOverlay(); return;
   }
   if (drag.mode === 'marquee') {
@@ -1406,7 +1567,8 @@ svg.addEventListener('pointerup', ev => {
   const d = drag; drag = null; pendingEv = null;
   stage.classList.remove('panning');
   if (d.mode === 'move' && d.started) { markDirty(); renderOverlay(); cull(); }
-  if ((d.mode === 'resize' || d.mode === 'bend') && d.started) markDirty();
+  if ((d.mode === 'resize' || d.mode === 'bend' || d.mode === 'nresize') && d.started) markDirty();
+  if (d.mode === 'nwire') finishNodeWire(d, ev);
   if (d.mode === 'marquee') {
     const m = $('#marquee'); m.style.display = 'none';
     const a = toDoc(d.sx, d.sy), b = toDoc(ev.clientX, ev.clientY);
@@ -1421,6 +1583,73 @@ svg.addEventListener('pointerup', ev => {
   }
   if (d.mode === 'wire') finishWire(d, ev);
 });
+let hoverId = null;
+function renderHover() {
+  LY.hv.innerHTML = '';
+  const n = hoverId && node(hoverId); if (!n || !isPic()) return;
+  const L = layout(n), m = 16;
+  const pts = [[n.x + L.w / 2, n.y - m], [n.x + L.w + m, n.y + L.ih / 2], [n.x + L.w / 2, n.y + L.h + m - 4], [n.x - m, n.y + L.ih / 2]];
+  LY.hv.innerHTML = `<rect class="hv-zone" data-hzone="${n.id}" x="${n.x - 30}" y="${n.y - 30}" width="${L.w + 60}" height="${L.h + 60}"/>`
+    + pts.map(p => `<g class="hn" data-hn="${n.id}" transform="translate(${p[0]},${p[1]})"><title>Тяните, чтобы соединить</title><circle r="8"/><path d="M-3.5 0h7M0 -3.5v7"/></g>`).join('');
+}
+svg.addEventListener('pointermove', ev => {
+  if (drag || !isPic()) return;
+  const t = ev.target;
+  if (t.closest && t.closest('[data-hn],[data-hzone]') && hoverId) {
+    const z = t.closest('[data-hzone]'); if (!z || z.dataset.hzone === hoverId) return;
+  }
+  const g = t.closest && t.closest('.node');
+  const id = g ? g.dataset.id : null;
+  if (id !== hoverId) { hoverId = id; renderHover(); }
+});
+function startNodeWire(nid, ev) {
+  const n = node(nid); if (!n) return;
+  const L = layout(n);
+  drag = { mode: 'nwire', from: nid, sx: n.x + L.w / 2, sy: n.y + L.ih / 2, target: null };
+  LY.o.innerHTML = '<path class="wire-tmp" stroke="#2563eb" d=""/>';
+  hint('Отпустите на другом устройстве · в пустом месте — выбрать новое устройство');
+}
+// лучшая пара свободных портов между двумя устройствами (направление подбирается само)
+function bestPair(A, B) {
+  let best = null;
+  const free = (n, p) => !portUse.has(n.id + ':' + p.id);
+  const outish = p => p.dir === 'out' || p.dir === 'io', inish = p => p.dir === 'in' || p.dir === 'io';
+  for (const pa of A.ports) { if (!free(A, pa)) continue;
+    for (const pb of B.ports) { if (!free(B, pb)) continue;
+      if (outish(pa) && inish(pb)) { const c = compat(pa.type, pb.type); const s = c[0] * 10 + 3 + (pa.dir !== 'io') + (pb.dir !== 'io'); if (!best || s > best.s) best = { from: { n: A.id, p: pa.id }, to: { n: B.id, p: pb.id }, c, s }; }
+      if (outish(pb) && inish(pa)) { const c = compat(pb.type, pa.type); const s = c[0] * 10 + (pa.dir !== 'io') + (pb.dir !== 'io'); if (!best || s > best.s) best = { from: { n: B.id, p: pb.id }, to: { n: A.id, p: pa.id }, c, s }; }
+    }
+  }
+  return best;
+}
+function addLinkPort(n, dir) {
+  const k = n.ports.filter(p => p.type === 'any').length + 1;
+  const p = { id: uid(), name: 'Связь ' + k, type: 'any', dir }; n.ports.push(p); n._L = null; return p;
+}
+function finishNodeWire(d, ev) {
+  hint(''); LY.o.innerHTML = '';
+  if (d.target) { const g0 = els.get(d.target); g0 && g0.classList.remove('hl'); }
+  const A = node(d.from);
+  if (d.target) {
+    const B = node(d.target);
+    hist();
+    let pr = bestPair(A, B);
+    if (pr && pr.c[0] === 0) pr = null; // несовместимые порты — проводим простую связь, как в draw.io
+    if (!pr) {
+      const pa = A.ports.find(p => (p.dir === 'out' || p.dir === 'io') && !portUse.has(A.id + ':' + p.id)) || addLinkPort(A, 'io');
+      const pb = B.ports.find(p => (p.dir === 'in' || p.dir === 'io') && !portUse.has(B.id + ':' + p.id) && compat(pa.type, p.type)[0] > 0) || addLinkPort(B, 'io');
+      pr = { from: { n: A.id, p: pa.id }, to: { n: B.id, p: pb.id }, c: compat(pa.type, pb.type) };
+      toast('Подходящих свободных портов нет — проведена простая связь (порты можно поправить в свойствах)', 'w');
+    } else if (pr.c[0] < 2) toast(pr.c[1], pr.c[0] === 0 ? 'e' : 'w');
+    const e = connect(pr.from, pr.to, true);
+    selectOnly([e.id]); markDirty(); return;
+  }
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  if (el === svg || (el && el.closest && !el.closest('[data-id]') && svg.contains(el))) {
+    const fp = A.ports.find(p => (p.dir === 'out' || p.dir === 'io') && !portUse.has(A.id + ':' + p.id)) || A.ports.find(p => !portUse.has(A.id + ':' + p.id)) || addLinkPort(A, 'io');
+    openQuick(ev.clientX, ev.clientY, toDoc(ev.clientX, ev.clientY), { fixed: { n: A.id, p: fp.id }, fp });
+  }
+}
 function finishWire(d, ev) {
   svg.classList.remove('wiring'); hint('');
   for (const c of svg.querySelectorAll('.p-c.ok,.p-c.wn,.p-c.no,.p-c.target')) c.classList.remove('ok', 'wn', 'no', 'target');
@@ -1592,7 +1821,8 @@ function quickPick(i) {
     const p = n.ports[x.best.p.id.slice(1)];
     const L = layout(n); const pos = L.pos[p.id];
     // ставим устройство так, чтобы порт оказался под курсором
-    n.x = Math.round((q.docPt.x - pos.x - (pos.d < 0 ? -40 : 40)) / 10) * 10; n.y = Math.round((q.docPt.y - pos.y) / 10) * 10;
+    if (pos) { n.x = Math.round((q.docPt.x - pos.x - (pos.d < 0 ? -40 : 40)) / 10) * 10; n.y = Math.round((q.docPt.y - pos.y) / 10) * 10; }
+    else { n.x = Math.round((q.docPt.x - L.w / 2) / 10) * 10; n.y = Math.round((q.docPt.y - L.ih / 2) / 10) * 10; }
     rerenderNode(n);
     const fd = q.wire.fp.dir; const fromFixed = fd === 'out' || (fd === 'io' && p.dir !== 'out');
     const e = fromFixed ? connect(q.wire.fixed, { n: n.id, p: p.id }, true) : connect({ n: n.id, p: p.id }, q.wire.fixed, true);
@@ -1618,7 +1848,7 @@ function itemHTML(d, i, extra) {
   return `<div class="item" draggable="true" data-dev="${esc(d.id)}" ${i != null ? `data-i="${i}"` : ''} title="${esc(d.maker + ' ' + d.model + '\n' + portSummary(d))}">`
     + (d.img ? `<div class="ic ph"><img src="${d.img.src}" alt="" draggable="false"></div>` : `<div class="ic" style="background:${cat.c}"><svg viewBox="0 0 16 16"><path d="${ICONS[cat.ic]}" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`)
     + `<div class="t"><div class="m">${esc(d.model)}</div><div class="k">${esc(d.maker !== 'Generic' ? d.maker + ' · ' : '')}${esc(extra || portSummary(d))}</div></div>`
-    + `<span class="fav${favs.has(d.id) ? ' on' : ''}" data-fav="${esc(d.id)}" title="В избранное">★</span></div>`;
+    + `<span class="edt" data-edt="${esc(d.id)}" title="Изменить устройство">✎</span><span class="fav${favs.has(d.id) ? ' on' : ''}" data-fav="${esc(d.id)}" title="В избранное">★</span></div>`;
 }
 function renderTypeFilter() {
   const keys = ['sdi12g', 'sdi3g', 'hdmi', 'dp', 'fiber', 'eth', 'hdbt', 'ref', 'aud'];
@@ -1653,6 +1883,7 @@ function onFavClick(ev) {
 let libAddN = 0;
 $('#libList').addEventListener('click', ev => {
   if (onFavClick(ev)) return;
+  const ed = ev.target.closest('[data-edt]'); if (ed) return editDevice(libById(ed.dataset.edt));
   const h = ev.target.closest('.catH');
   if (h) { const c = h.parentNode.dataset.cat; openCats.has(c) ? openCats.delete(c) : openCats.add(c); store.set('openCats', [...openCats]); h.parentNode.classList.toggle('closed'); return; }
   const it = ev.target.closest('.item'); if (!it) return;
@@ -1668,8 +1899,10 @@ $('#libList').addEventListener('contextmenu', ev => {
   const d = libById(it.dataset.dev), custom = customLib.includes(d);
   showCtx(ev.clientX, ev.clientY, [
     ['Добавить на схему', () => it.click()],
-    [custom ? 'Редактировать (фото, порты)…' : 'Скопировать в свою базу…', () => deviceEditor(custom ? d : { ...JSON.parse(JSON.stringify(d)), id: null })],
-    custom && ['Удалить из базы', () => { customLib = customLib.filter(x => x !== d); saveLib(); renderLib(); }],
+    ['Изменить (фото, порты, название)…', () => editDevice(d)],
+    ['Копия как новое устройство…', () => deviceEditor({ ...JSON.parse(JSON.stringify(d)), id: null, model: d.model + ' (копия)' })],
+    ['Удалить из базы', () => deleteDevices([d])],
+    '-', ['Вся база — редактор…', () => baseManager()],
   ]);
 });
 stage.addEventListener('dragover', ev => { if (ev.dataTransfer.types.includes('text/sf-dev')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
@@ -1725,6 +1958,15 @@ function renderProps() {
 }
 function renderNodeProps(el, n) {
   const cat = CATS[n.cat] || CATS.my;
+  if (n.shape) {
+    el.innerHTML = `<h3>▢ Фигура</h3>${fld('Текст (Enter — новая строка)', 'label', n.label, { area: 1, rows: 2, focus: 1 })}
+      <div class="row">${fld('Заливка', 'fill', n.fill || '#ffffff', { type: 'color' })}${fld('Обводка', 'stroke', n.stroke || '#1f2937', { type: 'color' })}</div>
+      <div class="row">${fld('Форма', 'shape', '', { select: [['rect', 'Прямоугольник'], ['round', 'Скруглённый'], ['ellipse', 'Круг / овал']].map(([v, t]) => `<option value="${v}"${v === n.shape ? ' selected' : ''}>${t}</option>`).join('') })}${fld('Шрифт', 'fs', n.fs || 14, { type: 'number' })}</div>
+      <div class="row">${fld('Ширина', 'sw', layout(n).w, { type: 'number' })}${fld('Высота', 'sh', layout(n).ih, { type: 'number' })}</div>
+      <div class="small muted">Фигуры соединяются с любыми устройствами. Размер — за уголок справа внизу (в режиме «Картинки»).</div>
+      <div class="btns"><button data-act="dup">Дублировать</button><button data-act="del">Удалить</button></div>`;
+    return;
+  }
   const conns = n.ports.map(p => {
     const e = portUse.get(n.id + ':' + p.id); if (!e) return '';
     const other = e.from.n === n.id ? e.to : e.from; const on = node(other.n), op = on && portOf(on, other.p);
@@ -1736,6 +1978,7 @@ function renderNodeProps(el, n) {
     <div class="row">${fld('Производитель', 'maker', n.maker)}${fld('Модель', 'model', n.model)}</div>
     ${fld('Помещение / рэк / позиция', 'loc', n.loc, { ph: 'Аппаратная, рэк 2, U14', list: 'locList' })}
     ${fld('Примечание', 'notes', n.notes, { area: 1, rows: 2 })}
+    ${isPic() ? fld('Ширина картинки на схеме', 'pw', layout(n).w, { type: 'number' }) : ''}
     <div class="row">${fld('Цвет шапки', 'color', n.color || cat.c, { type: 'color' })}<div class="fld"><label>&nbsp;</label><button data-act="flip">⇆ Зеркально (R)</button></div></div>
     <h4>Фото</h4>${n.img && doc.images[n.img] ? `<img class="propImg" src="${doc.images[n.img].src}">` : '<div class="small muted">Нет фото. Выделите устройство и вставьте картинку Ctrl+V или перетащите файл на блок.</div>'}<div class="btns"><button data-act="photo">${n.img ? 'Заменить фото' : 'Добавить фото'}</button>${n.img ? '<button data-act="photoDel">Убрать</button>' : ''}</div>
     <h4>Порты (${n.ports.length})</h4>${portsTable(n.ports)}
@@ -1754,6 +1997,7 @@ function renderEdgeProps(el, e) {
   el.innerHTML = `<h3><span class="dot" style="background:${e.color || T[e.type].c}"></span>Кабель</h3>
     <div class="small" style="margin-bottom:10px;line-height:1.6"><b>${esc(a.label)}</b> · ${esc(pa.name)}<br>→ <b>${esc(b.label)}</b> · ${esc(pb.name)}</div>${conv}
     ${fld('Номер / маркировка', 'label', e.label, { focus: 1 })}
+    ${fld('Подпись на схеме (вместо авто)', 'caption', e.caption || '', { ph: 'например: cat 5, hdmi 1920x1080' })}
     ${fld('Тип сигнала', 'type', '', { select: typeOpts(e.type) })}
     <div class="row">${fld('Формат', 'fmt', e.fmt, { list: 'fmtList', ph: '1080p50' })}${fld('Длина, м', 'len', e.len, { type: 'number' })}</div>
     ${fld('Примечание', 'notes', e.notes, { area: 1, rows: 2 })}
@@ -1824,11 +2068,12 @@ function propChange(ev, commit) {
     rerenderItem(o.id); markDirty(); if (commit) renderProps(); return;
   }
   if (key === 'size') o.size = +val || 14;
+  else if (['pw', 'sw', 'sh', 'fs'].includes(key)) { if (+val > 0) o[key] = +val; else delete o[key]; }
   else if (key === 'len') o.len = val;
   else o[key] = val;
   if (it.k === 'e' && key === 'type') o.color = o.color && o.color !== T[o.type].c ? o.color : undefined;
-  rerenderItem(o.id); markDirty();
-  if (commit && (key === 'type' || key === 'color')) renderProps();
+  rerenderItem(o.id); renderOverlay(); markDirty();
+  if (commit && (key === 'type' || key === 'color' || key === 'shape')) renderProps();
 }
 $('#props').addEventListener('click', ev => {
   const t = ev.target;
@@ -1853,7 +2098,7 @@ $('#props').addEventListener('click', ev => {
   if (act === 'photo') { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = async () => { if (!i.files[0]) return; const im = await readImage(i.files[0]); hist(); it.o.img = putImage(im); rerenderItem(it.o.id); renderProps(); markDirty(); }; i.click(); }
   if (act === 'photoDel') { hist(); delete it.o.img; rerenderItem(it.o.id); renderProps(); markDirty(); }
   if (act === 'resetColor') { hist(); delete it.o.color; rerenderItem(it.o.id); renderProps(); markDirty(); }
-  if (act === 'resetBend') { hist(); delete it.o.mx; delete it.o.my; rerenderItem(it.o.id); renderOverlay(); markDirty(); }
+  if (act === 'resetBend') { hist(); delete it.o.mx; delete it.o.my; delete it.o.pmx; delete it.o.pmy; rerenderItem(it.o.id); renderOverlay(); markDirty(); }
   if (act === 'reverse') { hist(); const e = it.o; [e.from, e.to] = [e.to, e.from]; rerenderItem(e.id); renderProps(); markDirty(); }
 });
 function align(mode) {
@@ -1922,7 +2167,7 @@ svg.addEventListener('contextmenu', ev => {
     if (it.k === 'e') {
       const e = it.o, pb = portOf(node(e.to.n), e.to.p);
       const cv = convertersFor(e.type, pb.type).slice(0, 5);
-      return showCtx(ev.clientX, ev.clientY, [...cv.map(d => ['Вставить: ' + d.model, () => insertConverter(e, d.id)]), cv.length && '-', ['Сбросить изгиб', () => { hist(); delete e.mx; delete e.my; rerenderItem(e.id); renderOverlay(); markDirty(); }], ['Удалить кабель', deleteSel]]);
+      return showCtx(ev.clientX, ev.clientY, [...cv.map(d => ['Вставить: ' + d.model, () => insertConverter(e, d.id)]), cv.length && '-', ['Сбросить изгиб', () => { hist(); delete e.mx; delete e.my; delete e.pmx; delete e.pmy; rerenderItem(e.id); renderOverlay(); markDirty(); }], ['Удалить кабель', deleteSel]]);
     }
     return showCtx(ev.clientX, ev.clientY, [
       ['Дублировать  Ctrl+D', () => { copySel(); paste(); }], ['Копировать  Ctrl+C', copySel],
@@ -1974,7 +2219,7 @@ function updateStatus() {
   $('#status').innerHTML = `Устройств: <b>${P.nodes.length}</b> · Кабелей: <b>${P.edges.length}</b>` + (bad ? ` · <span style="color:var(--bad)">⚠ несовместимо: ${bad}</span>` : '') + (warn ? ` · <span style="color:var(--warn)">внимание: ${warn}</span>` : '') + (sel.size ? ` · Выделено: ${sel.size}` : '');
 }
 function openModal(title, html) { $('#mTitle').textContent = title; $('#mBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
-function closeModal() { $('#modal').classList.add('hidden'); editorPaste = null; }
+function closeModal() { $('#modal').classList.add('hidden'); editorPaste = null; baseOpen = false; }
 $('#mClose').onclick = closeModal;
 $('#modal').addEventListener('pointerdown', ev => { if (ev.target.id === 'modal') closeModal(); });
 
@@ -2089,7 +2334,7 @@ function buildExportSVG() {
   const bb = contentBBox(true); if (!bb) { toast('Схема пустая', 'w'); return null; }
   const pad = 30, x = bb.x - pad, y = bb.y - pad, w = bb.w + pad * 2, h = bb.h + pad * 2;
   for (const e of P.edges) e._st = edgeStatus(e)[0];
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
+  return `<svg xmlns="http://www.w3.org/2000/svg"${isPic() ? ' class="picmode"' : ''} width="${Math.ceil(w)}" height="${Math.ceil(h)}" viewBox="${x} ${y} ${w} ${h}"><style>${cssFor(LIGHT)}</style><defs>${[...new Set(P.nodes.map(n => n.img).filter(i => i && doc.images[i]))].map(imgSymbol).join('')}${[...$('#defs').querySelectorAll('marker')].map(m => m.outerHTML).join('')}</defs>`
     + `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>`
     + P.frames.map(frameSVG).join('') + P.edges.map(edgeSVG).join('') + P.nodes.map(nodeSVG).join('') + P.texts.map(textSVG).join('') + LY.x.innerHTML + '</svg>';
 }
@@ -2172,10 +2417,53 @@ function bulkPorts(cb) {
   };
 }
 let editorPaste = null;
+// правка: свои — как есть; встроенные — сохраняются как своя версия (заменяет встроенную)
+function editDevice(d) {
+  if (!d) return;
+  if (customLib.includes(d)) return deviceEditor(d);
+  deviceEditor({ ...JSON.parse(JSON.stringify(d)), id: null, _builtin: d.id });
+}
+function deleteDevices(list) {
+  if (!list.length) return;
+  const mine = list.filter(d => customLib.includes(d)), builtin = list.filter(d => !customLib.includes(d));
+  const prevLib = customLib.slice(), prevHidden = (cfg.hidden || []).slice();
+  customLib = customLib.filter(d => !mine.includes(d));
+  cfg.hidden = [...new Set([...(cfg.hidden || []), ...builtin.map(d => d.id)])];
+  saveLib(); saveCfg(); renderLib();
+  const t = document.createElement('div');
+  t.innerHTML = `Удалено из базы: ${list.length} <u style="cursor:pointer;margin-left:8px">Вернуть</u>`; t.style.pointerEvents = 'auto';
+  t.querySelector('u').onclick = () => { customLib = prevLib; cfg.hidden = prevHidden; saveLib(); saveCfg(); renderLib(); t.remove(); if (!$('#modal').classList.contains('hidden') && baseOpen) baseManager(); };
+  $('#toast').appendChild(t); setTimeout(() => t.remove(), 7000);
+}
+// перенести изменения устройства базы на уже стоящие на схеме: порты сопоставляются по имени, кабели сохраняются
+function nodesOfDev(keys, ids) { const r = []; for (const pg of doc.pages) for (const n of pg.nodes) if (ids.has(n.lib) || keys.has(devKey(n))) r.push([pg, n]); return r; }
+function applyDevToNodes(dev, oldKeys, oldIds) {
+  const list = nodesOfDev(oldKeys, oldIds); if (!list.length) return 0;
+  hist();
+  const imgId = dev.img ? putImage(dev.img) : null;
+  for (const [pg, n] of list) {
+    n.lib = dev.id; n.maker = dev.maker; n.model = dev.model; n.cat = dev.cat;
+    if (imgId) n.img = imgId; else delete n.img;
+    const byName = new Map(n.ports.map(p => [p.dir + '|' + p.name, p]));
+    const used = new Set();
+    n.ports = dev.ports.map(p => {
+      const old = byName.get(p.dir + '|' + p.name) || n.ports.find(q => q.name === p.name && !used.has(q.id));
+      const id = old && !used.has(old.id) ? old.id : uid(); used.add(id);
+      return { id, name: p.name, type: p.type, dir: p.dir };
+    });
+    const ids = new Set(n.ports.map(p => p.id));
+    pg.edges = pg.edges.filter(e => !((e.from.n === n.id && !ids.has(e.from.p)) || (e.to.n === n.id && !ids.has(e.to.p))));
+    n._L = null;
+  }
+  renderAll(); markDirty();
+  return list.length;
+}
 function deviceEditor(dev) {
   const d = JSON.parse(JSON.stringify(dev)); d.ports = (d.ports || []).map(p => ({ ...p }));
   d.cat = d.cat || 'my';
   const groups = [...new Set(customLib.map(groupOf).concat(Object.values(CATS).map(c => c.n)))];
+  const oldKeys = new Set([devKey(dev)]), oldIds = new Set([dev.id, dev._builtin].filter(Boolean));
+  const onSchema = (dev.id || dev._builtin) ? nodesOfDev(oldKeys, oldIds).length : 0;
   const draw = () => {
     const catOpts = Object.keys(CATS).map(k => `<option value="${k}"${k === d.cat ? ' selected' : ''}>${esc(CATS[k].n)}</option>`).join('');
     openModal(dev.id ? 'Редактировать устройство' : 'Новое устройство в базе', `
@@ -2193,7 +2481,9 @@ function deviceEditor(dev) {
         <div class="small muted">Ethernet/SFP порты автоматически становятся двунаправленными (⇄).</div>
       </div>
     </div>
-    <div class="btns" style="margin-top:14px"><button class="pri" id="dSave">Сохранить в базу</button>${dev.id && customLib.some(x => x.id === dev.id) ? '<button id="dDel">Удалить из базы</button>' : ''}</div>`);
+    ${onSchema ? `<label class="small" style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="dApply" checked> Обновить такие устройства на схеме (${onSchema} шт.) — кабели на сохранённых портах останутся</label>` : ''}
+    ${dev._builtin ? '<div class="small muted" style="margin-top:6px">Это встроенная модель — изменения сохранятся как ваша версия и заменят её в библиотеке.</div>' : ''}
+    <div class="btns" style="margin-top:14px"><button class="pri" id="dSave">Сохранить в базу</button>${(dev.id && customLib.some(x => x.id === dev.id)) || dev._builtin ? '<button id="dDel">Удалить из базы</button>' : ''}${baseOpen ? '<button id="dBack">← К базе</button>' : ''}</div>`);
     const body = $('#mBody');
     const setPhoto = async f => { if (!f || !f.type.startsWith('image/')) return toast('Это не изображение', 'w'); try { d.img = await readImage(f); draw(); } catch (e) { toast('Не удалось прочитать фото', 'e'); } };
     editorPaste = setPhoto;
@@ -2214,23 +2504,30 @@ function deviceEditor(dev) {
         const type = last ? last.type : 'sdi12g';
         d.ports.push({ name: `${T[type].s} ${dir === 'in' ? 'IN' : 'OUT'} ${d.ports.filter(p => p.dir === dir).length + 1}`, type, dir: T[type].fam === 'eth' ? 'io' : dir }); draw();
       }
-      if (t.id === 'dDel') { customLib = customLib.filter(x => x.id !== dev.id); saveLib(); renderLib(); closeModal(); toast('Удалено из базы'); }
+      if (t.id === 'dBack') return baseManager();
+      if (t.id === 'dDel') { const target = customLib.find(x => x.id === dev.id) || libById(dev._builtin); const back = baseOpen; closeModal(); deleteDevices([target]); if (back) baseManager(); return; }
       if (t.id === 'dSave') {
         if (!d.model || !d.model.trim()) return toast('Укажите модель', 'w');
         const clean = { id: dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
         if (d.img) clean.img = d.img;
         const i = customLib.findIndex(x => x.id === clean.id);
         if (i >= 0) customLib[i] = clean; else customLib.push(clean);
-        saveLib(); openCats.add(groupOf(clean)); store.set('openCats', [...openCats]); renderLib(); closeModal();
-        toast((i >= 0 ? 'Обновлено в базе: ' : 'Добавлено в базу: ') + clean.model);
-        if (dev._fromNode) { const n = node(dev._fromNode); if (n) { hist(); n.lib = clean.id; if (clean.img) n.img = putImage(clean.img); rerenderItem(n.id); renderProps(); markDirty(); } }
+        if (dev._builtin && devKey(clean) !== devKey(dev)) cfg.hidden = [...new Set([...(cfg.hidden || []), dev._builtin])], saveCfg();
+        saveLib(); openCats.add(groupOf(clean)); store.set('openCats', [...openCats]); renderLib();
+        const apply = $('#dApply') && $('#dApply').checked; const back = baseOpen;
+        closeModal();
+        const cnt = apply ? applyDevToNodes(clean, oldKeys, oldIds) : 0;
+        toast((i >= 0 || dev._builtin ? 'Обновлено в базе: ' : 'Добавлено в базу: ') + clean.model + (cnt ? ` · на схеме обновлено: ${cnt}` : ''));
+        if (back) baseManager();
+        return;
+        if (false && dev._fromNode) { const n = node(dev._fromNode); if (n) { hist(); n.lib = clean.id; if (clean.img) n.img = putImage(clean.img); rerenderItem(n.id); renderProps(); markDirty(); } }
       }
     };
   };
   const deviceEditorRedraw = draw;
   draw();
 }
-const nodeToDev = n => ({ id: n.lib && customLib.some(x => x.id === n.lib) ? n.lib : null, _fromNode: n.id, cat: n.cat, maker: n.maker, model: n.model, img: n.img && doc.images[n.img] ? { ...doc.images[n.img] } : undefined, ports: n.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) });
+const nodeToDev = n => ({ id: n.lib && customLib.some(x => x.id === n.lib) ? n.lib : null, _builtin: n.lib && BUILTIN_LIB.some(x => x.id === n.lib) ? n.lib : undefined, _fromNode: n.id, cat: n.cat, maker: n.maker, model: n.model, img: n.img && doc.images[n.img] ? { ...doc.images[n.img] } : undefined, ports: n.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) });
 // Ctrl+V с картинкой: в редакторе устройства — фото; на схеме — фото выделенного устройства
 document.addEventListener('paste', async ev => {
   const f = [...(ev.clipboardData ? ev.clipboardData.files : [])].find(f => f.type.startsWith('image/'));
@@ -2239,14 +2536,60 @@ document.addEventListener('paste', async ev => {
   const n = [...sel].map(node).filter(Boolean)[0];
   if (n && !typing(document.activeElement)) { ev.preventDefault(); const im = await readImage(f); hist(); n.img = putImage(im); rerenderItem(n.id); renderProps(); markDirty(); }
 });
+let baseOpen = false, baseQ = '', baseSel = new Set();
+function baseManager() {
+  baseOpen = true;
+  const all = customLib.map(d => ({ d, mine: true })).concat(BUILTIN_LIB.filter(d => d.cat !== 'shape' && !customLib.some(c => devKey(c) === devKey(d))).map(d => ({ d, mine: false, hidden: (cfg.hidden || []).includes(d.id) })));
+  const q = baseQ.trim().toLowerCase();
+  const rows = all.filter(x => !q || (x.d.maker + ' ' + x.d.model + ' ' + groupOf(x.d)).toLowerCase().includes(q));
+  const hiddenN = (cfg.hidden || []).length;
+  openModal(`База устройств — ваших: ${customLib.length}, встроенных: ${BUILTIN_LIB.length - 5}`, `
+    <div class="btns" style="align-items:center"><input id="bmQ" placeholder="Поиск по базе…" value="${esc(baseQ)}" style="flex:1;min-width:220px">
+      <button class="pri" data-bm="new">＋ Новое устройство</button><button data-bm="delSel" ${baseSel.size ? '' : 'disabled'}>Удалить выбранные (${baseSel.size})</button>
+      ${hiddenN ? `<button data-bm="unhide">Вернуть скрытые встроенные (${hiddenN})</button>` : ''}
+      <button data-bm="export">⇩ Экспорт</button><button data-bm="import">⇧ Импорт</button></div>
+    <div class="small muted" style="margin:4px 0 8px">Клик по строке — изменить. Ваши устройства хранятся в браузере; сохраняйте копию через «⇩ Экспорт».</div>
+    <table class="grid bm"><thead><tr><th style="width:26px"><input type="checkbox" id="bmAll"></th><th style="width:70px">Фото</th><th>Модель</th><th>Группа</th><th>Порты</th><th style="width:150px"></th></tr></thead><tbody>
+    ${rows.slice(0, 600).map(x => { const d = x.d; return `<tr class="clk${x.hidden ? ' muted' : ''}" data-bid="${esc(d.id)}">
+      <td><input type="checkbox" data-bsel="${esc(d.id)}"${baseSel.has(d.id) ? ' checked' : ''}></td>
+      <td>${d.img ? `<img src="${d.img.src}" style="max-width:64px;max-height:36px;object-fit:contain;background:#fff;border-radius:3px">` : ''}</td>
+      <td><b>${esc(d.model)}</b><div class="small muted">${esc(d.maker)}${x.mine ? ' · <span style="color:var(--acc)">ваше</span>' : ' · встроенное'}${x.hidden ? ' · скрыто' : ''}</div></td>
+      <td class="small">${esc(groupOf(d))}</td><td class="small">${esc(portSummary(d))}</td>
+      <td style="white-space:nowrap"><button data-bm="edit">✎ Изменить</button> <button data-bm="dup" title="Копия">⧉</button> <button data-bm="${x.hidden ? 'unhideOne' : 'del'}" title="${x.hidden ? 'Вернуть' : 'Удалить'}">${x.hidden ? '↺' : '🗑'}</button></td></tr>`; }).join('')}
+    </tbody></table>${rows.length > 600 ? '<div class="small muted">Показаны первые 600 — уточните поиск</div>' : ''}`);
+  const body = $('#mBody');
+  const qi = $('#bmQ'); qi.focus(); qi.setSelectionRange(qi.value.length, qi.value.length);
+  qi.oninput = () => { baseQ = qi.value; clearTimeout(qi._t); qi._t = setTimeout(baseManager, 200); };
+  body.oninput = null; body.onchange = ev => {
+    const t = ev.target;
+    if (t.id === 'bmAll') { rows.forEach(x => t.checked ? baseSel.add(x.d.id) : baseSel.delete(x.d.id)); return baseManager(); }
+    if (t.dataset.bsel) { t.checked ? baseSel.add(t.dataset.bsel) : baseSel.delete(t.dataset.bsel); const b = body.querySelector('[data-bm=delSel]'); b.disabled = !baseSel.size; b.textContent = `Удалить выбранные (${baseSel.size})`; }
+  };
+  body.onclick = ev => {
+    const t = ev.target; if (t.dataset.bsel || t.id === 'bmAll' || t.id === 'bmQ') return;
+    const tr = t.closest('[data-bid]'); const d = tr && libById(tr.dataset.bid);
+    const act = t.dataset.bm;
+    if (act === 'new') return deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] });
+    if (act === 'export') return CMD.libExport();
+    if (act === 'import') return $('#libIn').click();
+    if (act === 'unhide') { cfg.hidden = []; saveCfg(); renderLib(); return baseManager(); }
+    if (act === 'delSel') { const list = [...baseSel].map(libById).filter(Boolean); baseSel.clear(); deleteDevices(list); return baseManager(); }
+    if (!d) return;
+    if (act === 'del') { deleteDevices([d]); return baseManager(); }
+    if (act === 'unhideOne') { cfg.hidden = (cfg.hidden || []).filter(x => x !== d.id); saveCfg(); renderLib(); return baseManager(); }
+    if (act === 'dup') return deviceEditor({ ...JSON.parse(JSON.stringify(d)), id: null, model: d.model + ' (копия)' });
+    editDevice(d);
+  };
+}
 function importLib(data) {
+  const reopen = baseOpen;
   const list = Array.isArray(data) ? data : data.devices; let n = 0;
   for (const d of list || []) {
     if (!d.model || !Array.isArray(d.ports)) continue;
     const c = { id: d.id && String(d.id).startsWith('c') ? d.id : 'c' + uid(), cat: CATS[d.cat] ? d.cat : 'my', group: d.group || '', img: d.img && d.img.src ? d.img : undefined, maker: d.maker || 'Generic', model: d.model, ports: normPorts(d.ports.filter(p => T[p.type]).map(p => ({ name: p.name, type: p.type, dir: p.dir || 'in' }))) };
     const i = customLib.findIndex(x => x.id === c.id); if (i >= 0) customLib[i] = c; else customLib.push(c); n++;
   }
-  saveLib(); renderLib(); toast(`Импортировано устройств: ${n}`);
+  saveLib(); renderLib(); toast(`Импортировано устройств: ${n}`); if (reopen) baseManager();
 }
 $('#libIn').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; try { importLib(JSON.parse(await f.text())); } catch (e) { toast('Не удалось прочитать базу', 'e'); } ev.target.value = ''; });
 
@@ -2265,8 +2608,10 @@ const CMD = {
   undo, redo, copy: copySel, paste: () => paste(), dup: () => { copySel(); paste(); }, del: deleteSel,
   selAll: () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)), find: () => $('#findBox').focus(), renumber,
   quick: quickAtCenter, addFrame, addText, newDevice: () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] }),
+  baseManager: () => { baseQ = ''; baseSel.clear(); baseManager(); },
   libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('signalflow-база-устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
   libImport: () => $('#libIn').click(),
+  libDefault: async () => { try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (!r.ok) throw 0; importLib(await r.json()); } catch (e) { toast('База по умолчанию недоступна (откройте приложение с сайта)', 'w'); } },
   fit: () => fit(), zoom100: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / view.k); },
   zoomIn: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); },
   zoomOut: () => { const r = stage.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, 0.8); },
@@ -2274,7 +2619,9 @@ const CMD = {
   toggleLegend: () => { cfg.legend = !cfg.legend; saveCfg(); renderExtra(); },
   toggleLabels: () => { cfg.labels = !cfg.labels; saveCfg(); renderAll(); },
   theme: () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); document.documentElement.classList.toggle('dark', cfg.theme === 'dark'); },
+  viewPorts: () => setMode('ports'), viewPic: () => setMode('pic'),
   addPage: () => { hist(); doc.pages.push(newPage('Страница ' + (doc.pages.length + 1))); switchPage(doc.pages.length - 1); markDirty(); },
+  about: () => openModal(`SignalFlow — версия ${APP_VERSION}`, `<p class="muted">Редактор схем видеосигнала для аппаратных. Сборка от ${APP_DATE}.</p>` + CHANGELOG.map(([v, d, list]) => `<h4>v${v} · ${d}${v === APP_VERSION ? ' — текущая' : ''}</h4><ul style="margin:4px 0 10px;padding-left:20px;line-height:1.6">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('') + '<p class="small muted">Исходники и обновления: github.com/slavahoh1976-ops/signalflow</p>'),
   help: () => openModal('Горячие клавиши и приёмы', `<table class="grid"><tbody>${[
     ['Двойной клик по холсту, A, /, Ctrl+K', 'Быстрый поиск и добавление устройства'],
     ['Тянуть от порта', 'Новый кабель (зелёные порты — совместимы)'],
@@ -2383,6 +2730,7 @@ function buildStress(N) {
 //  СТАРТ
 // ============================================================================
 document.documentElement.classList.toggle('dark', cfg.theme === 'dark');
+$('#appVer').textContent = 'v' + APP_VERSION; document.title = `SignalFlow ${APP_VERSION} — схемы видеосигнала`;
 $('#wireStyle').value = cfg.wire;
 renderTypeFilter();
 doc = newDoc(); P = doc.pages[0];
@@ -2390,6 +2738,7 @@ doc = newDoc(); P = doc.pages[0];
   let lib = await idb.get('lib');
   if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
   customLib = Array.isArray(lib) ? lib : [];
+  if (!lib && location.protocol.startsWith('http')) { try { const r = await fetch('devices.json', { cache: 'no-cache' }); if (r.ok) importLib(await r.json()); } catch (e) { } }
   renderLib();
   let saved = await idb.get('doc');
   if (!saved) saved = store.get('doc', null);

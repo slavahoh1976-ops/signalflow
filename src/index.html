@@ -9,7 +9,7 @@
 <body>
 <div id="app">
   <header id="top">
-    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
+    <div class="brand"><svg viewBox="0 0 16 16" width="20" height="20"><path d="M1 8h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="appName">SignalFlow</b><span id="appVer" class="ver" data-cmd="about" title="Версия программы — что нового"></span><input id="docName" value="Новая схема" spellcheck="false" title="Название проекта"></div>
     <div class="menus">
       <div class="menu"><button>Файл</button><div class="dd">
         <a data-cmd="new">Новый проект</a><a data-cmd="open">Открыть… <kbd>Ctrl+O</kbd></a><a data-cmd="save">Сохранить <kbd>Ctrl+S</kbd></a><a data-cmd="saveAs">Сохранить как…</a><hr>
@@ -24,20 +24,22 @@
       </div></div>
       <div class="menu"><button>Вставка</button><div class="dd">
         <a data-cmd="quick">Устройство… <kbd>A / двойной клик</kbd></a><a data-cmd="addFrame">Зона (помещение/рэк) <kbd>Z</kbd></a><a data-cmd="addText">Текст <kbd>T</kbd></a><hr>
-        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a>
+        <a data-cmd="newDevice">Создать своё устройство (с фото)…</a><a data-cmd="baseManager">База устройств — редактировать / удалить…</a><a data-cmd="libExport">Экспорт моей базы…</a><a data-cmd="libImport">Импорт базы…</a><a data-cmd="libDefault">Загрузить базу с фото (по умолчанию)</a>
       </div></div>
       <div class="menu"><button>Вид</button><div class="dd">
-        <a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
+        <a data-cmd="viewPorts">Режим: блоки с портами</a><a data-cmd="viewPic">Режим: картинки (как draw.io)</a><hr><a data-cmd="fit">Показать всё <kbd>F</kbd></a><a data-cmd="zoom100">Масштаб 100% <kbd>Ctrl+0</kbd></a><hr>
         <a data-cmd="toggleGrid">Сетка и привязка</a><a data-cmd="toggleLegend">Легенда и штамп на схеме</a><a data-cmd="toggleLabels">Подписи кабелей</a><a data-cmd="theme">Тёмная / светлая тема</a><hr>
         <a data-cmd="wire:orth">Кабели: ортогональные</a><a data-cmd="wire:curve">Кабели: кривые</a><a data-cmd="wire:line">Кабели: прямые</a>
       </div></div>
       <div class="menu"><button>Проверка</button><div class="dd">
         <a data-cmd="check">Проверить схему</a><a data-cmd="cablesView">Кабельный журнал</a><a data-cmd="bomView">Спецификация</a>
       </div></div>
-      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a></div></div>
+      <div class="menu"><button>Помощь</button><div class="dd"><a data-cmd="help">Горячие клавиши и приёмы</a><a data-cmd="about">О программе и что нового</a></div></div>
     </div>
     <div id="saveState" class="ok">Сохранено</div>
     <div class="tools">
+      <div class="seg"><button data-cmd="viewPorts" title="Блоки с портами">▤ С портами</button><button data-cmd="viewPic" title="Картинки, как в draw.io">🖼 Картинки</button></div>
+      <span class="sep"></span>
       <button data-cmd="undo" title="Отменить (Ctrl+Z)">↶</button><button data-cmd="redo" title="Повторить (Ctrl+Y)">↷</button>
       <span class="sep"></span>
       <button data-cmd="zoomOut" title="Уменьшить">−</button><button id="zoomLbl" data-cmd="fit" title="Показать всё (F)">100%</button><button data-cmd="zoomIn" title="Увеличить">+</button>
@@ -53,14 +55,14 @@
     <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
     <div id="libTypeFilter"></div>
     <div id="libList"></div>
-    <div class="libFoot"><button data-cmd="newDevice">＋ Своё устройство</button><button data-cmd="libExport" title="Экспорт базы">⇩ База</button><button data-cmd="libImport" title="Импорт базы">⇧ База</button></div>
+    <div class="libFoot"><button data-cmd="newDevice" title="Новое устройство">＋</button><button data-cmd="baseManager" title="Редактировать и удалять устройства">✎ Редактор</button><button data-cmd="libExport" title="Сохранить вашу базу в файл">⇩ Экспорт</button><button data-cmd="libImport" title="Загрузить базу из файла">⇧ Импорт</button></div>
   </aside>
 
   <main id="stage">
     <svg id="svg" xmlns="http://www.w3.org/2000/svg">
       <defs id="defs"></defs>
       <g id="vp">
-        <g id="Lframes"></g><g id="Ledges"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
+        <g id="Lframes"></g><g id="Ledges"></g><g id="Lhover"></g><g id="Lnodes"></g><g id="Ltexts"></g><g id="Lextra"></g><g id="Lover"></g>
       </g>
     </svg>
     <div id="marquee"></div>
