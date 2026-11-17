@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.5.2', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.5.3', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.5.3', '17.11.2026', ['Правый клик по пустому месту: «Новое устройство здесь» — создаётся в базе и сразу ставится на схему', 'Там же — быстрые фигуры (экран, лампа, кнопка, блок)', 'Фото, брошенное на пустое место схемы, после сохранения встаёт в эту точку']],
   ['1.5.2', '17.11.2026', ['Автопроверка обновлений: при новой версии вверху появляется кнопка «Обновить»', 'Сайт всегда загружается свежим (кэш только для работы без интернета)']],
   ['1.5.1', '17.11.2026', ['База с фото всегда загружается свежая (без задержки кэша сайта)', 'В базе: «Коля (ПТС)» — группа «Люди / операторы»']],
   ['1.5.0', '17.11.2026', ['Цвета кабелей одинаковые в режимах «С портами» и «Картинки»', 'Свои иллюстрации для всех устройств без фото (≈25 видов: рэки, коммутаторы, серверы d3, конвертеры, камеры, мониторы, ноутбуки, пульты, свет, ИБП)', 'Умные направляющие при перетаскивании — выравнивание по краям и центрам (Alt — без них)']],
@@ -1665,10 +1666,18 @@ svg.addEventListener('contextmenu', ev => {
       ['На передний план', () => toFront(1)], ['На задний план', () => toFront(0)], '-', ['Удалить  Del', deleteSel]]);
   }
   showCtx(ev.clientX, ev.clientY, [
-    ['Добавить устройство…', () => openQuick(ev.clientX, ev.clientY, pt)],
+    ['Добавить устройство из базы…', () => openQuick(ev.clientX, ev.clientY, pt)],
+    ['＋ Новое устройство здесь (своё, с фото)…', () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [], _placeAt: pt })],
+    '-',
+    ['Фигура: прямоугольник / экран', () => placeShape('sh1', pt)], ['Фигура: круг — лампа', () => placeShape('sh3', pt)], ['Фигура: круг — кнопка', () => placeShape('sh4', pt)], ['Фигура: блок', () => placeShape('sh2', pt)],
     (clip || store.get('clip', null)) && ['Вставить сюда', () => paste(pt)],
     ['Зона (помещение/рэк)', addFrame], ['Текст', addText], '-', ['Показать всё', () => fit()], ['Выделить всё', () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id))]]);
 });
+function placeShape(id, pt) {
+  const d = BUILTIN_LIB.find(x => x.id === id); if (!d) return;
+  const n = addNode(d, pt.x, pt.y); const L = layout(n); n.x = Math.round((pt.x - L.w / 2) / 10) * 10; n.y = Math.round((pt.y - (L.ih || L.h) / 2) / 10) * 10;
+  rerenderNode(n); selectOnly([n.id]); markDirty();
+}
 function toFront(front) {
   hist();
   for (const key of ['nodes', 'frames', 'texts']) {
@@ -1887,7 +1896,8 @@ document.addEventListener('drop', async ev => {
     let im; try { im = await readImage(f); } catch (e) { return toast('Не удалось прочитать фото', 'e'); }
     const g = ev.target.closest && ev.target.closest('.node');
     if (g) { const n = node(g.dataset.id); hist(); n.img = putImage(im); rerenderItem(n.id); selectOnly([n.id]); markDirty(); return; }
-    return deviceEditor({ id: null, cat: 'my', maker: '', model: f.name.replace(/\.[^.]+$/, ''), img: im, ports: [] });
+    const onCanvas = stage.contains(ev.target);
+    return deviceEditor({ id: null, cat: 'my', maker: '', model: f.name.replace(/\.[^.]+$/, ''), img: im, ports: [], _placeAt: onCanvas ? toDoc(ev.clientX, ev.clientY) : undefined });
   }
   try { const d = JSON.parse(await f.text()); if (d.pages) openDoc(d); else if (Array.isArray(d.devices)) importLib(d); } catch (e) { toast('Не удалось открыть файл', 'e'); }
 });
@@ -2008,6 +2018,7 @@ function deviceEditor(dev) {
         closeModal();
         const cnt = apply ? applyDevToNodes(clean, oldKeys, oldIds) : 0;
         toast((i >= 0 || dev._builtin ? 'Обновлено в базе: ' : 'Добавлено в базу: ') + clean.model + (cnt ? ` · на схеме обновлено: ${cnt}` : ''));
+        if (dev._placeAt) { const n = addNode(clean, dev._placeAt.x, dev._placeAt.y); const L = layout(n); n.x = Math.round((dev._placeAt.x - L.w / 2) / 10) * 10; n.y = Math.round((dev._placeAt.y - (L.ih || L.h) / 2) / 10) * 10; rerenderNode(n); selectOnly([n.id]); markDirty(); }
         if (back) baseManager();
         return;
         if (false && dev._fromNode) { const n = node(dev._fromNode); if (n) { hist(); n.lib = clean.id; if (clean.img) n.img = putImage(clean.img); rerenderItem(n.id); renderProps(); markDirty(); } }
