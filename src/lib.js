@@ -174,6 +174,42 @@ const RAW = [
   ['rt', 'Generic', 'HDMI матрица 8x8', 'hdmi*8,ctrl', 'hdmi*8,eth:LAN'],
   ['rt', 'Generic', 'HDMI матрица 4x4', 'hdmi*4', 'hdmi*4'],
   ['rt', 'Lightware', 'MX2-8x8-HDMI20', 'hdmi*8', 'hdmi*8,eth:LAN'],
+  // --- Lightware: MX2 HDMI 2.0
+  ['rt', 'Lightware', 'MX2-4x4-HDMI20-CA', 'hdmi*4:HDMI In', 'hdmi*4:HDMI Out', 'eth:LAN,ctrl:RS-232'],
+  ['rt', 'Lightware', 'MX2-16x16-HDMI20', 'hdmi*16:HDMI In', 'hdmi*16:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-16x16-HDMI20-Audio(-R)', 'hdmi*16:HDMI In,aud*4:Audio In', 'hdmi*16:HDMI Out,aud*8:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-24x24-HDMI20', 'hdmi*24:HDMI In', 'hdmi*24:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-24x24-HDMI20-Audio(-R)', 'hdmi*24:HDMI In,aud*8:Audio In', 'hdmi*24:HDMI Out,aud*8:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-32x32-HDMI20-A-R', 'hdmi*32:HDMI In,aud*16:Audio In', 'hdmi*32:HDMI Out,aud*16:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-48x48-HDMI20-A-R', 'hdmi*48:HDMI In,aud*16:Audio In', 'hdmi*48:HDMI Out,aud*16:Audio Out', 'eth:LAN'],
+  // --- Lightware: MX2 DH (HDMI + DisplayPort)
+  ['rt', 'Lightware', 'MX2-8x8-DH-4DPi-A', 'hdmi*4:HDMI In,dp*4:DP In', 'hdmi*8:HDMI Out,aud*2:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-8x8-DH-8DPi-A', 'dp*8:DP In,aud*4:Audio In', 'hdmi*8:HDMI Out,aud*4:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-16x16-DH-8DPi-A-R', 'hdmi*8:HDMI In,dp*8:DP In,aud*8:Audio In', 'hdmi*16:HDMI Out,aud*8:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-24x24-DH-12DPi-A-R', 'hdmi*12:HDMI In,dp*12:DP In,aud*12:Audio In', 'hdmi*24:HDMI Out,aud*8:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-32x32-DH-16DPi-A-R', 'hdmi*16:HDMI In,dp*16:DP In,aud*12:Audio In', 'hdmi*32:HDMI Out,aud*16:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-48x48-DH-24DPio-A-R', 'hdmi*24:HDMI In,dp*24:DP In,aud*16:Audio In', 'hdmi*24:HDMI Out,dp*24:DP Out,aud*32:Audio Out', 'eth:LAN'],
+  // --- Lightware: MX2 DisplayPort
+  ['rt', 'Lightware', 'MX2-8x8-DH-8DPio-A (DP 1.2 8×8)', 'dp*8:DP In,aud*4:Audio In', 'dp*8:DP Out,aud*8:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-24x24-DH-24DPio-A-R (DP 24×24)', 'dp*24:DP In,aud*8:Audio In', 'dp*24:DP Out,aud*24:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX2-48x48-DH-48DPio-A-R (DP 48×48)', 'dp*48:DP In,aud*16:Audio In', 'dp*48:DP Out,aud*48:Audio Out', 'eth:LAN'],
+  // --- Lightware: MMX (переговорные, HDMI + HDBaseT/TPS)
+  ['rt', 'Lightware', 'MMX8x4-HT420M', 'hdmi*4:HDMI In,hdbt*4:TPS In,aud:Mic In,aud:Line In', 'hdmi*2:HDMI Out,hdbt*2:TPS Out,aud*2:Audio Out', 'eth:LAN,ctrl:RS-232'],
+  ['rt', 'Lightware', 'MMX8x4-HT400MC', 'hdmi*4:HDMI In,hdbt*4:TPS In,aud:Mic In', 'hdmi*4:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MMX8x8-HDMI-4K-A', 'hdmi*8:HDMI In', 'hdmi*8:HDMI Out,aud*6:Audio (вх/вых)', 'eth:LAN'],
+  ['rt', 'Lightware', 'MMX8x8-HT080', 'hdmi*8:HDMI In,aud:Audio In', 'hdbt*8:TPS Out,aud:Audio Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MMX8x8-HT440', 'hdmi*4:HDMI In,hdbt*4:TPS In', 'hdmi*4:HDMI Out,hdbt*4:TPS Out', 'eth:LAN'],
+  // --- Lightware: Taurus UCX (USB-C)
+  ['rt', 'Lightware', 'Taurus UCX-2x1-HC40', 'hdmi:HDMI In,usb:USB-C In (видео+данные)', 'hdmi:HDMI Out', 'eth:LAN,usb:USB Host'],
+  ['rt', 'Lightware', 'Taurus UCX-2x2-H40', 'hdmi*2:HDMI In', 'hdmi*2:HDMI Out', 'eth:LAN,usb*2:USB Host'],
+  ['rt', 'Lightware', 'Taurus UCX-4x2-HC40', 'hdmi*2:HDMI In,usb*2:USB-C In (видео+данные)', 'hdmi*2:HDMI Out', 'eth:LAN,usb*2:USB Host'],
+  ['rt', 'Lightware', 'Taurus UCX-4x2-HC40D (Dante)', 'hdmi*2:HDMI In,usb*2:USB-C In (видео+данные)', 'hdmi*2:HDMI Out,aud*2:Audio Out', 'eth:LAN,eth:Dante'],
+  // --- Lightware: модульные рамы MX-FR (порты зависят от плат — типовая конфигурация)
+  ['rt', 'Lightware', 'MX-FR9 (модульная, типовая)', 'hdmi*8:HDMI In', 'hdmi*8:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX-FR17 (модульная, типовая)', 'hdmi*16:HDMI In', 'hdmi*16:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX-FR33L/R (модульная, типовая)', 'hdmi*32:HDMI In', 'hdmi*32:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX-FR65R (модульная, типовая)', 'hdmi*64:HDMI In', 'hdmi*64:HDMI Out', 'eth:LAN'],
+  ['rt', 'Lightware', 'MX-FR80R (модульная, типовая)', 'hdmi*80:HDMI In', 'hdmi*80:HDMI Out', 'eth:LAN'],
   // --- Конвертеры
   ['conv', 'Blackmagic', 'Micro Converter SDI→HDMI 12G', 'sdi12g', 'sdi12g:Loop,hdmi'],
   ['conv', 'Blackmagic', 'Micro Converter HDMI→SDI 12G', 'hdmi', 'sdi12g*2'],
