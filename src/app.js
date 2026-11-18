@@ -2,8 +2,10 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.2', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.4', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.4', '18.11.2026', ['Версии HDMI (1.3, 1.4, 2.0, 2.1) и DisplayPort (1.1, 1.2, 1.4, 2.1) как типы сигнала; предупреждение, если выход новее входа']],
+  ['1.6.3', '18.11.2026', ['Порты: название ставится само по типу и направлению («HDMI IN 2», «3G-SDI OUT 1»), вводить не нужно; клик по названию — своё']],
   ['1.6.2', '17.11.2026', ['Фигуры меняют форму: жёлтые ромбики (скругление, наклон, глубина, волна, наконечник и толщина стрелки, излом)', 'Поворот фигур на 90° и отражение по горизонтали/вертикали, ползунки формы в свойствах']],
   ['1.6.1', '17.11.2026', ['Палитра фигур как в draw.io: 16 фигур и 4 линии — правый клик «Фигуры…» или двойной клик по холсту', 'Фигуры выглядят фигурами в обоих режимах, соединяются и меняют размер', 'Из меню по пустому месту убраны отдельные пункты «Фигура: …»']],
   ['1.6.0', '17.11.2026', ['Группы библиотеки: перетаскивание устройств между группами, новые группы, переименование (и встроенных), порядок перетаскиванием, удаление с переносом устройств', 'Правый клик по устройству — «Переместить в группу…», в редакторе базы — перенос выбранных']],
@@ -1468,7 +1470,7 @@ function pickGroup(list) {
 function renderLib() {
   const q = $('#libSearch').value.trim().toLowerCase();
   const tf = [...typeFilter].filter(k => k !== 'photo');
-  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.has('photo') || d.img) && (!tf.length || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g'))));
+  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.has('photo') || d.img) && (!tf.length || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g') || (typeFilter.has('hdmi') && T[p.type].fam === 'hdmi') || (typeFilter.has('dp') && T[p.type].fam === 'dp'))));
   const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
   const gmap = new Map();
   for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
@@ -1567,9 +1569,22 @@ function fld(label, key, val, opt = {}) {
       : `<input ${a} value="${esc(val)}" type="${opt.type || 'text'}"${opt.ph ? ` placeholder="${esc(opt.ph)}"` : ''}>`;
   return `<div class="fld"><label>${label}</label>${input}</div>`;
 }
+// автоназвание порта: «HDMI IN 2», «3G-SDI OUT 1», «LAN 1» — номер по порядку среди портов того же типа и направления
+const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'io' ? s : `${s} ${dir === 'in' ? 'IN' : 'OUT'}`; };
+function renumberPorts(ports) {
+  const cnt = {};
+  for (const p of ports) { const k = p.type + '|' + p.dir; cnt[k] = (cnt[k] || 0) + 1; if (p.auto) p.name = `${portBase(p.type, p.dir)} ${cnt[k]}`; }
+}
 function portsTable(ports) {
-  return `<table class="ports"><tbody>` + ports.map((p, i) => `<tr data-pi="${i}"><td style="width:28%"><select data-pk="dir">${dirOpts(p.dir)}</select></td><td><input data-pk="name" value="${esc(p.name)}"></td><td style="width:34%"><select data-pk="type">${typeOpts(p.type)}</select></td><td class="x" data-pdel="${i}" title="Удалить порт">✕</td></tr>`).join('') + '</tbody></table>'
+  return `<table class="ports"><thead><tr><th>Направление</th><th>Тип сигнала</th><th title="Ставится само. Клик — задать своё">Название</th><th></th></tr></thead><tbody>` + ports.map((p, i) => `<tr data-pi="${i}"><td style="width:30%"><select data-pk="dir">${dirOpts(p.dir)}</select></td><td style="width:36%"><select data-pk="type">${typeOpts(p.type)}</select></td><td class="pn" data-pren="${i}" title="Клик — своё название">${esc(p.name)}</td><td class="x" data-pdel="${i}" title="Удалить порт">✕</td></tr>`).join('') + '</tbody></table>'
     + `<div class="btns"><button data-padd="in">＋ Вход</button><button data-padd="out">＋ Выход</button><button data-padd="bulk">＋ Несколько…</button></div>`;
+}
+function startPortRename(t) {
+  const pn = t.closest && t.closest('[data-pren]'); if (!pn || pn.querySelector('input')) return !!pn;
+  pn.innerHTML = `<input data-pk="name" value="${esc(pn.textContent)}">`;
+  const i = pn.querySelector('input'); i.focus(); i.select();
+  i.onkeydown = e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); i.blur(); } };
+  return true;
 }
 function renderProps() {
   const el = $('#props');
@@ -1710,6 +1725,7 @@ function propChange(ev, commit) {
     const i = +t.closest('tr').dataset.pi; const p = o.ports[i];
     p[pk] = val;
     if (pk === 'type' && T[val].fam === 'eth') { p.dir = 'io'; }
+    if (pk === 'name') delete p.auto; else { p.auto = true; renumberPorts(o.ports); }
     if (pk === 'dir' || pk === 'type') { const e = portUse.get(o.id + ':' + p.id); if (e && e.from.n === o.id && e.from.p === p.id) e.type = p.type; }
     rerenderItem(o.id); markDirty(); if (commit) renderProps(); return;
   }
@@ -1725,15 +1741,16 @@ function propChange(ev, commit) {
 $('#props').addEventListener('click', ev => {
   const t = ev.target;
   const list = [...sel].map(id => items.get(id)).filter(Boolean); const it = list[0];
+  if (startPortRename(t)) return;
   if (t.dataset.al) return align(t.dataset.al);
   if (t.dataset.conv) return insertConverter(it.o, t.dataset.conv);
   const gt = t.closest('[data-goto]'); if (gt) return goTo(gt.dataset.goto);
   if (t.dataset.pdel != null) { hist(); const n = it.o; const p = n.ports[+t.dataset.pdel]; const e = portUse.get(n.id + ':' + p.id); n.ports.splice(+t.dataset.pdel, 1); if (e) P.edges = P.edges.filter(x => x !== e); renderAll(); return; }
   if (t.dataset.padd) {
     const n = it.o;
-    if (t.dataset.padd === 'bulk') return bulkPorts(ps => { hist(); n.ports.push(...ps); rerenderItem(n.id); renderProps(); markDirty(); });
+    if (t.dataset.padd === 'bulk') return bulkPorts(ps => { hist(); n.ports.push(...ps); renumberPorts(n.ports); rerenderItem(n.id); renderProps(); markDirty(); });
     hist(); const dir = t.dataset.padd, type = (n.ports.find(p => p.dir === dir) || n.ports[0] || { type: 'sdi3g' }).type;
-    n.ports.push({ id: uid(), name: `${T[type].s} ${dir === 'in' ? 'IN' : 'OUT'} ${n.ports.filter(p => p.dir === dir).length + 1}`, type, dir: T[type].fam === 'eth' ? 'io' : dir });
+    n.ports.push({ id: uid(), name: '', type, dir: T[type].fam === 'eth' ? 'io' : dir, auto: true }); renumberPorts(n.ports);
     rerenderItem(n.id); renderProps(); markDirty(); return;
   }
   const act = t.dataset.act; if (!act) return;
@@ -2085,13 +2102,13 @@ document.addEventListener('drop', async ev => {
 // ---------- база устройств: свой редактор, импорт/экспорт
 function bulkPorts(cb) {
   openModal('Добавить несколько портов', `<div class="row">${fld('Направление', 'b_dir', '', { select: dirOpts('in') })}${fld('Тип', 'b_type', '', { select: typeOpts('sdi12g') })}</div>
-   <div class="row">${fld('Количество', 'b_n', 4, { type: 'number' })}${fld('Имя (будет добавлен номер)', 'b_name', '', { ph: 'например: IN или AUX' })}</div>
+   <div class="row">${fld('Количество', 'b_n', 4, { type: 'number' })}${fld('Своё имя (необязательно)', 'b_name', '', { ph: 'пусто — названия поставятся сами' })}</div>
    <div class="row">${fld('Начать нумерацию с', 'b_start', 1, { type: 'number' })}<div></div></div><div class="btns"><button class="pri" id="bOk">Добавить</button></div>`);
   $('#bOk').onclick = () => {
     const g = k => $(`#mBody [data-k="${k}"]`).value;
     const type = g('b_type'), dir = T[type].fam === 'eth' ? 'io' : g('b_dir'), n = clamp(+g('b_n') || 1, 1, 256), st = +g('b_start') || 1;
-    const nm = g('b_name').trim() || `${T[type].s} ${dir === 'in' ? 'IN' : dir === 'out' ? 'OUT' : ''}`.trim();
-    const ps = []; for (let i = 0; i < n; i++) ps.push({ id: uid(), name: `${nm} ${st + i}`, type, dir });
+    const nm = g('b_name').trim();
+    const ps = []; for (let i = 0; i < n; i++) ps.push(nm ? { id: uid(), name: `${nm} ${st + i}`, type, dir } : { id: uid(), name: '', type, dir, auto: true });
     closeModal(); cb(ps);
   };
 }
@@ -2171,18 +2188,19 @@ function deviceEditor(dev) {
     drop.ondragover = ev => { ev.preventDefault(); ev.stopPropagation(); drop.classList.add('over'); };
     drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = ev => { ev.preventDefault(); ev.stopPropagation(); setPhoto(ev.dataTransfer.files[0]); };
-    body.oninput = ev => { const t = ev.target; if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; } };
+    body.oninput = ev => { const t = ev.target; if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; if (t.dataset.pk === 'name') delete p.auto; else if (ev.type === 'change') { p.auto = true; renumberPorts(d.ports); draw(); } } };
     body.onchange = body.oninput;
     body.onclick = ev => {
       const t = ev.target;
+      if (startPortRename(t)) return;
       if (t.closest('#dPhoto') || t.dataset.ph === 'pick') { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => setPhoto(i.files[0]); i.click(); return; }
       if (t.dataset.ph === 'del') { delete d.img; draw(); return; }
       if (t.dataset.pdel != null) { d.ports.splice(+t.dataset.pdel, 1); draw(); }
       if (t.dataset.padd) {
-        if (t.dataset.padd === 'bulk') return bulkPorts(ps => { d.ports.push(...ps); deviceEditorRedraw(); });
+        if (t.dataset.padd === 'bulk') return bulkPorts(ps => { d.ports.push(...ps); renumberPorts(d.ports); deviceEditorRedraw(); });
         const dir = t.dataset.padd, last = [...d.ports].reverse().find(p => p.dir === dir || (dir === 'out' && p.dir === 'io'));
         const type = last ? last.type : 'sdi12g';
-        d.ports.push({ name: `${T[type].s} ${dir === 'in' ? 'IN' : 'OUT'} ${d.ports.filter(p => p.dir === dir).length + 1}`, type, dir: T[type].fam === 'eth' ? 'io' : dir }); draw();
+        d.ports.push({ name: '', type, dir: T[type].fam === 'eth' ? 'io' : dir, auto: true }); renumberPorts(d.ports); draw();
       }
       if (t.id === 'dBack') return baseManager();
       if (t.id === 'dDel') { const target = customLib.find(x => x.id === dev.id) || libById(dev._builtin); const back = baseOpen; closeModal(); deleteDevices([target]); if (back) baseManager(); return; }

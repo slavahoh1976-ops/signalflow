@@ -106,6 +106,9 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .ports td{padding:2px 2px}
 .ports input,.ports select{width:100%;padding:2px 4px;font-size:12px}
 .ports .x{cursor:pointer;color:var(--muted);text-align:center}
+.ports th{font-size:10.5px;color:var(--muted);font-weight:500;text-align:left;padding:0 2px 3px}
+.ports .pn{color:var(--muted);cursor:text;padding:2px 6px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.ports .pn:hover{background:var(--accs);color:var(--text)}
 .ports .x:hover{color:var(--bad)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
 .warnbox{background:#fef3c7;color:#92400e;border-radius:6px;padding:7px 9px;margin:6px 0;font-size:12px}

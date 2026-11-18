@@ -6,7 +6,15 @@ const T = {
   sdi3g:  { n: '3G-SDI',  s: 'SDI', fam: 'sdi', rate: 2, c: '#60a5fa', pre: 'V' },
   sdihd:  { n: 'HD-SDI',  s: 'SDI', fam: 'sdi', rate: 1, c: '#93c5fd', pre: 'V' },
   hdmi:   { n: 'HDMI',    s: 'HDMI', fam: 'hdmi', c: '#ea7a1e', pre: 'H' },
+  hdmi13: { n: 'HDMI 1.3', s: 'HDMI 1.3', fam: 'hdmi', rate: 1, c: '#fdba74', pre: 'H' },
+  hdmi14: { n: 'HDMI 1.4', s: 'HDMI 1.4', fam: 'hdmi', rate: 2, c: '#fb923c', pre: 'H' },
+  hdmi20: { n: 'HDMI 2.0', s: 'HDMI 2.0', fam: 'hdmi', rate: 3, c: '#ea580c', pre: 'H' },
+  hdmi21: { n: 'HDMI 2.1', s: 'HDMI 2.1', fam: 'hdmi', rate: 4, c: '#c2410c', pre: 'H' },
   dp:     { n: 'DisplayPort', s: 'DP', fam: 'dp', c: '#9b51e0', pre: 'D' },
+  dp11:   { n: 'DisplayPort 1.1', s: 'DP 1.1', fam: 'dp', rate: 1, c: '#d8b4fe', pre: 'D' },
+  dp12:   { n: 'DisplayPort 1.2', s: 'DP 1.2', fam: 'dp', rate: 2, c: '#b07cf0', pre: 'D' },
+  dp14:   { n: 'DisplayPort 1.4', s: 'DP 1.4', fam: 'dp', rate: 3, c: '#9333ea', pre: 'D' },
+  dp21:   { n: 'DisplayPort 2.1', s: 'DP 2.1', fam: 'dp', rate: 4, c: '#6b21a8', pre: 'D' },
   dvi:    { n: 'DVI',     s: 'DVI', fam: 'dvi', c: '#c084fc', pre: 'D' },
   vga:    { n: 'VGA (аналог)', s: 'VGA', fam: 'vga', c: '#94a3b8', pre: 'D' },
   hdbt:   { n: 'HDBaseT', s: 'HDBT', fam: 'hdbt', c: '#d97706', pre: 'T' },
@@ -33,8 +41,9 @@ function compat(a, b) {
   if (a === b) return [2, ''];
   const A = T[a], B = T[b];
   if (!A || !B) return [0, 'Неизвестный тип'];
-  if (A.fam === 'sdi' && B.fam === 'sdi') {
-    return A.rate <= B.rate ? [2, ''] : [1, `${A.n} → вход ${B.n}: вход может не принять такой формат`];
+  if (A.fam === B.fam && (A.fam === 'sdi' || A.fam === 'hdmi' || A.fam === 'dp')) {
+    if (!A.rate || !B.rate || A.rate <= B.rate) return [2, ''];
+    return [1, A.fam === 'sdi' ? `${A.n} → вход ${B.n}: вход может не принять такой формат` : `${A.n} → вход ${B.n}: вход старше версии — разрешение/частота будут ниже`];
   }
   if (A.fam === 'any' || B.fam === 'any') return [2, ''];
   if (A.fam === B.fam) return [1, `${A.n} ↔ ${B.n}: проверьте скорость/модуль`];
@@ -407,6 +416,9 @@ function parsePorts(spec, dir) {
     if (name && name.includes('*')) { [nm, cnt] = name.split('*'); }
     cnt = parseInt(cnt || '1', 10);
     if (!T[t]) t = 'sdi3g';
+    const ver = /(\d\.\d)/.exec(nm || '');
+    if (ver && t === 'hdmi') t = { '1.3': 'hdmi13', '1.4': 'hdmi14', '2.0': 'hdmi20', '2.1': 'hdmi21' }[ver[1]] || t;
+    if (ver && t === 'dp') t = { '1.1': 'dp11', '1.2': 'dp12', '1.4': 'dp14', '2.0': 'dp21', '2.1': 'dp21' }[ver[1]] || t;
     for (let i = 0; i < cnt; i++) {
       const ck = T[t].s; counters[ck] = (counters[ck] || 0) + 1;
       let label;
