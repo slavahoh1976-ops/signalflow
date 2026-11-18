@@ -4,7 +4,7 @@
 // ============================================================================
 const APP_VERSION = '1.6.5', APP_DATE = '17.11.2026';
 const CHANGELOG = [
-  ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров E2/S3/Pixelhue между собой)']],
+  ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров Event Master между собой); у Barco E2 — 4, S3-4K — 2, Ex — 2 порта']],
   ['1.6.4', '18.11.2026', ['Версии HDMI (1.3, 1.4, 2.0, 2.1) и DisplayPort (1.1, 1.2, 1.4, 2.1) как типы сигнала; предупреждение, если выход новее входа']],
   ['1.6.3', '18.11.2026', ['Порты: название ставится само по типу и направлению («HDMI IN 2», «3G-SDI OUT 1»), вводить не нужно; клик по названию — своё']],
   ['1.6.2', '17.11.2026', ['Фигуры меняют форму: жёлтые ромбики (скругление, наклон, глубина, волна, наконечник и толщина стрелки, излом)', 'Поворот фигур на 90° и отражение по горизонтали/вертикали, ползунки формы в свойствах']],
@@ -2289,6 +2289,17 @@ async function mergeDefaults(force) {
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
   for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; customLib.push(d); n++; }
+  // разовое обновление уже загруженных устройств: Expansion-порты и версии HDMI/DP (1.6.5)
+  if (!(cfg.migr || []).includes('exp1')) {
+    const byId = new Map((data.devices || []).map(d => [d.id, d])); let m = 0;
+    const HV = { '1.3': 'hdmi13', '1.4': 'hdmi14', '2.0': 'hdmi20', '2.1': 'hdmi21' }, DV = { '1.1': 'dp11', '1.2': 'dp12', '1.4': 'dp14', '2.0': 'dp21', '2.1': 'dp21' };
+    for (const d of customLib) {
+      for (const p of d.ports || []) { const v = /(\d\.\d)/.exec(p.name || ''); if (v && p.type === 'hdmi' && HV[v[1]]) p.type = HV[v[1]], m++; if (v && p.type === 'dp' && DV[v[1]]) p.type = DV[v[1]], m++; }
+      const src = byId.get(d.id); if (!src || (d.ports || []).some(p => p.type === 'exp')) continue;
+      const ex = src.ports.filter(p => p.type === 'exp'); if (ex.length) { d.ports.push(...ex.map(p => ({ ...p }))); m++; }
+    }
+    cfg.migr = [...(cfg.migr || []), 'exp1']; saveCfg(); if (m) { saveLib(); renderLib(); }
+  }
   if (force) cfg.removedDefaults = [], saveCfg();
   if (n) { const added = (data.devices || []).filter(d => customLib.includes(d)).slice(-n); saveLib(); typeFilter.add('photo'); renderTypeFilter(); renderLib(); toast(n <= 3 ? `В базу добавлено: ${added.map(d => d.model).join(', ')}` : `Загружена база с фото: ${n} устройств — показаны в библиотеке (фильтр «📷 С фото»)`); }
   else if (force) toast('База с фото уже загружена');
