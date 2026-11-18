@@ -905,8 +905,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.8.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.8.1', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.8.1', '18.11.2026', ['Окно Claude: база с фото встроена в программу и загружается сразу']],
   ['1.8.0', '18.11.2026', ['Новая база по умолчанию: 101 прибор с фото, группы «Процессоры» и «LED-контролеры и экраны», порядок приборов', 'База с сайта приносит и настройки групп; нетронутые старые приборы обновляются сами, отредактированные — остаются']],
   ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
   ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
@@ -3287,8 +3288,10 @@ function applyTemplate(data) {
   return m + 1;
 }
 async function mergeDefaults(force) {
-  if (!location.protocol.startsWith('http')) { if (force) toast('База с фото доступна, когда программа открыта с сайта', 'w'); return 0; }
-  let data; try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
+  let data; const emb = document.getElementById('sfDefaults');
+  if (emb) { try { data = JSON.parse(emb.textContent); } catch (e) { data = null; } }
+  if (!data && !location.protocol.startsWith('http')) { if (force) toast('База с фото доступна, когда программа открыта с сайта', 'w'); return 0; }
+  if (!data) try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
   const tplChanged = applyTemplate(data);
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
