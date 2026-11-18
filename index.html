@@ -885,8 +885,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.1', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.1', '18.11.2026', ['Исправлено: устройство, перетащенное внутри группы, теперь остаётся на новом месте']],
   ['1.7.0', '18.11.2026', ['Порядок устройств внутри группы меняется перетаскиванием (с линией вставки); можно сразу бросить в нужное место другой группы']],
   ['1.6.9', '18.11.2026', ['Редактор прибора: «Сохранить — заменить» и «Сохранить как новый»; в списке «Цвет шапки» — ваши названия групп']],
   ['1.6.8', '18.11.2026', ['Программа теперь называется «Сигнал»', 'Новые цвета кабелей: HDMI — синие, SDI — зелёные, оптика — рыжие, DP — сиреневые, звук — красные, LAN — яичный жёлтый; все типы различимы', 'Оптика: одномод (SM), многомод (MM), комбинированная (гибрид) — с проверкой совместимости']],
@@ -2446,7 +2447,7 @@ $('#libList').addEventListener('drop', ev => {
   if (dev) { ev.preventDefault(); ev.stopPropagation(); const d = libById(dev); if (d && groupOf(d) !== g) moveToGroup([d], g); return; }
   if (grp && grp !== g) { ev.preventDefault(); ev.stopPropagation(); placeGroupBefore(grp, g); }
 });
-$('#libList').addEventListener('dragstart', ev => { const it = ev.target.closest('.item'); if (!it) return; ev.dataTransfer.setData('text/sf-dev', it.dataset.dev); ev.dataTransfer.effectAllowed = 'copy'; });
+$('#libList').addEventListener('dragstart', ev => { const it = ev.target.closest('.item'); if (!it) return; ev.dataTransfer.setData('text/sf-dev', it.dataset.dev); ev.dataTransfer.effectAllowed = 'copyMove'; });
 $('#libList').addEventListener('contextmenu', ev => {
   const h = ev.target.closest('.catH');
   if (h) {
