@@ -418,7 +418,15 @@ const RAW = [
 function numFirst(name) {
   let s = String(name == null ? '' : name); const m = /^(.*\S)\s+(\d+)$/.exec(s);
   if (m && !/[А-Яа-яЁё]/.test(m[1]) && !/^\d+ - /.test(s)) s = `${m[2]} - ${m[1]}`;
-  return s.replace(/^(\d+ - .+?) IN$/i, '$1').replace(/^(\d+ - .+?) OUT$/i, '$1 Out');
+  return s;
+}
+// название порта с направлением: вход — «… In», выход — «… Out»; ⇄ и русские названия не трогаем
+function portName(name, dir, type) {
+  let s = numFirst(name); if (!s || /[А-Яа-яЁё]/.test(s)) return s;
+  s = s.replace(/\s+(in|out|input|output)$/i, '').replace(/^(in|out|input|output)$/i, '');
+  if (type && T[type] && (/^\d+ -$/.test(s) || !s)) s = (s ? s + ' ' : '') + (T[type].fam === 'sdi' ? T[type].n : T[type].s);
+  if (dir === 'io') return s;
+  return s + (dir === 'in' ? ' In' : dir === 'out' ? ' Out' : '');
 }
 function parsePorts(spec, dir) {
   const out = [];
@@ -436,12 +444,13 @@ function parsePorts(spec, dir) {
     const ver = /(\d\.\d)/.exec(nm || '');
     if (ver && t === 'hdmi') t = { '1.3': 'hdmi13', '1.4': 'hdmi14', '2.0': 'hdmi20', '2.1': 'hdmi21' }[ver[1]] || t;
     if (ver && t === 'dp') t = { '1.1': 'dp11', '1.2': 'dp12', '1.4': 'dp14', '2.0': 'dp21', '2.1': 'dp21' }[ver[1]] || t;
+    const fdir = T[t] && T[t].fam === 'eth' ? 'io' : dir;
     for (let i = 0; i < cnt; i++) {
       const ck = T[t].s; counters[ck] = (counters[ck] || 0) + 1;
       let label;
       if (nm) label = cnt > 1 ? `${i + 1} - ${nm}` : nm;
-      else label = `${counters[ck]} - ${T[t].s}${dir === 'out' ? ' Out' : ''}`;
-      out.push({ name: numFirst(label), type: t, dir });
+      else label = `${counters[ck]} - ${T[t].s}`;
+      out.push({ name: portName(label, fdir, t), type: t, dir: fdir });
     }
   });
   return out;

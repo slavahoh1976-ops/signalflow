@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.3', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.4', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
   ['1.7.3', '18.11.2026', ['Автоназвания портов без «IN»: вход — «1 - HDMI 2.0», выход — «1 - HDMI Out»; старые «… IN/OUT» переименовываются сами']],
   ['1.7.2', '18.11.2026', ['Библиотека: картинки приборов одной ширины — названия начинаются ровно']],
   ['1.7.1', '18.11.2026', ['Исправлено: устройство, перетащенное внутри группы, теперь остаётся на новом месте']],
@@ -742,7 +743,7 @@ function undo() { if (!undoS.length) return toast('Нечего отменять
 function redo() { if (!redoS.length) return; undoS.push(snap()); loadState(redoS.pop(), true); markDirty(); }
 
 function restoreBackup(b) {
-  customLib = Array.isArray(b.lib) ? b.lib : customLib; for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name); saveLib();
+  customLib = Array.isArray(b.lib) ? b.lib : customLib; const done = b.cfg && (b.cfg.migr || []).includes('io1'); for (const d of customLib) for (const p of d.ports || []) p.name = done ? numFirst(p.name) : portName(p.name, p.dir, p.type); saveLib();
   if (b.cfg) { Object.assign(cfg, b.cfg); saveCfg(); }
   if (Array.isArray(b.favs)) { favs.clear(); b.favs.forEach(x => favs.add(x)); store.set('favs', [...favs]); }
   renderTypeFilter(); renderLib();
@@ -754,7 +755,8 @@ function openDoc(d, handle) {
   if (!d || !Array.isArray(d.pages)) return toast('Это не файл программы «Сигнал»', 'e');
   doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
   $('#imgDefs').innerHTML = '';
-  for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) { p.id ||= uid(); p.name = numFirst(p.name); } }
+  for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) { p.id ||= uid(); p.name = d.pn2 ? numFirst(p.name) : portName(p.name, p.dir, p.type); } }
+  d.pn2 = 1;
   P = doc.pages[doc.cur]; fileHandle = handle || null; undoS = []; redoS = [];
   $('#docName').value = doc.name; sel.clear(); renderAll();
   if (P.view) { view = { ...P.view }; setView(); } else fit();
@@ -1608,7 +1610,7 @@ function fld(label, key, val, opt = {}) {
   return `<div class="fld"><label>${label}</label>${input}</div>`;
 }
 // автоназвание порта: «HDMI IN 2», «3G-SDI OUT 1», «LAN 1» — номер по порядку среди портов того же типа и направления
-const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'out' ? `${s} Out` : s; };
+const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'in' ? `${s} In` : dir === 'out' ? `${s} Out` : s; };
 function renumberPorts(ports) {
   const cnt = {};
   for (const p of ports) { const k = p.type + '|' + p.dir; cnt[k] = (cnt[k] || 0) + 1; if (p.auto) p.name = `${cnt[k]} - ${portBase(p.type, p.dir)}`; }
@@ -2146,7 +2148,7 @@ function bulkPorts(cb) {
     const g = k => $(`#mBody [data-k="${k}"]`).value;
     const type = g('b_type'), dir = T[type].fam === 'eth' ? 'io' : g('b_dir'), n = clamp(+g('b_n') || 1, 1, 256), st = +g('b_start') || 1;
     const nm = g('b_name').trim();
-    const ps = []; for (let i = 0; i < n; i++) ps.push(nm ? { id: uid(), name: `${st + i} - ${nm}`, type, dir } : { id: uid(), name: '', type, dir, auto: true });
+    const ps = []; for (let i = 0; i < n; i++) ps.push(nm ? { id: uid(), name: portName(`${st + i} - ${nm}`, dir, type), type, dir } : { id: uid(), name: '', type, dir, auto: true });
     closeModal(); cb(ps);
   };
 }
@@ -2197,6 +2199,8 @@ function deviceEditor(dev) {
   const d = JSON.parse(JSON.stringify(dev)); d.ports = (d.ports || []).map(p => ({ ...p }));
   d.cat = d.cat || 'my';
   const groups = allGroupNames();
+  d.group = (d.group && d.group.trim()) ? groupOf(d) : (dev.model ? groupOf(dev) : groupOf({ cat: d.cat }));
+  let newGrp = false;
   const oldKeys = new Set([devKey(dev)]), oldIds = new Set([dev.id, dev._builtin].filter(Boolean));
   const onSchema = (dev.id || dev._builtin) ? nodesOfDev(oldKeys, oldIds).length : 0;
   const draw = () => {
@@ -2212,7 +2216,7 @@ function deviceEditor(dev) {
       </div>
       <div>
         <div class="row">${fld('Производитель', 'd_maker', d.maker === 'Generic' ? '' : (d.maker || ''))}${fld('Модель', 'd_model', d.model || '', { focus: 1 })}</div>
-        <div class="row">${fld('Группа в библиотеке', 'd_group', d.group || (dev.model ? groupOf(dev) : ''), { list: 'grpList', ph: catName(d.cat) })}${fld('Цвет шапки и префикс', 'd_cat', '', { select: catOpts })}</div>
+        <div class="row">${(newGrp ? fld('Новая группа', 'd_group', '', { ph: 'название новой группы', focus: 1 }) : fld('Группа в библиотеке', 'd_group', '', { select: [...new Set([...groups, d.group])].map(g => `<option${g === d.group ? ' selected' : ''}>${esc(g)}</option>`).join('') + '<option value="__new">＋ Новая группа…</option>' }))}${fld('Цвет шапки и префикс', 'd_cat', '', { select: catOpts })}</div>
         <datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
         <h4>Порты (${d.ports.length})</h4><div id="dPorts">${portsTable(d.ports)}</div>
         <div class="small muted">Ethernet/SFP порты автоматически становятся двунаправленными (⇄).</div>
@@ -2231,7 +2235,10 @@ function deviceEditor(dev) {
     drop.ondragover = ev => { ev.preventDefault(); ev.stopPropagation(); drop.classList.add('over'); };
     drop.ondragleave = () => drop.classList.remove('over');
     drop.ondrop = ev => { ev.preventDefault(); ev.stopPropagation(); setPhoto(ev.dataTransfer.files[0]); };
-    body.oninput = ev => { const t = ev.target; if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; if (t.dataset.pk === 'name') delete p.auto; else if (ev.type === 'change') { p.auto = true; renumberPorts(d.ports); draw(); } } };
+    body.oninput = ev => { const t = ev.target;
+      if (t.dataset.k === 'd_group' && t.value === '__new') { newGrp = true; d.group = ''; return draw(); }
+      if (t.dataset.k === 'd_cat') { if (t.value === d.cat) return; const was = groupOf({ cat: d.cat }); if (d.group === was) d.group = groupOf({ cat: t.value }); d.cat = t.value; return draw(); }
+      if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; if (t.dataset.pk === 'name') delete p.auto; else if (ev.type === 'change') { p.auto = true; renumberPorts(d.ports); draw(); } } };
     body.onchange = body.oninput;
     body.onclick = ev => {
       const t = ev.target;
@@ -2332,7 +2339,7 @@ async function mergeDefaults(force) {
   let data; try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
-  for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; for (const p of d.ports || []) p.name = numFirst(p.name); customLib.push(d); n++; }
+  for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; for (const p of d.ports || []) p.name = portName(p.name, p.dir, p.type); customLib.push(d); n++; }
   // разовое обновление уже загруженных устройств: Expansion-порты и версии HDMI/DP (1.6.5)
   if (!(cfg.migr || []).includes('exp1')) {
     const byId = new Map((data.devices || []).map(d => [d.id, d])); let m = 0;
@@ -2354,7 +2361,7 @@ function importLib(data) {
   const list = Array.isArray(data) ? data : data.devices; let n = 0;
   for (const d of list || []) {
     if (!d.model || !Array.isArray(d.ports)) continue;
-    for (const p of d.ports) p.name = numFirst(p.name);
+    for (const p of d.ports) p.name = portName(p.name, p.dir, p.type);
     const c = { id: d.id && String(d.id).startsWith('c') ? d.id : 'c' + uid(), cat: CATS[d.cat] ? d.cat : 'my', group: d.group || '', img: d.img && d.img.src ? d.img : undefined, maker: d.maker || 'Generic', model: d.model, ports: normPorts(d.ports.filter(p => T[p.type]).map(p => ({ name: p.name, type: p.type, dir: p.dir || 'in' }))) };
     const i = customLib.findIndex(x => x.id === c.id); if (i >= 0) customLib[i] = c; else customLib.push(c); n++;
   }
@@ -2442,7 +2449,7 @@ function buildDemo() {
   P = doc.pages[0]; P.name = 'Видео'; reindex();
   const D = m => allLib().find(d => d.model === m);
   const add = (m, x, y, label, loc) => { const n = addNode(D(m), x, y, true); if (label) n.label = label; if (loc) n.loc = loc; n._L = null; return n; };
-  const pid = (n, name) => (n.ports.find(p => p.name === name || p.name === numFirst(name)) || {}).id;
+  const pid = (n, name) => (n.ports.find(p => p.name === name || p.name === portName(name, p.dir, p.type)) || {}).id;
   const C = (a, ap, b, bp, fmt, len) => { const fa = pid(a, ap), fb = pid(b, bp); if (!fa || !fb) { console.warn('demo port', a.label, ap, b.label, bp); return; } const e = connect({ n: a.id, p: fa }, { n: b.id, p: fb }, true); if (fmt) e.fmt = fmt; if (len) e.len = len; };
   const cams = [0, 1, 2, 3].map(i => add('Studio Camera 4K Pro G2', 60, 80 + i * 150, 'CAM ' + (i + 1), 'Студия'));
   const ptz = add('AW-UE150', 60, 700, 'CAM 5', 'Студия');
@@ -2537,7 +2544,8 @@ doc = newDoc(); P = doc.pages[0];
   let lib = await idb.get('lib');
   if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
   customLib = Array.isArray(lib) ? lib : [];
-  for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name);
+  if (!(cfg.migr || []).includes('io1')) { for (const d of customLib) for (const p of d.ports || []) p.name = portName(p.name, p.dir, p.type); cfg.migr = [...(cfg.migr || []), 'io1']; saveCfg(); saveLib(); }
+  else for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name);
   await mergeDefaults(false);
   renderLib();
   let saved = await idb.get('doc');
