@@ -905,8 +905,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.7', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.8.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.8.0', '18.11.2026', ['Новая база по умолчанию: 101 прибор с фото, группы «Процессоры» и «LED-контролеры и экраны», порядок приборов', 'База с сайта приносит и настройки групп; нетронутые старые приборы обновляются сами, отредактированные — остаются']],
   ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
   ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
   ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
@@ -3261,9 +3262,34 @@ function baseManager() {
     editDevice(d);
   };
 }
+// отпечаток прибора — чтобы понять, правил ли его пользователь после загрузки с сайта
+function devHash(d) {
+  const s = JSON.stringify([d.maker || '', d.model || '', d.cat || '', d.group || '', (d.ports || []).map(p => [p.name, p.type, p.dir]), d.img ? d.img.src : '']);
+  let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36);
+}
+// шаблон по умолчанию с сайта: настройки групп и обновление нетронутых приборов
+function applyTemplate(data) {
+  if (!data.tplVer || cfg.tplVer === data.tplVer) return 0;
+  let m = 0; const tpl = new Map((data.devices || []).map(d => [d.id, d])), prev = data.prev || {};
+  for (let i = customLib.length - 1; i >= 0; i--) {
+    const d = customLib[i]; if (!prev[d.id] || prev[d.id] !== devHash(d)) continue;   // правили сами — не трогаем
+    const t = tpl.get(d.id);
+    if (t) customLib[i] = JSON.parse(JSON.stringify(t)); else customLib.splice(i, 1);
+    m++;
+  }
+  const D = data.defaults || {};
+  cfg.groupRename = { ...(D.groupRename || {}), ...(cfg.groupRename || {}) };
+  cfg.hidden = [...new Set([...(cfg.hidden || []), ...(D.hidden || [])])];
+  cfg.groupsExtra = [...new Set([...(cfg.groupsExtra || []), ...(D.groupsExtra || [])])];
+  if (!(cfg.groupOrder || []).length && (D.groupOrder || []).length) cfg.groupOrder = D.groupOrder.slice();
+  cfg.devOrder = { ...(D.devOrder || {}), ...(cfg.devOrder || {}) };
+  cfg.tplVer = data.tplVer; saveCfg(); if (m) saveLib();
+  return m + 1;
+}
 async function mergeDefaults(force) {
   if (!location.protocol.startsWith('http')) { if (force) toast('База с фото доступна, когда программа открыта с сайта', 'w'); return 0; }
   let data; try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
+  const tplChanged = applyTemplate(data);
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
   for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; for (const p of d.ports || []) p.name = portName(p.name, p.dir, p.type); customLib.push(d); n++; }
@@ -3280,6 +3306,7 @@ async function mergeDefaults(force) {
   }
   if (force) cfg.removedDefaults = [], saveCfg();
   if (n) { const added = (data.devices || []).filter(d => customLib.includes(d)).slice(-n); saveLib(); typeFilter.add('photo'); renderTypeFilter(); renderLib(); toast(n <= 3 ? `В базу добавлено: ${added.map(d => d.model).join(', ')}` : `Загружена база с фото: ${n} устройств — показаны в библиотеке (фильтр «📷 С фото»)`); }
+  else if (tplChanged) renderLib();
   else if (force) toast('База с фото уже загружена');
   return n;
 }
