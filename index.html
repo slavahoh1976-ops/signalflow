@@ -902,8 +902,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.4', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.5', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
   ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
   ['1.7.3', '18.11.2026', ['Автоназвания портов без «IN»: вход — «1 - HDMI 2.0», выход — «1 - HDMI Out»; старые «… IN/OUT» переименовываются сами']],
   ['1.7.2', '18.11.2026', ['Библиотека: картинки приборов одной ширины — названия начинаются ровно']],
@@ -3137,7 +3138,7 @@ function deviceEditor(dev) {
     drop.ondrop = ev => { ev.preventDefault(); ev.stopPropagation(); setPhoto(ev.dataTransfer.files[0]); };
     body.oninput = ev => { const t = ev.target;
       if (t.dataset.k === 'd_group' && t.value === '__new') { newGrp = true; d.group = ''; return draw(); }
-      if (t.dataset.k === 'd_cat') { if (t.value === d.cat) return; const was = groupOf({ cat: d.cat }); if (d.group === was) d.group = groupOf({ cat: t.value }); d.cat = t.value; return draw(); }
+      if (t.dataset.k === 'd_cat') { if (t.value === d.cat) return; d.group = groupOf({ cat: t.value }); d.cat = t.value; newGrp = false; return draw(); }
       if (t.dataset.k) { d[t.dataset.k.slice(2)] = t.value; } if (t.dataset.pk) { const p = d.ports[+t.closest('tr').dataset.pi]; p[t.dataset.pk] = t.value; if (t.dataset.pk === 'type' && T[t.value].fam === 'eth') p.dir = 'io'; if (t.dataset.pk === 'name') delete p.auto; else if (ev.type === 'change') { p.auto = true; renumberPorts(d.ports); draw(); } } };
     body.onchange = body.oninput;
     body.onclick = ev => {
