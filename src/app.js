@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.5', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.6', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.6', '18.11.2026', ['Номер порта теперь впереди: «1 - HDMI 2.0» вместо «HDMI 2.0 1» — номер не сливается с версией']],
   ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров Event Master между собой); у Barco E2 — 4, S3-4K — 2, Ex — 2 порта']],
   ['1.6.4', '18.11.2026', ['Версии HDMI (1.3, 1.4, 2.0, 2.1) и DisplayPort (1.1, 1.2, 1.4, 2.1) как типы сигнала; предупреждение, если выход новее входа']],
   ['1.6.3', '18.11.2026', ['Порты: название ставится само по типу и направлению («HDMI IN 2», «3G-SDI OUT 1»), вводить не нужно; клик по названию — своё']],
@@ -732,7 +733,7 @@ function undo() { if (!undoS.length) return toast('Нечего отменять
 function redo() { if (!redoS.length) return; undoS.push(snap()); loadState(redoS.pop(), true); markDirty(); }
 
 function restoreBackup(b) {
-  customLib = Array.isArray(b.lib) ? b.lib : customLib; saveLib();
+  customLib = Array.isArray(b.lib) ? b.lib : customLib; for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name); saveLib();
   if (b.cfg) { Object.assign(cfg, b.cfg); saveCfg(); }
   if (Array.isArray(b.favs)) { favs.clear(); b.favs.forEach(x => favs.add(x)); store.set('favs', [...favs]); }
   renderTypeFilter(); renderLib();
@@ -744,7 +745,7 @@ function openDoc(d, handle) {
   if (!d || !Array.isArray(d.pages)) return toast('Это не файл SignalFlow', 'e');
   doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
   $('#imgDefs').innerHTML = '';
-  for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) p.id ||= uid(); }
+  for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) { p.id ||= uid(); p.name = numFirst(p.name); } }
   P = doc.pages[doc.cur]; fileHandle = handle || null; undoS = []; redoS = [];
   $('#docName').value = doc.name; sel.clear(); renderAll();
   if (P.view) { view = { ...P.view }; setView(); } else fit();
@@ -1574,7 +1575,7 @@ function fld(label, key, val, opt = {}) {
 const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'io' ? s : `${s} ${dir === 'in' ? 'IN' : 'OUT'}`; };
 function renumberPorts(ports) {
   const cnt = {};
-  for (const p of ports) { const k = p.type + '|' + p.dir; cnt[k] = (cnt[k] || 0) + 1; if (p.auto) p.name = `${portBase(p.type, p.dir)} ${cnt[k]}`; }
+  for (const p of ports) { const k = p.type + '|' + p.dir; cnt[k] = (cnt[k] || 0) + 1; if (p.auto) p.name = `${cnt[k]} - ${portBase(p.type, p.dir)}`; }
 }
 function portsTable(ports) {
   return `<table class="ports"><thead><tr><th>Направление</th><th>Тип сигнала</th><th title="Ставится само. Клик — задать своё">Название</th><th></th></tr></thead><tbody>` + ports.map((p, i) => `<tr data-pi="${i}"><td style="width:30%"><select data-pk="dir">${dirOpts(p.dir)}</select></td><td style="width:36%"><select data-pk="type">${typeOpts(p.type)}</select></td><td class="pn" data-pren="${i}" title="Клик — своё название">${esc(p.name)}</td><td class="x" data-pdel="${i}" title="Удалить порт">✕</td></tr>`).join('') + '</tbody></table>'
@@ -2109,7 +2110,7 @@ function bulkPorts(cb) {
     const g = k => $(`#mBody [data-k="${k}"]`).value;
     const type = g('b_type'), dir = T[type].fam === 'eth' ? 'io' : g('b_dir'), n = clamp(+g('b_n') || 1, 1, 256), st = +g('b_start') || 1;
     const nm = g('b_name').trim();
-    const ps = []; for (let i = 0; i < n; i++) ps.push(nm ? { id: uid(), name: `${nm} ${st + i}`, type, dir } : { id: uid(), name: '', type, dir, auto: true });
+    const ps = []; for (let i = 0; i < n; i++) ps.push(nm ? { id: uid(), name: `${st + i} - ${nm}`, type, dir } : { id: uid(), name: '', type, dir, auto: true });
     closeModal(); cb(ps);
   };
 }
@@ -2310,6 +2311,7 @@ function importLib(data) {
   const list = Array.isArray(data) ? data : data.devices; let n = 0;
   for (const d of list || []) {
     if (!d.model || !Array.isArray(d.ports)) continue;
+    for (const p of d.ports) p.name = numFirst(p.name);
     const c = { id: d.id && String(d.id).startsWith('c') ? d.id : 'c' + uid(), cat: CATS[d.cat] ? d.cat : 'my', group: d.group || '', img: d.img && d.img.src ? d.img : undefined, maker: d.maker || 'Generic', model: d.model, ports: normPorts(d.ports.filter(p => T[p.type]).map(p => ({ name: p.name, type: p.type, dir: p.dir || 'in' }))) };
     const i = customLib.findIndex(x => x.id === c.id); if (i >= 0) customLib[i] = c; else customLib.push(c); n++;
   }
@@ -2397,7 +2399,7 @@ function buildDemo() {
   P = doc.pages[0]; P.name = 'Видео'; reindex();
   const D = m => allLib().find(d => d.model === m);
   const add = (m, x, y, label, loc) => { const n = addNode(D(m), x, y, true); if (label) n.label = label; if (loc) n.loc = loc; n._L = null; return n; };
-  const pid = (n, name) => (n.ports.find(p => p.name === name) || {}).id;
+  const pid = (n, name) => (n.ports.find(p => p.name === name || p.name === numFirst(name)) || {}).id;
   const C = (a, ap, b, bp, fmt, len) => { const fa = pid(a, ap), fb = pid(b, bp); if (!fa || !fb) { console.warn('demo port', a.label, ap, b.label, bp); return; } const e = connect({ n: a.id, p: fa }, { n: b.id, p: fb }, true); if (fmt) e.fmt = fmt; if (len) e.len = len; };
   const cams = [0, 1, 2, 3].map(i => add('Studio Camera 4K Pro G2', 60, 80 + i * 150, 'CAM ' + (i + 1), 'Студия'));
   const ptz = add('AW-UE150', 60, 700, 'CAM 5', 'Студия');
@@ -2492,6 +2494,7 @@ doc = newDoc(); P = doc.pages[0];
   let lib = await idb.get('lib');
   if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
   customLib = Array.isArray(lib) ? lib : [];
+  for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name);
   await mergeDefaults(false);
   renderLib();
   let saved = await idb.get('doc');

@@ -406,6 +406,8 @@ const RAW = [
   ['pp', 'Generic', 'Блок (пустой)', 'hdmi', 'hdmi'],
 ];
 
+// старый формат «HDMI 2.0 1» → «1 - HDMI 2.0» (номер не сливается с версией); русские названия не трогаем
+function numFirst(name) { const m = /^(.*\S)\s+(\d+)$/.exec(name || ''); if (!m || /[А-Яа-яЁё]/.test(m[1]) || /^\d+ - /.test(name)) return name; return `${m[2]} - ${m[1]}`; }
 function parsePorts(spec, dir) {
   const out = [];
   if (!spec) return out;
@@ -424,8 +426,8 @@ function parsePorts(spec, dir) {
     for (let i = 0; i < cnt; i++) {
       const ck = T[t].s; counters[ck] = (counters[ck] || 0) + 1;
       let label;
-      if (nm) label = cnt > 1 ? `${nm} ${i + 1}` : nm;
-      else label = `${T[t].s} ${dir === 'in' ? 'IN' : dir === 'out' ? 'OUT' : ''} ${counters[ck]}`.replace('  ', ' ');
+      if (nm) label = cnt > 1 ? `${i + 1} - ${nm}` : nm;
+      else label = `${counters[ck]} - ${T[t].s} ${dir === 'in' ? 'IN' : dir === 'out' ? 'OUT' : ''}`.trim();
       out.push({ name: label, type: t, dir });
     }
   });
