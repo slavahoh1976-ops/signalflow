@@ -191,6 +191,11 @@ table.bm td{vertical-align:middle}
   #printArea svg{width:100%;height:auto;max-height:100vh}
   @page{size:landscape;margin:8mm}
 }
+
+.saveBar{position:sticky;bottom:-14px;margin-bottom:-14px!important;border-radius:8px 8px 0 0!important;z-index:2;background:var(--panel)!important;box-shadow:0 -6px 12px -8px rgba(0,0,0,.25);display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2,rgba(127,127,127,.06))}
+.saveBar button{padding:7px 12px}
+button.danger{color:var(--bad)}
+button.danger:hover{border-color:var(--bad)}
 </style>
 </head>
 <body>
@@ -877,8 +882,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.8', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.9', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.9', '18.11.2026', ['Редактор прибора: «Сохранить — заменить» и «Сохранить как новый»; в списке «Цвет шапки» — ваши названия групп']],
   ['1.6.8', '18.11.2026', ['Программа теперь называется «Сигнал»', 'Новые цвета кабелей: HDMI — синие, SDI — зелёные, оптика — рыжие, DP — сиреневые, звук — красные, LAN — яичный жёлтый; все типы различимы', 'Оптика: одномод (SM), многомод (MM), комбинированная (гибрид) — с проверкой совместимости']],
   ['1.6.7', '18.11.2026', ['Точки подключения у портов снова видны: свободный порт — кольцо цвета сигнала, подключённый — закрашенная точка; при наведении подсвечиваются']],
   ['1.6.6', '18.11.2026', ['Номер порта теперь впереди: «1 - HDMI 2.0» вместо «HDMI 2.0 1» — номер не сливается с версией']],
@@ -3043,8 +3049,10 @@ function deviceEditor(dev) {
   const oldKeys = new Set([devKey(dev)]), oldIds = new Set([dev.id, dev._builtin].filter(Boolean));
   const onSchema = (dev.id || dev._builtin) ? nodesOfDev(oldKeys, oldIds).length : 0;
   const draw = () => {
-    const catOpts = Object.keys(CATS).map(k => `<option value="${k}"${k === d.cat ? ' selected' : ''}>${esc(CATS[k].n)}</option>`).join('');
-    openModal(dev.id ? 'Редактировать устройство' : 'Новое устройство в базе', `
+    const catName = k => (cfg.groupRename || {})[CATS[k].n] || CATS[k].n;
+    const catOpts = Object.keys(CATS).filter(k => k !== 'shape').map(k => `<option value="${k}"${k === d.cat ? ' selected' : ''}>${esc(catName(k))} (${esc(CATS[k].pre)})</option>`).join('');
+    const isOld = !!((dev.id && customLib.some(x => x.id === dev.id)) || dev._builtin);
+    openModal(isOld ? 'Редактировать устройство' : 'Новое устройство в базе', `
     <div class="devGrid">
       <div>
         <div id="dPhoto" class="photoDrop" title="Перетащите фото сюда, вставьте Ctrl+V или нажмите">${d.img ? `<img src="${d.img.src}">` : '<div>📷<br>Фото устройства<br><span class="small muted">перетащите файл, Ctrl+V<br>или нажмите для выбора</span></div>'}</div>
@@ -3053,7 +3061,7 @@ function deviceEditor(dev) {
       </div>
       <div>
         <div class="row">${fld('Производитель', 'd_maker', d.maker === 'Generic' ? '' : (d.maker || ''))}${fld('Модель', 'd_model', d.model || '', { focus: 1 })}</div>
-        <div class="row">${fld('Группа в библиотеке', 'd_group', d.group || '', { list: 'grpList', ph: CATS[d.cat].n })}${fld('Тип (цвет шапки и префикс)', 'd_cat', '', { select: catOpts })}</div>
+        <div class="row">${fld('Группа в библиотеке', 'd_group', d.group || (dev.model ? groupOf(dev) : ''), { list: 'grpList', ph: catName(d.cat) })}${fld('Цвет шапки и префикс', 'd_cat', '', { select: catOpts })}</div>
         <datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
         <h4>Порты (${d.ports.length})</h4><div id="dPorts">${portsTable(d.ports)}</div>
         <div class="small muted">Ethernet/SFP порты автоматически становятся двунаправленными (⇄).</div>
@@ -3061,7 +3069,10 @@ function deviceEditor(dev) {
     </div>
     ${onSchema ? `<label class="small" style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="dApply" checked> Обновить такие устройства на схеме (${onSchema} шт.) — кабели на сохранённых портах останутся</label>` : ''}
     ${dev._builtin ? '<div class="small muted" style="margin-top:6px">Это встроенная модель — изменения сохранятся как ваша версия и заменят её в библиотеке.</div>' : ''}
-    <div class="btns" style="margin-top:14px"><button class="pri" id="dSave">Сохранить в базу</button>${(dev.id && customLib.some(x => x.id === dev.id)) || dev._builtin ? '<button id="dDel">Удалить из базы</button>' : ''}${baseOpen ? '<button id="dBack">← К базе</button>' : ''}</div>`);
+    <div class="saveBar">
+      ${isOld ? `<button class="pri" id="dSave" title="Записать изменения в этот прибор">💾 Сохранить — заменить «${esc(dev.model || '')}»</button><button id="dSaveNew" title="Оставить старый прибор как есть и добавить новый">＋ Сохранить как новый</button>` : '<button class="pri" id="dSave">💾 Добавить в базу</button>'}
+      <span style="flex:1"></span>${baseOpen ? '<button id="dBack">← К базе</button>' : ''}${isOld ? '<button id="dDel" class="danger">Удалить из базы</button>' : ''}
+    </div>`);
     const body = $('#mBody');
     const setPhoto = async f => { if (!f || !f.type.startsWith('image/')) return toast('Это не изображение', 'w'); try { d.img = await readImage(f); draw(); } catch (e) { toast('Не удалось прочитать фото', 'e'); } };
     editorPaste = setPhoto;
@@ -3085,18 +3096,20 @@ function deviceEditor(dev) {
       }
       if (t.id === 'dBack') return baseManager();
       if (t.id === 'dDel') { const target = customLib.find(x => x.id === dev.id) || libById(dev._builtin); const back = baseOpen; closeModal(); deleteDevices([target]); if (back) baseManager(); return; }
-      if (t.id === 'dSave') {
+      if (t.id === 'dSave' || t.id === 'dSaveNew') {
+        const asNew = t.id === 'dSaveNew';
         if (!d.model || !d.model.trim()) return toast('Укажите модель', 'w');
-        const clean = { id: dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
+        if (asNew && d.model.trim() === (dev.model || '').trim() && (d.maker || '').trim() === (dev.maker === 'Generic' ? '' : (dev.maker || '')).trim()) d.model = d.model.trim() + ' (копия)';
+        const clean = { id: !asNew && dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
         if (d.img) clean.img = d.img;
         const i = customLib.findIndex(x => x.id === clean.id);
         if (i >= 0) customLib[i] = clean; else customLib.push(clean);
-        if (dev._builtin && devKey(clean) !== devKey(dev)) cfg.hidden = [...new Set([...(cfg.hidden || []), dev._builtin])], saveCfg();
+        if (!asNew && dev._builtin && devKey(clean) !== devKey(dev)) cfg.hidden = [...new Set([...(cfg.hidden || []), dev._builtin])], saveCfg();
         saveLib(); openCats.add(groupOf(clean)); store.set('openCats', [...openCats]); renderLib();
-        const apply = $('#dApply') && $('#dApply').checked; const back = baseOpen;
+        const apply = !asNew && $('#dApply') && $('#dApply').checked; const back = baseOpen;
         closeModal();
         const cnt = apply ? applyDevToNodes(clean, oldKeys, oldIds) : 0;
-        toast((i >= 0 || dev._builtin ? 'Обновлено в базе: ' : 'Добавлено в базу: ') + clean.model + (cnt ? ` · на схеме обновлено: ${cnt}` : ''));
+        toast((!asNew && (i >= 0 || dev._builtin) ? 'Обновлено в базе: ' : 'Добавлено в базу как новый: ') + clean.model + (cnt ? ` · на схеме обновлено: ${cnt}` : ''));
         if (dev._placeAt) { const n = addNode(clean, dev._placeAt.x, dev._placeAt.y); const L = layout(n); n.x = Math.round((dev._placeAt.x - L.w / 2) / 10) * 10; n.y = Math.round((dev._placeAt.y - (L.ih || L.h) / 2) / 10) * 10; rerenderNode(n); selectOnly([n.id]); markDirty(); }
         if (back) baseManager();
         return;
