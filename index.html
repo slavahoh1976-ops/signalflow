@@ -905,8 +905,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.8.1', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.8.2', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.8.2', '18.11.2026', ['Окно Claude: если память браузера не отвечает, программа не зависает и всё равно загружает базу с фото']],
   ['1.8.1', '18.11.2026', ['Окно Claude: база с фото встроена в программу и загружается сразу']],
   ['1.8.0', '18.11.2026', ['Новая база по умолчанию: 101 прибор с фото, группы «Процессоры» и «LED-контролеры и экраны», порядок приборов', 'База с сайта приносит и настройки групп; нетронутые старые приборы обновляются сами, отредактированные — остаются']],
   ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
@@ -953,7 +954,7 @@ const store = {
 };
 const idb = (() => {
   let dbp = null;
-  const open = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open('signalflow', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+  const open = () => dbp || (dbp = new Promise((res, rej) => { setTimeout(() => rej(new Error('idb timeout')), 1500); try { const r = indexedDB.open('signalflow', 1); r.onblocked = () => rej(new Error('idb blocked')); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
   return {
     async get(k) { try { const db = await open(); return await new Promise((res) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }); } catch (e) { return store.get(k); } },
     async set(k, v) { try { const db = await open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return store.set(k, v); } },
@@ -3498,14 +3499,14 @@ $('#wireStyle').value = cfg.wire;
 renderTypeFilter();
 doc = newDoc(); P = doc.pages[0];
 (async () => {
-  let lib = await idb.get('lib');
+  let lib = null; try { lib = await idb.get('lib'); } catch (e) { lib = null; }
   if (!lib) { const old = store.get('lib', null); if (old) lib = old; }
   customLib = Array.isArray(lib) ? lib : [];
   if (!(cfg.migr || []).includes('io1')) { for (const d of customLib) for (const p of d.ports || []) p.name = portName(p.name, p.dir, p.type); cfg.migr = [...(cfg.migr || []), 'io1']; saveCfg(); saveLib(); }
   else for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name);
-  await mergeDefaults(false);
+  try { await mergeDefaults(false); } catch (e) { console.warn('База с фото не загрузилась', e); }
   renderLib();
-  let saved = await idb.get('doc');
+  let saved = null; try { saved = await idb.get('doc'); } catch (e) { saved = null; }
   if (!saved) saved = store.get('doc', null);
   let d = null;
   try { d = typeof saved === 'string' ? JSON.parse(saved) : saved; if (!d || !d.pages) d = null; } catch (e) { d = null; }
