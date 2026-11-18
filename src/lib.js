@@ -414,6 +414,46 @@ const RAW = [
   ['pp', 'Generic', 'Блок (пустой)', 'hdmi', 'hdmi'],
 ];
 
+// подпись под картинкой на схеме: короткое название устройства (в единственном числе)
+const CAT_ROLE = { cam: 'камера', ccu: 'CCU', sw: 'видеомикшер', proc: 'видеопроцессор', rt: 'матрица', conv: 'конвертер', da: 'сплиттер', ext: 'удлинитель',
+  mon: 'монитор', mv: 'мультивьюер', led: 'LED-контроллер', rec: 'рекордер', nb: 'ноутбук', pc: 'компьютер', d3: 'сервер D3', enc: 'энкодер', net: 'коммутатор',
+  sync: 'генератор синхры', aud: 'звук', ctl: 'пульт', light: 'свет', power: 'питание', per: 'клавиатура и мышь', pp: 'патч-панель', my: 'устройство' };
+function roleOf(d) {
+  if (d.role && String(d.role).trim()) return String(d.role).trim();
+  const model = String(d.model || ''), t = ((d.maker || '') + ' ' + model).toLowerCase(), c = d.cat;
+  const clean = s => s.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  if (c === 'my') return clean(model) || 'устройство';
+  if (c === 'nb') return /^ноут/i.test(model) ? clean(model.replace(/^ноут(бук)?(?=\s|$)/i, 'ноутбук')) : 'ноутбук';
+  if (c === 'mon') return 'монитор';
+  if (/hippo/.test(t)) return 'сервер Hippotizer';
+  if (/resolume|резолюм/.test(t)) return 'сервер Resolume';
+  if (c === 'd3' || /disguise/.test(t)) return 'сервер D3';
+  if (/watchout/.test(t)) return 'сервер Watchout';
+  if (/pixera/.test(t)) return 'сервер Pixera';
+  if (/vmix/.test(t)) return 'сервер vMix';
+  if (/птс/.test(t)) return 'ПТС';
+  if (/интерком|intercom|clear-?com|riedel/.test(t)) return 'интерком';
+  if (/tally|талли/.test(t)) return 'tally';
+  if (/клик|clicker|презентер|spotlight|perfect ?cue|microcue/.test(t)) return 'кликер';
+  if (/(^|\s)ec-\d|\(пульт\)|control panel/.test(t)) return 'пульт';
+  if (/decklink|ultrastudio|capture|захват/.test(t)) return 'плата захвата';
+  if (c === 'aud') {
+    if (/стейдж|stage|rio\d|dante.*бокс/.test(t)) return 'стейдж-бокс';
+    if (/iem|ушн/.test(t)) return 'ушной мониторинг';
+    if (/радио|ulx|slx|ew\s?\d/.test(t)) return 'радиомикрофоны';
+    if (/микрофон|гарнитур/.test(t)) return 'микрофон';
+    if (/scarlett|2i2|us-\d|звуков\S* карт|audio interface/.test(t)) return 'звуковая карта';
+    if (/саундбар|колонк|акустик|сабвуфер|монитор/.test(t)) return 'акустика';
+    if (/пульт|mixer|x32|m32|\bql|\bcl\d|sq-|dlive|tf\d/.test(t)) return 'звуковой пульт';
+    return 'звук';
+  }
+  if (c === 'light') return /grandma|magicq|пульт|wing|avolites|chamsys/.test(t) ? 'световой пульт' : 'свет';
+  if (c === 'power') return /ибп|ups/.test(t) ? 'ИБП' : 'питание';
+  if (c === 'per') return /клав|мыш|keyboard|mouse/.test(t) ? 'клавиатура и мышь' : /мфу|принтер|printer/.test(t) ? 'принтер' : 'периферия';
+  if (c === 'net' && /интернет|облак|internet/.test(t)) return 'интернет';
+  if (c === 'pc' && /сервер|server/.test(t)) return 'сервер';
+  return CAT_ROLE[c] || 'устройство';
+}
 // старый формат «HDMI 2.0 1» → «1 - HDMI 2.0» (номер не сливается с версией); русские названия не трогаем
 function numFirst(name) {
   let s = String(name == null ? '' : name); const m = /^(.*\S)\s+(\d+)$/.exec(s);

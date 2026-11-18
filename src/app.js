@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.8.3', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.9.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.9.0', '18.11.2026', ['Режим «Картинки»: под картинкой — название устройства («монитор», «видеопроцессор», «сервер Resolume»); своя подпись в редакторе прибора и в свойствах; Вид → «Подпись под картинкой» — название / номер / оба']],
   ['1.8.3', '18.11.2026', ['Окно Claude: база с фото встроена прямо в код программы']],
   ['1.8.2', '18.11.2026', ['Окно Claude: если память браузера не отвечает, программа не зависает и всё равно загружает базу с фото']],
   ['1.8.1', '18.11.2026', ['Окно Claude: база с фото встроена в программу и загружается сразу']],
@@ -116,6 +117,7 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .node.sel .n-frame{stroke:var(--sel);stroke-width:1.5;stroke-dasharray:5 3}
 .node.hl .n-frame{stroke:var(--warn);stroke-width:3;stroke-dasharray:none}
 .n-plabel{fill:var(--nodeText);font-size:15px}
+.n-plabel2{fill:var(--sub,#6b7280);font-size:12px}
 .n-stext{font-size:14px}
 .picmode .e-line{stroke-width:1.3}
 .picmode .edge.sel .e-line{stroke-width:2.6}
@@ -223,7 +225,7 @@ function layout(n) {
     let w, ih;
     if (im) { const ar = im.w / im.h; w = n.pw || Math.round(clamp(ar * 110, 70, 220)); ih = Math.round(w / ar); }
     else { const art = ART[artKey(n.cat)]; const ar = art.w / art.h; w = n.pw || Math.round(clamp(ar * 95, 80, 230)); ih = Math.round(w / ar); }
-    return (n._L = { left: [], right: [], w, h: ih + 26, ih, pos: {}, pic: 1 });
+    return (n._L = { left: [], right: [], w, h: ih + ((cfg.picLabel || 'role') === 'both' ? 42 : 26), ih, pos: {}, pic: 1 });
   }
   const left = [], right = [];
   for (const p of n.ports) ((p.dir === 'in') !== !!n.flip ? left : right).push(p);
@@ -396,7 +398,9 @@ function nodeSVGpic(n) {
   }
   if (n.img && doc.images[n.img]) s += `<use class="n-img" href="#img-${n.img}" width="${w}" height="${ih}"/>`;
   else s += `<use class="n-img" href="#art-${artKey(n.cat)}" width="${w}" height="${ih}"/>`;
-  s += `<text class="n-plabel" x="${w / 2}" y="${ih + 18}" text-anchor="middle">${esc(n.label)}</text>`;
+  const pm = cfg.picLabel || 'role', top = pm === 'id' ? n.label : roleOf(n);
+  s += `<text class="n-plabel" x="${w / 2}" y="${ih + 18}" text-anchor="middle">${esc(top)}</text>`;
+  if (pm === 'both') s += `<text class="n-plabel2" x="${w / 2}" y="${ih + 34}" text-anchor="middle">${esc(n.label)}</text>`;
   return s + '</g>';
 }
 function nodeSVG(n) {
@@ -800,7 +804,7 @@ const nextLabel = cat => { const pre = (CATS[cat] || CATS.my).pre; return pre + 
 function addNode(dev, x, y, noHist) {
   if (!noHist) hist();
   const n = {
-    id: uid(), lib: dev.id, cat: dev.cat, maker: dev.maker, model: dev.model, label: nextLabel(dev.cat),
+    id: uid(), lib: dev.id, cat: dev.cat, maker: dev.maker, model: dev.model, label: nextLabel(dev.cat), ...(dev.role ? { role: dev.role } : {}),
     x: cfg.snap ? Math.round(x / 10) * 10 : x, y: cfg.snap ? Math.round(y / 10) * 10 : y,
     ports: dev.ports.map(p => ({ id: uid(), name: p.name, type: p.type, dir: p.dir })), loc: '', notes: '',
   };
@@ -1696,7 +1700,8 @@ function renderNodeProps(el, n) {
     return `<tr class="clk" data-goto="${e.id}"><td><span class="dot" style="background:${T[e.type].c}"></span></td><td>${esc(p.name)}</td><td>${arrow}</td><td><b>${esc(on && on.label)}</b> ${esc(op && op.name)}</td><td class="muted">${esc(e.label)}</td></tr>`;
   }).join('');
   el.innerHTML = `<h3><span class="dot" style="background:${n.color || cat.c}"></span>${esc(cat.n)}</h3>
-    ${fld('Обозначение на схеме', 'label', n.label, { focus: 1 })}
+    ${fld('Обозначение (номер)', 'label', n.label, { focus: 1 })}
+    ${fld('Подпись под картинкой', 'role', n.role || '', { ph: roleOf({ ...n, role: '' }) })}
     <div class="row">${fld('Производитель', 'maker', n.maker)}${fld('Модель', 'model', n.model)}</div>
     ${fld('Помещение / рэк / позиция', 'loc', n.loc, { ph: 'Аппаратная, рэк 2, U14', list: 'locList' })}
     ${fld('Примечание', 'notes', n.notes, { area: 1, rows: 2 })}
@@ -2200,7 +2205,7 @@ function applyDevToNodes(dev, oldKeys, oldIds) {
   hist();
   const imgId = dev.img ? putImage(dev.img) : null;
   for (const [pg, n] of list) {
-    n.lib = dev.id; n.maker = dev.maker; n.model = dev.model; n.cat = dev.cat;
+    n.lib = dev.id; n.maker = dev.maker; n.model = dev.model; n.cat = dev.cat; if (dev.role) n.role = dev.role; else delete n.role;
     if (imgId) n.img = imgId; else delete n.img;
     const byName = new Map(n.ports.map(p => [p.dir + '|' + p.name, p]));
     const used = new Set();
@@ -2237,6 +2242,7 @@ function deviceEditor(dev) {
       </div>
       <div>
         <div class="row">${fld('Производитель', 'd_maker', d.maker === 'Generic' ? '' : (d.maker || ''))}${fld('Модель', 'd_model', d.model || '', { focus: 1 })}</div>
+        ${fld('Подпись на схеме (под картинкой)', 'd_role', d.role || '', { ph: roleOf({ ...d, role: '' }) + ' — по умолчанию' })}
         <div class="row">${(newGrp ? fld('Новая группа', 'd_group', '', { ph: 'название новой группы', focus: 1 }) : fld('Группа в библиотеке', 'd_group', '', { select: [...new Set([...groups, d.group])].map(g => `<option${g === d.group ? ' selected' : ''}>${esc(g)}</option>`).join('') + '<option value="__new">＋ Новая группа…</option>' }))}${fld('Цвет шапки и префикс', 'd_cat', '', { select: catOpts })}</div>
         <datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
         <h4>Порты (${d.ports.length})</h4><div id="dPorts">${portsTable(d.ports)}</div>
@@ -2283,6 +2289,7 @@ function deviceEditor(dev) {
         const ids0 = g0 ? sortByDevOrder(g0, allLib().filter(x => groupOf(x) === g0)).map(x => x.id) : [];
         const clean = { id: !asNew && dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
         if (d.img) clean.img = d.img;
+        if (d.role && d.role.trim()) clean.role = d.role.trim();
         const i = customLib.findIndex(x => x.id === clean.id);
         if (i >= 0) customLib[i] = clean; else customLib.push(clean);
         if (!asNew && dev._builtin && devKey(clean) !== devKey(dev)) cfg.hidden = [...new Set([...(cfg.hidden || []), dev._builtin])], saveCfg();
@@ -2453,6 +2460,12 @@ const CMD = {
   toggleGrid: () => { cfg.grid = !cfg.grid; cfg.snap = cfg.grid; saveCfg(); setView(); toast(cfg.grid ? 'Сетка и привязка включены' : 'Сетка выключена'); },
   toggleLegend: () => { cfg.legend = !cfg.legend; saveCfg(); renderExtra(); },
   toggleLabels: () => { cfg.labels = !cfg.labels; saveCfg(); renderAll(); },
+  picLabel: () => {
+    const order = ['role', 'id', 'both'], nm = { role: 'название («монитор», «видеопроцессор»)', id: 'номер («MON 1», «PRC 1»)', both: 'название и номер' };
+    cfg.picLabel = order[(order.indexOf(cfg.picLabel || 'role') + 1) % 3]; saveCfg();
+    for (const pg of doc.pages) for (const n of pg.nodes) n._L = null; renderAll();
+    toast('Под картинкой: ' + nm[cfg.picLabel]);
+  },
   theme: () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); document.documentElement.classList.toggle('dark', cfg.theme === 'dark'); },
   viewPorts: () => setMode('ports'), viewPic: () => setMode('pic'),
   addPage: () => { hist(); doc.pages.push(newPage('Страница ' + (doc.pages.length + 1))); switchPage(doc.pages.length - 1); markDirty(); },
