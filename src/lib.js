@@ -28,6 +28,7 @@ const T = {
   aes:    { n: 'AES/EBU', s: 'AES', fam: 'aes', c: '#e11d48', pre: 'A' },
   madi:   { n: 'MADI', s: 'MADI', fam: 'madi', c: '#be123c', pre: 'A' },
   usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#475569', pre: 'U' },
+  exp:    { n: 'Expansion Port', s: 'EXP', fam: 'exp', c: '#0e7490', pre: 'X' },
   ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#64748b', pre: 'C' },
   gpio:   { n: 'GPIO / Tally', s: 'GPIO', fam: 'gpio', c: '#84cc16', pre: 'G' },
   pwr:    { n: 'Питание 220 В', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
@@ -415,6 +416,7 @@ function parsePorts(spec, dir) {
     let nm = name;
     if (name && name.includes('*')) { [nm, cnt] = name.split('*'); }
     cnt = parseInt(cnt || '1', 10);
+    if (/expansion|\bexp\b/i.test(nm || '')) t = 'exp';
     if (!T[t]) t = 'sdi3g';
     const ver = /(\d\.\d)/.exec(nm || '');
     if (ver && t === 'hdmi') t = { '1.3': 'hdmi13', '1.4': 'hdmi14', '2.0': 'hdmi20', '2.1': 'hdmi21' }[ver[1]] || t;
