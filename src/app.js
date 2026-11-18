@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.2', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.3', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.3', '18.11.2026', ['Автоназвания портов без «IN»: вход — «1 - HDMI 2.0», выход — «1 - HDMI Out»; старые «… IN/OUT» переименовываются сами']],
   ['1.7.2', '18.11.2026', ['Библиотека: картинки приборов одной ширины — названия начинаются ровно']],
   ['1.7.1', '18.11.2026', ['Исправлено: устройство, перетащенное внутри группы, теперь остаётся на новом месте']],
   ['1.7.0', '18.11.2026', ['Порядок устройств внутри группы меняется перетаскиванием (с линией вставки); можно сразу бросить в нужное место другой группы']],
@@ -1607,7 +1608,7 @@ function fld(label, key, val, opt = {}) {
   return `<div class="fld"><label>${label}</label>${input}</div>`;
 }
 // автоназвание порта: «HDMI IN 2», «3G-SDI OUT 1», «LAN 1» — номер по порядку среди портов того же типа и направления
-const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'io' ? s : `${s} ${dir === 'in' ? 'IN' : 'OUT'}`; };
+const portBase = (t, dir) => { const s = T[t] ? (T[t].fam === 'sdi' ? T[t].n : (T[t].s || 'Связь')) : 'Порт'; return dir === 'out' ? `${s} Out` : s; };
 function renumberPorts(ports) {
   const cnt = {};
   for (const p of ports) { const k = p.type + '|' + p.dir; cnt[k] = (cnt[k] || 0) + 1; if (p.auto) p.name = `${cnt[k]} - ${portBase(p.type, p.dir)}`; }
@@ -2331,7 +2332,7 @@ async function mergeDefaults(force) {
   let data; try { const r = await fetch('devices.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; data = await r.json(); } catch (e) { if (force) toast('Не удалось загрузить базу с фото', 'e'); return 0; }
   const have = new Set(customLib.map(d => d.id)), haveKey = new Set(customLib.map(devKey)), removed = new Set(force ? [] : (cfg.removedDefaults || []));
   let n = 0;
-  for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; customLib.push(d); n++; }
+  for (const d of data.devices || []) { if (have.has(d.id) || haveKey.has(devKey(d)) || removed.has(d.id)) continue; for (const p of d.ports || []) p.name = numFirst(p.name); customLib.push(d); n++; }
   // разовое обновление уже загруженных устройств: Expansion-порты и версии HDMI/DP (1.6.5)
   if (!(cfg.migr || []).includes('exp1')) {
     const byId = new Map((data.devices || []).map(d => [d.id, d])); let m = 0;
