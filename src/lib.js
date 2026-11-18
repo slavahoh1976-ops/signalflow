@@ -1,39 +1,42 @@
 // ===================== ТИПЫ СИГНАЛОВ =====================
 // fam — семейство (для проверки совместимости), pre — префикс номера кабеля
 const T = {
-  sdi12g: { n: '12G-SDI', s: 'SDI', fam: 'sdi', rate: 4, c: '#1f6feb', pre: 'V' },
-  sdi6g:  { n: '6G-SDI',  s: 'SDI', fam: 'sdi', rate: 3, c: '#3b82f6', pre: 'V' },
-  sdi3g:  { n: '3G-SDI',  s: 'SDI', fam: 'sdi', rate: 2, c: '#60a5fa', pre: 'V' },
-  sdihd:  { n: 'HD-SDI',  s: 'SDI', fam: 'sdi', rate: 1, c: '#93c5fd', pre: 'V' },
-  hdmi:   { n: 'HDMI',    s: 'HDMI', fam: 'hdmi', c: '#ea7a1e', pre: 'H' },
-  hdmi13: { n: 'HDMI 1.3', s: 'HDMI 1.3', fam: 'hdmi', rate: 1, c: '#fdba74', pre: 'H' },
-  hdmi14: { n: 'HDMI 1.4', s: 'HDMI 1.4', fam: 'hdmi', rate: 2, c: '#fb923c', pre: 'H' },
-  hdmi20: { n: 'HDMI 2.0', s: 'HDMI 2.0', fam: 'hdmi', rate: 3, c: '#ea580c', pre: 'H' },
-  hdmi21: { n: 'HDMI 2.1', s: 'HDMI 2.1', fam: 'hdmi', rate: 4, c: '#c2410c', pre: 'H' },
-  dp:     { n: 'DisplayPort', s: 'DP', fam: 'dp', c: '#9b51e0', pre: 'D' },
-  dp11:   { n: 'DisplayPort 1.1', s: 'DP 1.1', fam: 'dp', rate: 1, c: '#d8b4fe', pre: 'D' },
-  dp12:   { n: 'DisplayPort 1.2', s: 'DP 1.2', fam: 'dp', rate: 2, c: '#b07cf0', pre: 'D' },
-  dp14:   { n: 'DisplayPort 1.4', s: 'DP 1.4', fam: 'dp', rate: 3, c: '#9333ea', pre: 'D' },
-  dp21:   { n: 'DisplayPort 2.1', s: 'DP 2.1', fam: 'dp', rate: 4, c: '#6b21a8', pre: 'D' },
-  dvi:    { n: 'DVI',     s: 'DVI', fam: 'dvi', c: '#c084fc', pre: 'D' },
+  sdi12g: { n: '12G-SDI', s: 'SDI', fam: 'sdi', rate: 4, c: '#14532d', pre: 'V' },
+  sdi6g:  { n: '6G-SDI',  s: 'SDI', fam: 'sdi', rate: 3, c: '#15803d', pre: 'V' },
+  sdi3g:  { n: '3G-SDI',  s: 'SDI', fam: 'sdi', rate: 2, c: '#22c55e', pre: 'V' },
+  sdihd:  { n: 'HD-SDI',  s: 'SDI', fam: 'sdi', rate: 1, c: '#86efac', pre: 'V' },
+  hdmi:   { n: 'HDMI',    s: 'HDMI', fam: 'hdmi', c: '#0ea5e9', pre: 'H' },
+  hdmi13: { n: 'HDMI 1.3', s: 'HDMI 1.3', fam: 'hdmi', rate: 1, c: '#93c5fd', pre: 'H' },
+  hdmi14: { n: 'HDMI 1.4', s: 'HDMI 1.4', fam: 'hdmi', rate: 2, c: '#3b82f6', pre: 'H' },
+  hdmi20: { n: 'HDMI 2.0', s: 'HDMI 2.0', fam: 'hdmi', rate: 3, c: '#1d4ed8', pre: 'H' },
+  hdmi21: { n: 'HDMI 2.1', s: 'HDMI 2.1', fam: 'hdmi', rate: 4, c: '#172554', pre: 'H' },
+  dp:     { n: 'DisplayPort', s: 'DP', fam: 'dp', c: '#a78bfa', pre: 'D' },
+  dp11:   { n: 'DisplayPort 1.1', s: 'DP 1.1', fam: 'dp', rate: 1, c: '#c4b5fd', pre: 'D' },
+  dp12:   { n: 'DisplayPort 1.2', s: 'DP 1.2', fam: 'dp', rate: 2, c: '#8b5cf6', pre: 'D' },
+  dp14:   { n: 'DisplayPort 1.4', s: 'DP 1.4', fam: 'dp', rate: 3, c: '#6d28d9', pre: 'D' },
+  dp21:   { n: 'DisplayPort 2.1', s: 'DP 2.1', fam: 'dp', rate: 4, c: '#3b0764', pre: 'D' },
+  dvi:    { n: 'DVI',     s: 'DVI', fam: 'dvi', c: '#f9a8d4', pre: 'D' },
   vga:    { n: 'VGA (аналог)', s: 'VGA', fam: 'vga', c: '#94a3b8', pre: 'D' },
-  hdbt:   { n: 'HDBaseT', s: 'HDBT', fam: 'hdbt', c: '#d97706', pre: 'T' },
-  cvbs:   { n: 'CVBS (композит)', s: 'CVBS', fam: 'cvbs', c: '#a3a3a3', pre: 'V' },
-  fiber:  { n: 'Оптика (видео)', s: 'FIB', fam: 'fiber', c: '#16a34a', pre: 'F' },
-  eth:    { n: 'Ethernet (NDI/IP/Dante)', s: 'LAN', fam: 'eth', c: '#0d9488', pre: 'N' },
+  hdbt:   { n: 'HDBaseT', s: 'HDBT', fam: 'hdbt', c: '#22d3ee', pre: 'T' },
+  cvbs:   { n: 'CVBS (композит)', s: 'CVBS', fam: 'cvbs', c: '#bdb8b2', pre: 'V' },
+  fiber:  { n: 'Оптика (видео)', s: 'FIB', fam: 'fiber', c: '#fdba74', pre: 'F' },
+  fibmm:  { n: 'Оптика многомод (MM)', s: 'MM', fam: 'fiber', c: '#f97316', pre: 'F' },
+  fibsm:  { n: 'Оптика одномод (SM)', s: 'SM', fam: 'fiber', c: '#c2410c', pre: 'F' },
+  fibhyb: { n: 'Оптика комбинированная (гибрид, SMPTE)', s: 'HYB', fam: 'fiber', c: '#7c2d12', pre: 'F' },
+  eth:    { n: 'LAN витая пара (UTP: NDI/IP/Dante)', s: 'LAN', fam: 'eth', c: '#f5c518', pre: 'N' },
   sfp:    { n: 'SFP+ 10/25G (ST 2110)', s: 'SFP', fam: 'eth', c: '#0f766e', pre: 'N' },
-  ref:    { n: 'Genlock / Ref', s: 'REF', fam: 'ref', c: '#ca8a04', pre: 'R' },
+  ref:    { n: 'Genlock / Ref', s: 'REF', fam: 'ref', c: '#db2777', pre: 'R' },
   tc:     { n: 'Timecode LTC', s: 'TC', fam: 'tc', c: '#a16207', pre: 'R' },
-  aud:    { n: 'Аудио аналог (XLR/Jack)', s: 'AUD', fam: 'aud', c: '#dc2626', pre: 'A' },
-  aes:    { n: 'AES/EBU', s: 'AES', fam: 'aes', c: '#e11d48', pre: 'A' },
-  madi:   { n: 'MADI', s: 'MADI', fam: 'madi', c: '#be123c', pre: 'A' },
-  usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#475569', pre: 'U' },
+  aud:    { n: 'Аудио аналог (XLR/Jack)', s: 'AUD', fam: 'aud', c: '#ef4444', pre: 'A' },
+  aes:    { n: 'AES/EBU', s: 'AES', fam: 'aes', c: '#fca5a5', pre: 'A' },
+  madi:   { n: 'MADI', s: 'MADI', fam: 'madi', c: '#9f1239', pre: 'A' },
+  usb:    { n: 'USB', s: 'USB', fam: 'usb', c: '#78716c', pre: 'U' },
   exp:    { n: 'Expansion Port', s: 'EXP', fam: 'exp', c: '#0e7490', pre: 'X' },
-  ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#64748b', pre: 'C' },
+  ctrl:   { n: 'RS-422/232 управление', s: 'RS', fam: 'ctrl', c: '#7c5a3c', pre: 'C' },
   gpio:   { n: 'GPIO / Tally', s: 'GPIO', fam: 'gpio', c: '#84cc16', pre: 'G' },
-  pwr:    { n: 'Питание 220 В', s: 'PWR', fam: 'pwr', c: '#111827', pre: 'P' },
-  dmx:    { n: 'DMX 512 (свет)', s: 'DMX', fam: 'dmx', c: '#a855f7', pre: 'L' },
-  any:    { n: 'Любой (простая схема)', s: '', fam: 'any', c: '#374151', pre: 'C' },
+  pwr:    { n: 'Питание 220 В', s: 'PWR', fam: 'pwr', c: '#000000', pre: 'P' },
+  dmx:    { n: 'DMX 512 (свет)', s: 'DMX', fam: 'dmx', c: '#c026d3', pre: 'L' },
+  any:    { n: 'Любой (простая схема)', s: '', fam: 'any', c: '#52525b', pre: 'C' },
 };
 const TYPE_KEYS = Object.keys(T);
 
@@ -47,6 +50,11 @@ function compat(a, b) {
     return [1, A.fam === 'sdi' ? `${A.n} → вход ${B.n}: вход может не принять такой формат` : `${A.n} → вход ${B.n}: вход старше версии — разрешение/частота будут ниже`];
   }
   if (A.fam === 'any' || B.fam === 'any') return [2, ''];
+  if (A.fam === 'fiber' && B.fam === 'fiber') {
+    if (a === 'fibhyb' || b === 'fibhyb') return a === 'fiber' || b === 'fiber' ? [1, 'Гибридный кабель: проверьте разъём на втором конце'] : [0, 'Гибридный (камерный) кабель соединяется только с гибридным разъёмом'];
+    if (a === 'fiber' || b === 'fiber') return [1, 'Оптика: проверьте тип волокна (одномод/многомод)'];
+    return [0, 'Одномод ↔ многомод: волокна несовместимы, нужен конвертер'];
+  }
   if (A.fam === B.fam) return [1, `${A.n} ↔ ${B.n}: проверьте скорость/модуль`];
   const pair = [A.fam, B.fam].sort().join('+');
   if (pair === 'dvi+hdmi') return [1, 'HDMI ↔ DVI: нужен пассивный переходник, звука не будет'];
@@ -420,6 +428,7 @@ function parsePorts(spec, dir) {
     cnt = parseInt(cnt || '1', 10);
     if (/expansion|\bexp\b/i.test(nm || '')) t = 'exp';
     if (!T[t]) t = 'sdi3g';
+    if (t === 'fiber') { if (/гибрид|hybrid|smpte|\btac\b/i.test(nm || '')) t = 'fibhyb'; else if (/\bsm\b|single|одномод/i.test(nm || '')) t = 'fibsm'; else if (/\bmm\b|multi|многомод/i.test(nm || '')) t = 'fibmm'; }
     const ver = /(\d\.\d)/.exec(nm || '');
     if (ver && t === 'hdmi') t = { '1.3': 'hdmi13', '1.4': 'hdmi14', '2.0': 'hdmi20', '2.1': 'hdmi21' }[ver[1]] || t;
     if (ver && t === 'dp') t = { '1.1': 'dp11', '1.2': 'dp12', '1.4': 'dp14', '2.0': 'dp21', '2.1': 'dp21' }[ver[1]] || t;

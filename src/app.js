@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.7', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.8', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.8', '18.11.2026', ['Программа теперь называется «Сигнал»', 'Новые цвета кабелей: HDMI — синие, SDI — зелёные, оптика — рыжие, DP — сиреневые, звук — красные, LAN — яичный жёлтый; все типы различимы', 'Оптика: одномод (SM), многомод (MM), комбинированная (гибрид) — с проверкой совместимости']],
   ['1.6.7', '18.11.2026', ['Точки подключения у портов снова видны: свободный порт — кольцо цвета сигнала, подключённый — закрашенная точка; при наведении подсвечиваются']],
   ['1.6.6', '18.11.2026', ['Номер порта теперь впереди: «1 - HDMI 2.0» вместо «HDMI 2.0 1» — номер не сливается с версией']],
   ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров Event Master между собой); у Barco E2 — 4, S3-4K — 2, Ex — 2 порта']],
@@ -745,7 +746,7 @@ function restoreBackup(b) {
 }
 function openDoc(d, handle) {
   if (d && d.backup) return restoreBackup(d);
-  if (!d || !Array.isArray(d.pages)) return toast('Это не файл SignalFlow', 'e');
+  if (!d || !Array.isArray(d.pages)) return toast('Это не файл программы «Сигнал»', 'e');
   doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
   $('#imgDefs').innerHTML = '';
   for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) { p.id ||= uid(); p.name = numFirst(p.name); } }
@@ -1308,7 +1309,7 @@ function devMatches(d, q) {
   return q.split(/\s+/).every(w => hay.includes(w));
 }
 function famOf(w) {
-  w = w.toLowerCase(); const map = { sdi: 'sdi', hdmi: 'hdmi', dp: 'dp', dvi: 'dvi', fiber: 'fiber', 'оптика': 'fiber', opt: 'fiber', ndi: 'eth', ip: 'eth', lan: 'eth', eth: 'eth', usb: 'usb', hdbt: 'hdbt', hdbaset: 'hdbt', cvbs: 'cvbs', av: 'cvbs', vga: 'vga', aes: 'aes', audio: 'aud', xlr: 'aud' };
+  w = w.toLowerCase(); const map = { sdi: 'sdi', hdmi: 'hdmi', dp: 'dp', dvi: 'dvi', fiber: 'fiber', 'оптика': 'fiber', opt: 'fiber', ndi: 'eth', ip: 'eth', lan: 'eth', eth: 'eth', utp: 'eth', sm: 'fibsm', mm: 'fibmm', 'одномод': 'fibsm', 'многомод': 'fibmm', 'гибрид': 'fibhyb', hybrid: 'fibhyb', usb: 'usb', hdbt: 'hdbt', hdbaset: 'hdbt', cvbs: 'cvbs', av: 'cvbs', vga: 'vga', aes: 'aes', audio: 'aud', xlr: 'aud' };
   return map[w];
 }
 function renderQuick() {
@@ -1475,7 +1476,7 @@ function pickGroup(list) {
 function renderLib() {
   const q = $('#libSearch').value.trim().toLowerCase();
   const tf = [...typeFilter].filter(k => k !== 'photo');
-  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.has('photo') || d.img) && (!tf.length || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g') || (typeFilter.has('hdmi') && T[p.type].fam === 'hdmi') || (typeFilter.has('dp') && T[p.type].fam === 'dp'))));
+  const all = allLib().filter(d => devMatches(d, q) && (!typeFilter.has('photo') || d.img) && (!tf.length || d.ports.some(p => typeFilter.has(p.type) || (typeFilter.has('sdi3g') && T[p.type].fam === 'sdi' && p.type !== 'sdi12g') || (typeFilter.has('hdmi') && T[p.type].fam === 'hdmi') || (typeFilter.has('dp') && T[p.type].fam === 'dp') || (typeFilter.has('fiber') && T[p.type].fam === 'fiber'))));
   const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
   const gmap = new Map();
   for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
@@ -2063,7 +2064,7 @@ function printDoc() {
 // ============================================================================
 //  ФАЙЛЫ
 // ============================================================================
-const FILE_TYPES = [{ description: 'Схема SignalFlow', accept: { 'application/json': ['.json', '.vsf'] } }];
+const FILE_TYPES = [{ description: 'Схема «Сигнал»', accept: { 'application/json': ['.json', '.vsf'] } }];
 async function writeHandle(h) { const w = await h.createWritable(); await w.write(snap()); await w.close(); }
 async function save() {
   if (fileHandle) { try { await writeHandle(fileHandle); dirtyFile = false; setSaveState(); toast('Сохранено'); return; } catch (e) { } }
@@ -2338,10 +2339,10 @@ const CMD = {
   selAll: () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)), find: () => $('#findBox').focus(), renumber,
   quick: quickAtCenter, addFrame, addText, newDevice: () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] }),
   newGroup: () => newGroup(),
-  backupAll: () => download(`SignalFlow — резервная копия ${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'SignalFlow', backup: 1, appVersion: APP_VERSION, date: new Date().toISOString(), doc: JSON.parse(snap()), lib: customLib, cfg, favs: [...favs] }), 'application/json'),
+  backupAll: () => download(`Сигнал — резервная копия ${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'SignalFlow', backup: 1, appVersion: APP_VERSION, date: new Date().toISOString(), doc: JSON.parse(snap()), lib: customLib, cfg, favs: [...favs] }), 'application/json'),
   restoreAll: () => $('#fileIn').click(),
   baseManager: () => { baseQ = ''; baseSel.clear(); baseManager(); },
-  libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('signalflow-база-устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
+  libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('Сигнал — база устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
   libImport: () => $('#libIn').click(),
   libDefault: () => mergeDefaults(true),
   photoDemo: () => { const d = buildPhotoDemo(); if (d) { openDoc(d); fit(); } },
@@ -2354,7 +2355,7 @@ const CMD = {
   theme: () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); document.documentElement.classList.toggle('dark', cfg.theme === 'dark'); },
   viewPorts: () => setMode('ports'), viewPic: () => setMode('pic'),
   addPage: () => { hist(); doc.pages.push(newPage('Страница ' + (doc.pages.length + 1))); switchPage(doc.pages.length - 1); markDirty(); },
-  about: () => openModal(`SignalFlow — версия ${APP_VERSION}`, `<p class="muted">Редактор схем видеосигнала для аппаратных. Сборка от ${APP_DATE}.</p>` + CHANGELOG.map(([v, d, list]) => `<h4>v${v} · ${d}${v === APP_VERSION ? ' — текущая' : ''}</h4><ul style="margin:4px 0 10px;padding-left:20px;line-height:1.6">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('') + '<p class="small muted">Исходники и обновления: github.com/slavahoh1976-ops/signalflow</p>'),
+  about: () => openModal(`Сигнал — версия ${APP_VERSION}`, `<p class="muted">Редактор схем видеосигнала для аппаратных. Сборка от ${APP_DATE}.</p>` + CHANGELOG.map(([v, d, list]) => `<h4>v${v} · ${d}${v === APP_VERSION ? ' — текущая' : ''}</h4><ul style="margin:4px 0 10px;padding-left:20px;line-height:1.6">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('') + '<p class="small muted">Исходники и обновления: github.com/slavahoh1976-ops/signalflow</p>'),
   help: () => openModal('Горячие клавиши и приёмы', `<table class="grid"><tbody>${[
     ['Двойной клик по холсту, A, /, Ctrl+K', 'Быстрый поиск и добавление устройства'],
     ['Тянуть от порта', 'Новый кабель (зелёные порты — совместимы)'],
@@ -2489,7 +2490,7 @@ function buildStress(N) {
 //  СТАРТ
 // ============================================================================
 document.documentElement.classList.toggle('dark', cfg.theme === 'dark');
-$('#appVer').textContent = 'v' + APP_VERSION; document.title = `SignalFlow ${APP_VERSION} — схемы видеосигнала`;
+$('#appVer').textContent = 'v' + APP_VERSION; document.title = `Сигнал ${APP_VERSION} — схемы видеосигнала`;
 $('#wireStyle').value = cfg.wire;
 renderTypeFilter();
 doc = newDoc(); P = doc.pages[0];
