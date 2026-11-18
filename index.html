@@ -902,8 +902,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.5', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.6', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
   ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
   ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
   ['1.7.3', '18.11.2026', ['Автоназвания портов без «IN»: вход — «1 - HDMI 2.0», выход — «1 - HDMI Out»; старые «… IN/OUT» переименовываются сами']],
@@ -3159,11 +3160,18 @@ function deviceEditor(dev) {
         const asNew = t.id === 'dSaveNew';
         if (!d.model || !d.model.trim()) return toast('Укажите модель', 'w');
         if (asNew && d.model.trim() === (dev.model || '').trim() && (d.maker || '').trim() === (dev.maker === 'Generic' ? '' : (dev.maker || '')).trim()) d.model = d.model.trim() + ' (копия)';
+        const oldItem = libById(dev.id) || libById(dev._builtin), g0 = oldItem ? groupOf(oldItem) : null;
+        const ids0 = g0 ? sortByDevOrder(g0, allLib().filter(x => groupOf(x) === g0)).map(x => x.id) : [];
         const clean = { id: !asNew && dev.id && customLib.some(x => x.id === dev.id) ? dev.id : 'c' + uid(), cat: d.cat, group: (d.group || '').trim(), maker: (d.maker || '').trim() || 'Generic', model: d.model.trim(), ports: d.ports.map(p => ({ name: p.name, type: p.type, dir: p.dir })) };
         if (d.img) clean.img = d.img;
         const i = customLib.findIndex(x => x.id === clean.id);
         if (i >= 0) customLib[i] = clean; else customLib.push(clean);
         if (!asNew && dev._builtin && devKey(clean) !== devKey(dev)) cfg.hidden = [...new Set([...(cfg.hidden || []), dev._builtin])], saveCfg();
+        if (oldItem && g0 === groupOf(clean)) {
+          const ids = ids0.slice(), k = ids.indexOf(oldItem.id);
+          if (asNew) ids.splice(k >= 0 ? k + 1 : ids.length, 0, clean.id); else if (k >= 0) ids[k] = clean.id; else ids.push(clean.id);
+          cfg.devOrder = { ...(cfg.devOrder || {}), [g0]: ids }; saveCfg();
+        }
         saveLib(); openCats.add(groupOf(clean)); store.set('openCats', [...openCats]); renderLib();
         const apply = !asNew && $('#dApply') && $('#dApply').checked; const back = baseOpen;
         closeModal();
