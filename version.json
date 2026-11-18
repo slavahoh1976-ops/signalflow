@@ -1,8 +1,8 @@
 {
- "version": "1.9.0",
- "notes": "Под картинкой на схеме — название устройства (монитор, видеопроцессор, сервер Resolume).",
+ "version": "1.9.1",
+ "notes": "Приложения для Windows и Mac: Помощь → «Скачать для Windows и Mac».",
  "desktop": {
   "shell": "1.0.0",
-  "page": "https://github.com/slavahoh1976-ops/signal-app/releases/latest"
+  "page": "https://slavahoh1976-ops.github.io/signalflow/download/"
  }
 }
