@@ -32,7 +32,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-family:inherit}
 .hidden{display:none!important}
 
-#app{display:grid;grid-template-columns:270px 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
+#app{--libW:360px;display:grid;grid-template-columns:var(--libW) 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
 #top{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap;min-width:0}
 .brand{display:flex;align-items:center;gap:6px;color:var(--acc)}
 .appName{color:var(--text);font-size:14px}
@@ -61,9 +61,9 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .seg button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 #findBox{width:150px}
 @media (max-width:1350px){#findBox,#wireStyle{display:none}}
-@media (max-width:1150px){#app{grid-template-columns:230px 1fr 250px}}
+@media (max-width:1150px){#app{--libW:300px;grid-template-columns:var(--libW) 1fr 250px}}
 
-#lib{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#lib{position:relative;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .libHead{padding:8px}
 .libHead input{width:100%}
 .libHead input[type=checkbox]{width:auto;margin:0}
@@ -203,6 +203,9 @@ button.danger:hover{border-color:var(--bad)}
 .item .ic.art,.item .ic.ph{width:46px;height:28px;box-sizing:border-box}
 .item .ic.art svg{width:100%;height:100%}
 .item .ic.ph img{width:100%;height:100%;object-fit:contain;display:block}
+
+#libResize{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:5}
+#libResize:hover,#libResize.on{background:linear-gradient(90deg,transparent 3px,var(--acc) 3px,var(--acc) 5px,transparent 5px)}
 </style>
 </head>
 <body>
@@ -250,7 +253,7 @@ button.danger:hover{border-color:var(--bad)}
     </div>
   </header>
 
-  <aside id="lib">
+  <aside id="lib"><div id="libResize" title="Потяните, чтобы изменить ширину · двойной клик — по умолчанию"></div>
     <div class="libHead"><input id="libSearch" placeholder="Поиск: atem, sdi>hdmi, novastar…" spellcheck="false"><label class="small muted" style="display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="libBuiltin"> Показывать встроенную базу (типовые модели)</label></div>
     <div id="libTypeFilter"></div>
     <div id="libList"></div>
@@ -902,8 +905,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.6', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.7', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
   ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
   ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
   ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
@@ -2421,6 +2425,20 @@ function renderLib() {
   }).join('') || `<div class="muted" style="padding:12px;line-height:1.5">${customLib.length || q ? 'Ничего не найдено' : 'Ваша база пуста.<br>Нажмите «＋ Своё устройство» или просто перетащите фото устройства сюда.'}</div>`;
 }
 $('#libSearch').addEventListener('input', renderLib);
+// ширина левой панели: тянуть за край, двойной клик — сброс
+(() => {
+  const app = $('#app'), h = $('#libResize'); if (!h) return;
+  const setW = w => { if (w) app.style.setProperty('--libW', w + 'px'); else app.style.removeProperty('--libW'); window.dispatchEvent(new Event('resize')); };
+  const saved = store.get('libW', 0); if (saved) setW(saved);
+  h.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); h.setPointerCapture(ev.pointerId); h.classList.add('on');
+    const x0 = ev.clientX, w0 = $('#lib').getBoundingClientRect().width;
+    const mv = e => setW(Math.round(Math.max(220, Math.min(window.innerWidth * 0.6, w0 + e.clientX - x0))));
+    const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); store.set('libW', Math.round($('#lib').getBoundingClientRect().width)); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  });
+  h.addEventListener('dblclick', () => { store.set('libW', 0); setW(0); });
+})();
 $('#libBuiltin').checked = cfg.builtin;
 $('#libBuiltin').addEventListener('change', ev => { cfg.builtin = ev.target.checked; saveCfg(); renderLib(); });
 $('#libTypeFilter').addEventListener('click', ev => { const s = ev.target.closest('[data-tf]'); if (!s) return; const k = s.dataset.tf; typeFilter.has(k) ? typeFilter.delete(k) : typeFilter.add(k); renderTypeFilter(); renderLib(); });

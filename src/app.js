@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.6', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.7', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
   ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
   ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
   ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
@@ -1521,6 +1522,20 @@ function renderLib() {
   }).join('') || `<div class="muted" style="padding:12px;line-height:1.5">${customLib.length || q ? 'Ничего не найдено' : 'Ваша база пуста.<br>Нажмите «＋ Своё устройство» или просто перетащите фото устройства сюда.'}</div>`;
 }
 $('#libSearch').addEventListener('input', renderLib);
+// ширина левой панели: тянуть за край, двойной клик — сброс
+(() => {
+  const app = $('#app'), h = $('#libResize'); if (!h) return;
+  const setW = w => { if (w) app.style.setProperty('--libW', w + 'px'); else app.style.removeProperty('--libW'); window.dispatchEvent(new Event('resize')); };
+  const saved = store.get('libW', 0); if (saved) setW(saved);
+  h.addEventListener('pointerdown', ev => {
+    ev.preventDefault(); h.setPointerCapture(ev.pointerId); h.classList.add('on');
+    const x0 = ev.clientX, w0 = $('#lib').getBoundingClientRect().width;
+    const mv = e => setW(Math.round(Math.max(220, Math.min(window.innerWidth * 0.6, w0 + e.clientX - x0))));
+    const up = () => { h.classList.remove('on'); h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); store.set('libW', Math.round($('#lib').getBoundingClientRect().width)); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  });
+  h.addEventListener('dblclick', () => { store.set('libW', 0); setW(0); });
+})();
 $('#libBuiltin').checked = cfg.builtin;
 $('#libBuiltin').addEventListener('change', ev => { cfg.builtin = ev.target.checked; saveCfg(); renderLib(); });
 $('#libTypeFilter').addEventListener('click', ev => { const s = ev.target.closest('[data-tf]'); if (!s) return; const k = s.dataset.tf; typeFilter.has(k) ? typeFilter.delete(k) : typeFilter.add(k); renderTypeFilter(); renderLib(); });

@@ -22,7 +22,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-family:inherit}
 .hidden{display:none!important}
 
-#app{display:grid;grid-template-columns:270px 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
+#app{--libW:360px;display:grid;grid-template-columns:var(--libW) 1fr 290px;grid-template-rows:auto 1fr 30px;height:100vh}
 #top{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:nowrap;min-width:0}
 .brand{display:flex;align-items:center;gap:6px;color:var(--acc)}
 .appName{color:var(--text);font-size:14px}
@@ -51,9 +51,9 @@ kbd{font-size:11px;color:var(--muted);margin-left:auto;padding-left:18px;font-fa
 .seg button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 #findBox{width:150px}
 @media (max-width:1350px){#findBox,#wireStyle{display:none}}
-@media (max-width:1150px){#app{grid-template-columns:230px 1fr 250px}}
+@media (max-width:1150px){#app{--libW:300px;grid-template-columns:var(--libW) 1fr 250px}}
 
-#lib{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#lib{position:relative;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .libHead{padding:8px}
 .libHead input{width:100%}
 .libHead input[type=checkbox]{width:auto;margin:0}
@@ -193,3 +193,6 @@ button.danger:hover{border-color:var(--bad)}
 .item .ic.art,.item .ic.ph{width:46px;height:28px;box-sizing:border-box}
 .item .ic.art svg{width:100%;height:100%}
 .item .ic.ph img{width:100%;height:100%;object-fit:contain;display:block}
+
+#libResize{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:5}
+#libResize:hover,#libResize.on{background:linear-gradient(90deg,transparent 3px,var(--acc) 3px,var(--acc) 5px,transparent 5px)}
