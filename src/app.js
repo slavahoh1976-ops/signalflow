@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.9', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.0', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.0', '18.11.2026', ['Порядок устройств внутри группы меняется перетаскиванием (с линией вставки); можно сразу бросить в нужное место другой группы']],
   ['1.6.9', '18.11.2026', ['Редактор прибора: «Сохранить — заменить» и «Сохранить как новый»; в списке «Цвет шапки» — ваши названия групп']],
   ['1.6.8', '18.11.2026', ['Программа теперь называется «Сигнал»', 'Новые цвета кабелей: HDMI — синие, SDI — зелёные, оптика — рыжие, DP — сиреневые, звук — красные, LAN — яичный жёлтый; все типы различимы', 'Оптика: одномод (SM), многомод (MM), комбинированная (гибрид) — с проверкой совместимости']],
   ['1.6.7', '18.11.2026', ['Точки подключения у портов снова видны: свободный порт — кольцо цвета сигнала, подключённый — закрашенная точка; при наведении подсвечиваются']],
@@ -1432,6 +1433,7 @@ function renameGroup(old) {
     for (const k of Object.keys(rn)) if (rn[k] === old) rn[k] = name;
     for (const c of Object.values(CATS)) if (c.n === old) rn[c.n] = name;
     cfg.groupRename = rn;
+    if (cfg.devOrder && cfg.devOrder[old]) { cfg.devOrder = { ...cfg.devOrder, [name]: cfg.devOrder[old] }; delete cfg.devOrder[old]; }
     cfg.groupOrder = (cfg.groupOrder || []).map(g => g === old ? name : g);
     cfg.groupsExtra = (cfg.groupsExtra || []).map(g => g === old ? name : g);
     if (openCats.has(old)) { openCats.delete(old); openCats.add(name); store.set('openCats', [...openCats]); }
@@ -1474,6 +1476,21 @@ function pickGroup(list) {
   $('#pgNo').onclick = closeModal;
   $('#pgOk').onclick = () => { const g = $('#pgNew').value.trim() || $('#pgSel').value; const back = baseOpen; closeModal(); moveToGroup(list, g); if (back) baseManager(); };
 }
+// порядок устройств внутри группы (перетаскиванием)
+function sortByDevOrder(g, list) {
+  const ord = (cfg.devOrder || {})[g]; if (!ord || !ord.length) return list;
+  const pos = new Map(ord.map((id, i) => [id, i])), base = new Map(list.map((d, i) => [d.id, i]));
+  return list.sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : 1e6 + base.get(a.id)) - (pos.has(b.id) ? pos.get(b.id) : 1e6 + base.get(b.id)));
+}
+function placeDevice(devId, g, targetId, after) {
+  let d = libById(devId); if (!d) return;
+  if (groupOf(d) !== g) { const before = customLib.length; moveToGroup([d], g); d = customLib.length > before ? customLib[customLib.length - 1] : libById(devId); }
+  if (!d || d.id === targetId) return renderLib();
+  const ids = sortByDevOrder(g, allLib().filter(x => groupOf(x) === g)).map(x => x.id).filter(id => id !== d.id);
+  let i = ids.indexOf(targetId); i = i < 0 ? ids.length : i + (after ? 1 : 0);
+  ids.splice(i, 0, d.id);
+  cfg.devOrder = { ...(cfg.devOrder || {}), [g]: ids }; saveCfg(); renderLib();
+}
 function renderLib() {
   const q = $('#libSearch').value.trim().toLowerCase();
   const tf = [...typeFilter].filter(k => k !== 'photo');
@@ -1481,6 +1498,7 @@ function renderLib() {
   const groups = [['fav', '★ Избранное', all.filter(d => favs.has(d.id))]];
   const gmap = new Map();
   for (const d of all) { const g = groupOf(d); if (!gmap.has(g)) gmap.set(g, []); gmap.get(g).push(d); }
+  for (const [g, list] of gmap) sortByDevOrder(g, list);
   const order = (cfg.groupOrder || []).slice();
   for (const g of customLib.map(groupOf)) if (!order.includes(g)) order.push(g);
   for (const c of Object.keys(CATS)) { const n = groupOf({ cat: c }); if (!order.includes(n)) order.push(n); }
@@ -1525,13 +1543,23 @@ $('#libList').addEventListener('dragstart', ev => {
 $('#libList').addEventListener('dragover', ev => {
   const cat = ev.target.closest && ev.target.closest('.cat'); if (!cat || cat.dataset.cat === 'fav') return;
   const t = ev.dataTransfer.types;
-  if (t.includes('text/sf-dev') || t.includes('text/sf-group')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop')); cat.querySelector('.catH').classList.add('drop'); }
+  if (t.includes('text/sf-dev') || t.includes('text/sf-group')) {
+    ev.preventDefault(); ev.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('#libList .catH.drop, #libList .insB, #libList .insA').forEach(x => x.classList.remove('drop', 'insB', 'insA'));
+    const it = t.includes('text/sf-dev') && ev.target.closest('.item');
+    if (it) { const r = it.getBoundingClientRect(); it.classList.add(ev.clientY > r.top + r.height / 2 ? 'insA' : 'insB'); }
+    else cat.querySelector('.catH').classList.add('drop');
+  }
 });
-$('#libList').addEventListener('dragleave', ev => { if (!ev.relatedTarget || !$('#libList').contains(ev.relatedTarget)) document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop')); });
+const clearLibDrop = () => document.querySelectorAll('#libList .catH.drop, #libList .insB, #libList .insA').forEach(x => x.classList.remove('drop', 'insB', 'insA'));
+$('#libList').addEventListener('dragleave', ev => { if (!ev.relatedTarget || !$('#libList').contains(ev.relatedTarget)) clearLibDrop(); });
+$('#libList').addEventListener('dragend', clearLibDrop);
 $('#libList').addEventListener('drop', ev => {
-  document.querySelectorAll('#libList .catH.drop').forEach(x => x.classList.remove('drop'));
+  clearLibDrop();
   const cat = ev.target.closest && ev.target.closest('.cat'); if (!cat || cat.dataset.cat === 'fav') return;
   const g = cat.dataset.cat, dev = ev.dataTransfer.getData('text/sf-dev'), grp = ev.dataTransfer.getData('text/sf-group');
+  const it = dev && ev.target.closest('.item');
+  if (it) { ev.preventDefault(); ev.stopPropagation(); const r = it.getBoundingClientRect(); placeDevice(dev, g, it.dataset.dev, ev.clientY > r.top + r.height / 2); return; }
   if (dev) { ev.preventDefault(); ev.stopPropagation(); const d = libById(dev); if (d && groupOf(d) !== g) moveToGroup([d], g); return; }
   if (grp && grp !== g) { ev.preventDefault(); ev.stopPropagation(); placeGroupBefore(grp, g); }
 });
