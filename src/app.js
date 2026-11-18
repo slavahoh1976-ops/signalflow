@@ -2,8 +2,9 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.6.6', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.6.7', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.6.7', '18.11.2026', ['Точки подключения у портов снова видны: свободный порт — кольцо цвета сигнала, подключённый — закрашенная точка; при наведении подсвечиваются']],
   ['1.6.6', '18.11.2026', ['Номер порта теперь впереди: «1 - HDMI 2.0» вместо «HDMI 2.0 1» — номер не сливается с версией']],
   ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров Event Master между собой); у Barco E2 — 4, S3-4K — 2, Ex — 2 порта']],
   ['1.6.4', '18.11.2026', ['Версии HDMI (1.3, 1.4, 2.0, 2.1) и DisplayPort (1.1, 1.2, 1.4, 2.1) как типы сигнала; предупреждение, если выход новее входа']],
@@ -59,9 +60,11 @@ text{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .n-loc{fill:var(--muted);font-size:10px}
 .n-ic{fill:none;stroke:#fff;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
 .p-t{fill:var(--portText);font-size:10.5px}
-.p-c{stroke:var(--node);stroke-width:1.5}
-.p-c.free{fill:var(--node)!important;stroke-width:2}
+.p-c{stroke:var(--node);stroke-width:1.5;transition:r .08s}
+.p-c.free{fill:var(--node)!important;stroke:var(--pc);stroke-width:2.2}
 .p-h{fill:transparent;cursor:crosshair}
+.p-h:hover{fill:var(--pc);fill-opacity:.18}
+.node:hover .p-c.free{stroke-width:2.6}
 .node{cursor:move}
 .node.sel .n-body{stroke:var(--sel);stroke-width:2.5}
 .node.hl .n-body{stroke:var(--warn);stroke-width:4}
@@ -398,9 +401,9 @@ function nodeSVG(n) {
     const q = L.pos[p.id]; const col = (T[p.type] || T.sdi3g).c;
     const used = portUse.has(n.id + ':' + p.id);
     const tx = q.d < 0 ? 9 : w - 9, anc = q.d < 0 ? 'start' : 'end';
-    s += `<circle class="p-c${used ? '' : ' free'}" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="4.5" fill="${col}" stroke="${col}"/>`
+    s += `<circle class="p-c${used ? '' : ' free'}" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="5" fill="${col}" style="--pc:${col}"/>`
       + `<text class="p-t" x="${tx}" y="${q.y + 3.5}" text-anchor="${anc}">${p.dir === 'io' ? '⇄ ' : ''}${esc(p.name)}</text>`
-      + `<circle class="p-h" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="9"/>`;
+      + `<circle class="p-h" data-p="${p.id}" cx="${q.x}" cy="${q.y}" r="10" style="--pc:${col}"/>`;
   }
   if (n.loc) s += `<text class="n-loc" x="8" y="${h - 6}">📍 ${esc(n.loc)}</text>`;
   return s + '</g>';
