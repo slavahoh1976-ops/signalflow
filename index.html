@@ -175,9 +175,9 @@ table.bm td{vertical-align:middle}
 #toast div.e{background:#991b1b}
 
 #printArea{display:none}
-.item .ic.art{width:34px;background:#eef1f5;border:1px solid var(--line);padding:1px}
+.item .ic.art{background:#eef1f5;border:1px solid var(--line);padding:2px}
 .item .ic.art svg{width:100%;height:100%}
-.item .ic.ph{background:#fff;border:1px solid var(--line);overflow:hidden}
+.item .ic.ph{background:#fff;border:1px solid var(--line);overflow:hidden;padding:1px}
 .item .ic.ph img{width:100%;height:100%;object-fit:contain}
 .devGrid{display:grid;grid-template-columns:230px 1fr;gap:16px}
 .photoDrop{border:2px dashed var(--line);border-radius:10px;min-height:170px;display:grid;place-items:center;text-align:center;cursor:pointer;padding:8px;background:var(--panel2);margin-bottom:6px}
@@ -199,6 +199,10 @@ button.danger:hover{border-color:var(--bad)}
 
 .item.insB{box-shadow:inset 0 3px 0 var(--acc)}
 .item.insA{box-shadow:inset 0 -3px 0 var(--acc)}
+
+.item .ic.art,.item .ic.ph{width:46px;height:28px;box-sizing:border-box}
+.item .ic.art svg{width:100%;height:100%}
+.item .ic.ph img{width:100%;height:100%;object-fit:contain;display:block}
 </style>
 </head>
 <body>
@@ -885,8 +889,9 @@ function artKey(cat) {
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '1.7.1', APP_DATE = '17.11.2026';
+const APP_VERSION = '1.7.2', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['1.7.2', '18.11.2026', ['Библиотека: картинки приборов одной ширины — названия начинаются ровно']],
   ['1.7.1', '18.11.2026', ['Исправлено: устройство, перетащенное внутри группы, теперь остаётся на новом месте']],
   ['1.7.0', '18.11.2026', ['Порядок устройств внутри группы меняется перетаскиванием (с линией вставки); можно сразу бросить в нужное место другой группы']],
   ['1.6.9', '18.11.2026', ['Редактор прибора: «Сохранить — заменить» и «Сохранить как новый»; в списке «Цвет шапки» — ваши названия групп']],
