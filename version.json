@@ -1,8 +1,8 @@
 {
- "version": "1.9.1",
- "notes": "Приложения для Windows и Mac: Помощь → «Скачать для Windows и Mac».",
+ "version": "2.0.0",
+ "notes": "Режим значков в библиотеке, точки поворота линий, дополнительная подпись устройства, линии обходят устройства.",
  "desktop": {
-  "shell": "1.0.0",
+  "shell": "1.0.2",
   "page": "https://slavahoh1976-ops.github.io/signalflow/download/"
  }
 }
