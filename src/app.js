@@ -2,8 +2,12 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '2.0.0', APP_DATE = '17.11.2026';
+const APP_VERSION = '2.0.4', APP_DATE = '17.11.2026';
 const CHANGELOG = [
+  ['2.0.4', '21.11.2026', ['Расстояние между линиями и между точками входов/выходов на приборе — одно: 18 px', 'Линии не идут вдоль корпуса прибора и не делают «отростков» туда-обратно; у каждого порта — хвостик наружу']],
+  ['2.0.3', '21.11.2026', ['Исправлено: ручки участков стоят точно на линии, даже если линия отодвинута от соседней']],
+  ['2.0.2', '21.11.2026', ['Линии никогда не ложатся друг на друга: расстояние между ними не меньше шага портов (в обоих режимах), включая линии с ручными изгибами и участки у портов', 'Изгибы следуют за прибором: при перемещении сдвигаются участки у его порта, петель не появляется', 'Почти прямые линии в режиме «Картинки» — прямые, без мелких ступенек']],
+  ['2.0.1', '21.11.2026', ['Изгибы линий как в draw.io: тяните саму линию или ручку на участке — участок двигается параллельно, у порта остаётся хвостик; выровненный участок сливается с соседним; двойной клик по линии — подпись', 'Предпросмотр в режиме значков: фото больше не заезжает на текст']],
   ['2.0.0', '21.11.2026', ['Библиотека: режим «значки» (▦ рядом с поиском) — сетка картинок, при наведении крупный предпросмотр', 'Точки поворота линий, как в draw.io: потяните кружок на линии — новый изгиб; квадратик двигается, двойной клик — удалить; двойной клик по линии — добавить; «Сбросить изгибы» — автопрокладка', 'Дополнительная подпись устройства: «сервер Resolume — главный экран» (в свойствах устройства)', 'Прокладка линий: параллельные линии не ближе шага портов, линии обходят устройства по свободным коридорам, подписи не ложатся на чужие линии', 'Исправлено: в примере схемы часть кабелей была подключена вход ко входу']],
   ['1.9.1', '18.11.2026', ['Приложения для Windows и Mac (macOS 10.14 Mojave и новее): Помощь → «Скачать для Windows и Mac»; обновляются сами']],
   ['1.9.0', '18.11.2026', ['Режим «Картинки»: под картинкой — название устройства («монитор», «видеопроцессор», «сервер Resolume»); своя подпись в редакторе прибора и в свойствах; Вид → «Подпись под картинкой» — название / номер / оба']],
@@ -284,12 +288,29 @@ function assignAnchors() {
     list.sort((p, q) => p.key - q.key);
     const n = list.length, side = list[0].side, box = list[0].box;
     const len = (side === 'L' || side === 'R') ? box.ih : box.w;
-    const step = Math.min(len / (n + 1), 24);
+    const step = Math.min(len / (n + 1), RH);   // точки входов/выходов на картинке — с тем же шагом, что и линии
     list.forEach((it, i) => { it.e._anc[it.end] = (i - (n - 1) / 2) * step; });
   }
 }
 // маршрут через точки поворота (как в draw.io): прямые углы, проходит через каждую точку
 // точки поворота из текущей линии + новая точка на середине участка seg
+function canonPts(e) {
+  const r = e._r, a = r.a, b = r.b;
+  const inner = r.pts.slice(1, -1);   // берём линию такой, какой она нарисована (с учётом раздвижки), — ручки стоят точно на ней
+  const c = wpRoute(a, b, inner, true).pts.map(p => ({ x: p.x, y: p.y, f: p.f }));
+  return c;
+}
+// сдвиг участка s канонической линии параллельно себе (как в draw.io); у порта остаётся хвостик
+function moveSeg(C0, s, pt) {
+  const arr = C0.map(p => ({ ...p }));
+  const A = arr[s], B = arr[s + 1], horiz = Math.abs(A.y - B.y) < .5;
+  const v = horiz ? Math.round(pt.y / 5) * 5 : Math.round(pt.x / 5) * 5;
+  let i = s;
+  if (A.f) { arr.splice(i + 1, 0, { x: A.x, y: A.y }); i++; }
+  if (arr[i + 1].f) arr.splice(i + 1, 0, { x: arr[i + 1].x, y: arr[i + 1].y });
+  if (horiz) { arr[i].y = v; arr[i + 1].y = v; } else { arr[i].x = v; arr[i + 1].x = v; }
+  return arr.slice(2, -2).map(p => ({ x: p.x, y: p.y }));
+}
 function wpFromRoute(e, seg) {
   const r = e._r, pts = r.pts, old = e.wp || [];
   // берём существующие точки поворота; если их нет — углы текущей линии (без «хвостиков» у портов)
@@ -306,9 +327,9 @@ function cleanWp(e) {
   e.wp = e.wp.filter(w => pts.some((p, i) => i > 0 && i < pts.length - 1 && Math.abs(p.x - w.x) < .6 && Math.abs(p.y - w.y) < .6));
   if (!e.wp.length) delete e.wp;
 }
-function wpRoute(a, b, wp) {
+function wpRoute(a, b, wp, keep) {
   const S = 18, dA = a.nx != null ? { x: a.nx, y: a.ny } : { x: a.d, y: 0 }, dB = b.nx != null ? { x: b.nx, y: b.ny } : { x: b.d, y: 0 };
-  const sa = { x: a.x + dA.x * S, y: a.y + dA.y * S }, sb = { x: b.x + dB.x * S, y: b.y + dB.y * S };
+  const sa = { x: a.x + dA.x * S, y: a.y + dA.y * S, f: 1 }, sb = { x: b.x + dB.x * S, y: b.y + dB.y * S, f: 1 };
   // после хвостика у порта линия продолжает своё направление, а в каждой точке поворота — поворачивает
   const pts = [a, sa]; let arr = dA.y === 0 ? 'h' : 'v';
   for (const w of wp) {
@@ -322,11 +343,13 @@ function wpRoute(a, b, wp) {
   const c = pts[pts.length - 1];
   if (Math.abs(c.x - sb.x) > .5 && Math.abs(c.y - sb.y) > .5) pts.push(dB.y === 0 ? { x: sb.x, y: c.y } : { x: c.x, y: sb.y });
   pts.push(sb, b);
-  const out = [];   // убираем повторы и точки на одной прямой
+  const out = [];   // убираем повторы и точки на одной прямой (хвостики у портов в режиме keep не трогаем)
+  a = { ...a, f: 1 }; b = { ...b, f: 1 }; pts[0] = a; pts[pts.length - 1] = b;
   for (const p of pts) {
-    const L = out[out.length - 1]; if (L && Math.abs(L.x - p.x) < .5 && Math.abs(L.y - p.y) < .5) continue;
+    const L = out[out.length - 1];
+    if (L && Math.abs(L.x - p.x) < .5 && Math.abs(L.y - p.y) < .5) { if (p.f) L.f = 1; continue; }
     const K = out[out.length - 2];
-    if (K && L && ((Math.abs(K.x - L.x) < .5 && Math.abs(L.x - p.x) < .5) || (Math.abs(K.y - L.y) < .5 && Math.abs(L.y - p.y) < .5))) out.pop();
+    if (K && L && !(keep && L.f) && ((Math.abs(K.x - L.x) < .5 && Math.abs(L.x - p.x) < .5) || (Math.abs(K.y - L.y) < .5 && Math.abs(L.y - p.y) < .5))) out.pop();
     out.push(p);
   }
   return { pts: out, a, b, wp: 1 };
@@ -338,9 +361,11 @@ function picRoute(e) {
   if (horiz) {
     a = { x: hgap > 0 ? A.x + A.w : A.x, y: clamp(acy + off('a'), A.y + 3, A.y + A.ih - 3), nx: hgap, ny: 0, d: hgap };
     b = { x: hgap > 0 ? B.x : B.x + B.w, y: clamp(bcy + off('b'), B.y + 3, B.y + B.ih - 3), nx: -hgap, ny: 0, d: -hgap };
+    if (!(e.wp && e.wp.length) && Math.abs(a.y - b.y) < 14 && a.y > B.y + 3 && a.y < B.y + B.ih - 3) b.y = a.y;   // почти прямая — делаем прямой
   } else if (vgap) {
     a = { x: clamp(acx + off('a'), A.x + 3, A.x + A.w - 3), y: vgap > 0 ? A.y + A.h : A.y, nx: 0, ny: vgap, d: 0 };
     b = { x: clamp(bcx + off('b'), B.x + 3, B.x + B.w - 3), y: vgap > 0 ? B.y : B.y + B.h, nx: 0, ny: -vgap, d: 0 };
+    if (!(e.wp && e.wp.length) && Math.abs(a.x - b.x) < 14 && a.x > B.x + 3 && a.x < B.x + B.w - 3) b.x = a.x;
   } else {
     a = { x: A.x + A.w, y: acy, nx: 1, ny: 0, d: 1 }; b = { x: B.x + B.w, y: bcy, nx: 1, ny: 0, d: 1 };
   }
@@ -523,27 +548,42 @@ function separateLanes(edges) {
   const movers = [];
   for (const e of edges) {
     const r = e._r; if (!r) continue;
-    const mi = !r.curve && r.pts.length >= 4 && r.seg && r.seg.i != null && e[r.seg.key || r.seg.k] == null ? r.seg.i : -1;
-    for (let i = 0; i < r.pts.length - 1; i++) { if (mi >= 0 && i >= mi - 1 && i <= mi + 1) continue; reg(segOf(r.pts[i], r.pts[i + 1]), e); }
-    if (mi >= 0) movers.push({ e, r, i: mi });
+    // каждый внутренний участок линии можно сдвинуть, чтобы он не лёг на чужую линию (хвостики у портов — на месте);
+    // ручные линии (изгибы, сдвинутый участок) раскладываются после автоматических
+    if (r.curve || r.pts.length < 4) { for (let i = 0; i < r.pts.length - 1; i++) reg(segOf(r.pts[i], r.pts[i + 1]), e); continue; }
+    const manual = !!r.wp || (r.seg && e[r.seg.key || r.seg.k] != null);
+    const ms = []; for (let i = 1; i < r.pts.length - 2; i++) ms.push(i);
+    for (let i = 0; i < r.pts.length - 1; i++) if (!ms.some(k => i >= k - 1 && i <= k + 1)) reg(segOf(r.pts[i], r.pts[i + 1]), e);
+    for (const i of ms) movers.push({ e, r, i, manual: manual ? 1 : 0, main: r.seg && r.seg.i === i ? 1 : 0 });
   }
   const len = m => { const p1 = m.r.pts[m.i], p2 = m.r.pts[m.i + 1]; return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y); };
-  movers.sort((p, q) => len(q) - len(p));
-  const deltas = [0]; for (let k = 1; k <= 24; k++) deltas.push(k * LANE, -k * LANE);
+  movers.sort((p, q) => (p.manual || 0) - (q.manual || 0) || len(q) - len(p));
+  const done = new Set();
+  const deltas = [0]; for (let k = 1; k <= 40; k++) deltas.push(k * LANE, -k * LANE);
   for (const m of movers) {
     const P_ = m.r.pts, i = m.i, p1 = P_[i], p2 = P_[i + 1];
+    if (!P_[i - 1] || !P_[i + 2] || (Math.abs(p1.x - p2.x) < .5 && Math.abs(p1.y - p2.y) < .5)) continue;
     const vert = Math.abs(p1.x - p2.x) < .5, c0 = vert ? p1.x : p1.y;
     const geo = c => { const q1 = vert ? { x: c, y: p1.y } : { x: p1.x, y: c }, q2 = vert ? { x: c, y: p2.y } : { x: p2.x, y: c }; return [segOf(P_[i - 1], q1), segOf(q1, q2), segOf(q2, P_[i + 2])]; };
-    // лучше всего — ни линий, ни устройств; потом — хотя бы без устройств; потом — хотя бы без линий
+    // лучше всего — ни линий, ни устройств; потом — хотя бы без наложения линий; потом — хотя бы не через устройства
+    // хвостик у порта должен остаться не короче 10 px и направленным от прибора
+    const A0 = P_[0], Z0 = P_[P_.length - 1];
+    const dir = q => q.nx != null ? { x: q.nx, y: q.ny } : { x: q.d || 0, y: 0 };
+    const stubOk = c => {
+      if (i === 1) { const dA = dir(m.r.a || A0); if (vert && dA.x) { if ((c - A0.x) * dA.x < 10) return false; } if (!vert && dA.y) { if ((c - A0.y) * dA.y < 10) return false; } }
+      if (i + 1 === P_.length - 2) { const dB = dir(m.r.b || Z0); if (vert && dB.x) { if ((c - Z0.x) * dB.x < 10) return false; } if (!vert && dB.y) { if ((c - Z0.y) * dB.y < 10) return false; } }
+      return true;
+    };
     let best = null, noNode = null, noEdge = null;
     for (const d of deltas) {
+      if (d && !stubOk(c0 + d)) continue;
       const g = geo(c0 + d), eh = hit1(g[1], m.e), nh = g.some(nodeHit);
       if (!eh && !nh) { best = c0 + d; break; }
       if (!nh && noNode == null) noNode = c0 + d;
       if (!eh && noEdge == null) noEdge = c0 + d;
     }
-    if (best == null) best = noNode != null ? noNode : noEdge != null ? noEdge : c0;
-    if (vert) { p1.x = p2.x = best; if (m.r.seg) m.r.seg.x = best; } else { p1.y = p2.y = best; if (m.r.seg) m.r.seg.y = best; }
+    if (best == null) best = noEdge != null ? noEdge : noNode != null ? noNode : c0;   // наложение линий недопустимо — в первую очередь
+    if (vert) { p1.x = p2.x = best; if (m.r.seg && m.main) m.r.seg.x = best; } else { p1.y = p2.y = best; if (m.r.seg && m.main) m.r.seg.y = best; }
     geo(best).forEach(sg => reg(sg, m.e));
   }
 }
@@ -591,11 +631,64 @@ function placeLabels(edges) {
     e._lp = best.c; addBox(best.b);
   }
 }
+// последняя проверка линии: без «отростков», не вдоль корпуса прибора, у порта — хвостик наружу
+function tidyPts(e) {
+  const r = e._r; if (!r || r.curve || r.pts.length < 3) return;
+  const STUB = 14, a = r.a, b = r.b;
+  const dir = q => q.nx != null ? { x: q.nx, y: q.ny } : { x: q.d || 0, y: 0 };
+  const box = id => { const n = node(id), L = layout(n); return { x1: n.x, y1: n.y, x2: n.x + L.w, y2: n.y + (L.ih || L.h) }; };
+  let p = r.pts.map(q => ({ x: q.x, y: q.y }));
+  const simplify = () => {
+    const out = [];
+    for (const q of p) {
+      const L = out[out.length - 1]; if (L && Math.abs(L.x - q.x) < .5 && Math.abs(L.y - q.y) < .5) continue;
+      const K = out[out.length - 2];
+      if (K && L && out.length > 1 && ((Math.abs(K.x - L.x) < .5 && Math.abs(L.x - q.x) < .5) || (Math.abs(K.y - L.y) < .5 && Math.abs(L.y - q.y) < .5))) out.pop();   // прямая или «отросток» туда-обратно
+      out.push(q);
+    }
+    p = out;
+  };
+  simplify();
+  // участки, прижатые к корпусу у порта (между портом и линией хвостика), отодвигаем наружу
+  for (const [end, id] of [[a, e.from.n], [b, e.to.n]]) {
+    const d = dir(end), B = box(id), hz = d.x !== 0;
+    const line = hz ? end.x + d.x * STUB : end.y + d.y * STUB;
+    for (let i = 1; i < p.length - 2; i++) {
+      const A = p[i], Bp = p[i + 1];
+      if (hz && Math.abs(A.x - Bp.x) < .5) {
+        const inBand = (A.x - end.x) * d.x < STUB - .5 && (A.x - end.x) * d.x > -(B.x2 - B.x1);
+        const lo = Math.min(A.y, Bp.y), hi = Math.max(A.y, Bp.y);
+        if (inBand && hi > B.y1 - 6 && lo < B.y2 + 6) { A.x = Bp.x = line; }
+      } else if (!hz && Math.abs(A.y - Bp.y) < .5) {
+        const inBand = (A.y - end.y) * d.y < STUB - .5 && (A.y - end.y) * d.y > -(B.y2 - B.y1);
+        const lo = Math.min(A.x, Bp.x), hi = Math.max(A.x, Bp.x);
+        if (inBand && hi > B.x1 - 6 && lo < B.x2 + 6) { A.y = Bp.y = line; }
+      }
+    }
+  }
+  simplify();
+  // хвостик у порта: первый и последний участки — от прибора, не короче STUB
+  const fixEnd = (rev) => {
+    if (rev) p.reverse();
+    const P0 = p[0], P1 = p[1], d = dir(rev ? b : a);
+    const along = d.x ? (P1.x - P0.x) * d.x : (P1.y - P0.y) * d.y, straight = d.x ? Math.abs(P1.y - P0.y) < .5 : Math.abs(P1.x - P0.x) < .5;
+    if (!(straight && along >= STUB - .5)) {
+      const s = { x: P0.x + d.x * STUB, y: P0.y + d.y * STUB };
+      const el = d.x ? { x: s.x, y: P1.y } : { x: P1.x, y: s.y };
+      p.splice(1, 0, s, el);
+    }
+    if (rev) p.reverse();
+  };
+  fixEnd(false); fixEnd(true); simplify();
+  r.pts = p;
+}
 function layoutEdges() {
   if (isPic()) assignAnchors();
   for (const e of P.edges) { e._st = edgeStatus(e)[0]; e._r = route(e); }
-  LANE = isPic() ? 12 : RH;   // линии расходятся не меньше, чем на шаг портов
-  if (cfg.wire === 'orth') { separateLanes(P.edges); separateLanes(P.edges); }
+  LANE = RH;   // линии расходятся не меньше, чем на шаг портов (в обоих режимах)
+  if (cfg.wire === 'orth') { separateLanes(P.edges); separateLanes(P.edges); if (P.edges.length < 1500) separateLanes(P.edges); }
+  for (const e of P.edges) tidyPts(e);
+  if (cfg.wire === 'orth') { separateLanes(P.edges); for (const e of P.edges) tidyPts(e); }
   placeLabels(P.edges);
   for (const e of P.edges) setBB(e);
 }
@@ -609,7 +702,7 @@ function setBB(e) {
 let relayT = 0;
 function scheduleRelayout() { clearTimeout(relayT); relayT = setTimeout(relayout, 30); }
 function relayout() {
-  if (drag && (drag.mode === 'move' || drag.mode === 'bend' || drag.mode === 'nresize' || drag.mode === 'wp' || drag.mode === 'wpnew')) return scheduleRelayout();
+  if (drag && (drag.mode === 'move' || drag.mode === 'bend' || drag.mode === 'nresize' || drag.mode === 'wp' || drag.mode === 'wpnew' || drag.mode === 'seg')) return scheduleRelayout();
   layoutEdges();
   for (const e of P.edges) applyEdge(e);
   renderOverlay();
@@ -725,16 +818,12 @@ function renderOverlay() {
   const e = it.o, r = e._r, k = 1 / Math.max(view.k, .35);
   let s = '';
   // полупрозрачные точки на серединах участков — потяните, чтобы добавить изгиб
-  const segI = !(e.wp && e.wp.length) && r.seg ? r.seg.i : -1;
-  for (let i = 0; i < r.pts.length - 1; i++) {
-    if (i === segI) continue;
-    const A = r.pts[i], B = r.pts[i + 1], len = Math.abs(A.x - B.x) + Math.abs(A.y - B.y);
-    if (len < 30 / Math.max(view.k, .35)) continue;
-    s += `<circle class="wpv" data-wpv="${e.id}" data-i="${i}" cx="${(A.x + B.x) / 2}" cy="${(A.y + B.y) / 2}" r="${5 * k}"/>`;
+  const C = canonPts(e);
+  for (let i = 1; i < C.length - 2; i++) {
+    const A = C[i], B = C[i + 1], len = Math.abs(A.x - B.x) + Math.abs(A.y - B.y); if (len < 12 / Math.max(view.k, .35)) continue;
+    const hz = Math.abs(A.y - B.y) < .5, w = (hz ? 16 : 8) * k, h = (hz ? 8 : 16) * k;
+    s += `<rect class="handle${hz ? ' v' : ''}" data-sg="${e.id}" data-i="${i}" x="${(A.x + B.x) / 2 - w / 2}" y="${(A.y + B.y) / 2 - h / 2}" width="${w}" height="${h}" rx="${3 * k}"/>`;
   }
-  // точки поворота — тянуть; двойной клик — удалить
-  (e.wp || []).forEach((w, i) => { s += `<rect class="wph" data-wph="${e.id}" data-i="${i}" x="${w.x - 5.5 * k}" y="${w.y - 5.5 * k}" width="${11 * k}" height="${11 * k}" rx="${2 * k}"/>`; });
-  if (!(e.wp && e.wp.length) && r.seg) s += `<rect class="handle${r.seg.k === 'my' ? ' v' : ''}" data-h="${e.id}" x="${r.seg.x - 6 * k}" y="${r.seg.y - 6 * k}" width="${12 * k}" height="${12 * k}" rx="${3 * k}"/>`;
   LY.o.innerHTML = s;
 }
 
@@ -1047,6 +1136,8 @@ svg.addEventListener('pointerdown', ev => {
   if (rsn) { const n = node(rsn.dataset.rsn), L = layout(n); drag = { mode: 'nresize', n, sx: pt.x, sy: pt.y, w0: L.w, h0: L.ih, edges: [...adj.get(n.id)], started: false }; return; }
   const h = t.closest('[data-h]');
   if (h) { const e = items.get(h.dataset.h).o; drag = { mode: 'bend', e, started: false }; return; }
+  const sgh = t.closest('[data-sg]');
+  if (sgh) { const e = items.get(sgh.dataset.sg).o; drag = { mode: 'seg', e, C0: canonPts(e), s: +sgh.dataset.i, started: false }; return; }
   const wph = t.closest('[data-wph]');
   if (wph) {
     const e = items.get(wph.dataset.wph).o, i = +wph.dataset.i;
@@ -1064,7 +1155,14 @@ svg.addEventListener('pointerdown', ev => {
     const id = g.dataset.id, it = items.get(id);
     if (it.k === 'e') {
       if (ev.shiftKey) sel.has(id) ? sel.delete(id) : sel.add(id); else { sel.clear(); sel.add(id); }
-      applySel(); drag = null; return;
+      applySel(); drag = null;
+      const e = it.o;
+      if (!ev.shiftKey && cfg.wire === 'orth' && e._r && !e._r.curve) {
+        const C = canonPts(e); let bs = -1, bd = Infinity;
+        for (let i = 1; i < C.length - 2; i++) { const A = C[i], B = C[i + 1]; const tt = Math.max(0, Math.min(1, ((pt.x - A.x) * (B.x - A.x) + (pt.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2 || 1))); const d = Math.hypot(A.x + (B.x - A.x) * tt - pt.x, A.y + (B.y - A.y) * tt - pt.y); if (d < bd) { bd = d; bs = i; } }
+        if (bs > 0 && bd < 12 / view.k) drag = { mode: 'seg', e, C0: C, s: bs, sx: pt.x, sy: pt.y, body: 1, started: false };
+      }
+      return;
     }
     if (ev.shiftKey || ev.metaKey || ev.ctrlKey) { if (sel.has(id)) { sel.delete(id); applySel(); return; } sel.add(id); }
     else if (!sel.has(id)) { sel.clear(); sel.add(id); }
@@ -1158,7 +1256,24 @@ function onMove(ev) {
     }
     const mv = drag.moveSet || (drag.moveSet = new Set(drag.list.map(m => m.it.o.id)));
     for (const e of drag.edges) {
-      if (e.wp && e.wp.length && mv.has(e.from.n) && mv.has(e.to.n)) { if (!e._wp0) e._wp0 = e.wp.map(w => ({ ...w })); e.wp = e._wp0.map(w => ({ x: w.x + dx, y: w.y + dy })); }
+      // изгибы следуют за прибором: если двигаются оба конца — вся линия; если один — только участки у его порта
+      if (e.wp && e.wp.length && (mv.has(e.from.n) || mv.has(e.to.n))) {
+        if (!e._wp0) e._wp0 = { wp: e.wp.map(w => ({ ...w })), a: { ...e._r.a }, b: { ...e._r.b } };
+        const W = e._wp0, both = mv.has(e.from.n) && mv.has(e.to.n);
+        if (both) e.wp = W.wp.map(w => ({ x: w.x + dx, y: w.y + dy }));
+        else {
+          const o = mv.has(e.from.n) ? W.a : W.b, hz = (o.nx != null ? o.nx : o.d) !== 0 && (o.ny || 0) === 0;
+          const list = mv.has(e.from.n) ? W.wp : W.wp.slice().reverse();
+          // идём от двигающегося конца: точки на уровне его порта двигаются целиком, первая «поперечная» — только по одной оси
+          const moved = []; let follow = true;
+          for (const w of list) {
+            const onLine = hz ? Math.abs(w.y - o.y) < .6 : Math.abs(w.x - o.x) < .6;
+            if (follow && onLine) moved.push(hz ? { x: w.x, y: w.y + dy } : { x: w.x + dx, y: w.y });
+            else { follow = false; moved.push({ ...w }); }
+          }
+          e.wp = mv.has(e.from.n) ? moved : moved.reverse();
+        }
+      }
       updateEdgeFast(e);
     }
     return;
@@ -1191,6 +1306,12 @@ function onMove(ev) {
     else hint('Отпустите на другом устройстве · в пустом месте — выбрать новое устройство');
     LY.o.firstChild.setAttribute('d', `M${drag.sx} ${drag.sy}L${end.x} ${end.y}`);
     return;
+  }
+  if (drag.mode === 'seg') {
+    const e = drag.e;
+    if (!drag.started) { if (drag.body && Math.hypot(pt.x - drag.sx, pt.y - drag.sy) * view.k < 4) return; drag.started = true; hist(); }
+    e.wp = moveSeg(drag.C0, drag.s, pt); delete e.mx; delete e.my; delete e.pmx; delete e.pmy;
+    updateEdgeFast(e); renderOverlay(); return;
   }
   if (drag.mode === 'wpnew') {   // тянем середину участка — появляется новая точка поворота
     const e = drag.e; if (Math.hypot(pt.x - drag.sx, pt.y - drag.sy) * view.k < 3 && !drag.started) return;
@@ -1242,8 +1363,8 @@ svg.addEventListener('pointerup', ev => {
   if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; if (pendingEv) onMove(pendingEv); }
   const d = drag; drag = null; pendingEv = null;
   stage.classList.remove('panning');
-  if (d.mode === 'move' && d.started) { for (const e of d.edges) delete e._wp0; markDirty(); renderOverlay(); cull(); }
-  if ((d.mode === 'resize' || d.mode === 'bend' || d.mode === 'nresize' || d.mode === 'shparam' || d.mode === 'wp') && d.started) { markDirty(); if (d.mode === 'shparam') renderProps(); if (d.mode === 'wp') { cleanWp(d.e); rerenderItem(d.e.id); scheduleRelayout(); renderOverlay(); } }
+  if (d.mode === 'move' && d.started) { for (const e of d.edges) { if (e._wp0) { delete e._wp0; cleanWp(e); } } markDirty(); renderOverlay(); cull(); }
+  if ((d.mode === 'resize' || d.mode === 'bend' || d.mode === 'nresize' || d.mode === 'shparam' || d.mode === 'wp' || d.mode === 'seg') && d.started) { markDirty(); if (d.mode === 'shparam') renderProps(); if (d.mode === 'wp' || d.mode === 'seg') { cleanWp(d.e); rerenderItem(d.e.id); scheduleRelayout(); renderOverlay(); } }
   if (d.mode === 'nwire') finishNodeWire(d, ev);
   if (d.mode === 'marquee') {
     const m = $('#marquee'); m.style.display = 'none';
@@ -1373,14 +1494,6 @@ svg.addEventListener('wheel', ev => {
 svg.addEventListener('dblclick', ev => {
   const wph = ev.target.closest('[data-wph]');
   if (wph) { const e = items.get(wph.dataset.wph).o; hist(); e.wp.splice(+wph.dataset.i, 1); if (!e.wp.length) delete e.wp; rerenderItem(e.id); scheduleRelayout(); renderOverlay(); markDirty(); return; }
-  const eg = ev.target.closest('[data-id]'), eo = eg && items.get(eg.dataset.id);
-  if (eo && eo.k === 'e' && cfg.wire === 'orth' && eo.o._r && !eo.o._r.curve) {
-    const e = eo.o, pt = toDoc(ev.clientX, ev.clientY), P_ = e._r.pts; let bi = 1, bd = Infinity;
-    for (let i = 0; i < P_.length - 1; i++) { const A = P_[i], B = P_[i + 1]; const t = Math.max(0, Math.min(1, ((pt.x - A.x) * (B.x - A.x) + (pt.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2 || 1))); const d = Math.hypot(A.x + (B.x - A.x) * t - pt.x, A.y + (B.y - A.y) * t - pt.y); if (d < bd) { bd = d; bi = i; } }
-    hist(); const w = wpFromRoute(e, bi); const k = w._ins; delete w._ins;
-    w[k] = { x: Math.round(pt.x / 5) * 5, y: Math.round(pt.y / 5) * 5 }; e.wp = w;
-    selectOnly([e.id]); rerenderItem(e.id); scheduleRelayout(); renderOverlay(); markDirty(); return;
-  }
   const g = ev.target.closest('[data-id]');
   if (!g) return openQuick(ev.clientX, ev.clientY, toDoc(ev.clientX, ev.clientY));
   selectOnly([g.dataset.id]);
@@ -1899,7 +2012,7 @@ function renderEdgeProps(el, e) {
     ${fld('Примечание', 'notes', e.notes, { area: 1, rows: 2 })}
     ${fld('Свой цвет', 'color', e.color || T[e.type].c, { type: 'color' })}
     <div class="btns"><button data-act="resetColor">Цвет по типу</button><button data-act="resetBend">Сбросить изгибы</button>${pa.dir === 'io' && pb.dir === 'io' ? '<button data-act="reverse">⇄ Направление</button>' : ''}<button data-act="del">Удалить</button></div>
-    <div class="small muted" style="margin-top:8px">Перетащите конец кабеля за порт, чтобы переключить его.<br>Изгибы: потяните полупрозрачный кружок на линии — появится точка поворота; квадратик можно двигать, двойной клик по нему — удалить; двойной клик по линии — новая точка.</div>
+    <div class="small muted" style="margin-top:8px">Перетащите конец кабеля за порт, чтобы переключить его.<br>Изгибы, как в draw.io: потяните линию или ручку на участке — участок сдвинется параллельно, углы останутся прямыми. Верните участок на одну линию с соседним — лишний изгиб исчезнет. «Сбросить изгибы» — автопрокладка.</div>
     <datalist id="fmtList">${FORMATS.map(f => `<option value="${f}">`).join('')}</datalist>`;
 }
 function renderDocProps(el) {
