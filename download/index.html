@@ -35,18 +35,18 @@
   </header>
 
   <section class="card">
-    <div><h2>Mac</h2><p>macOS 10.14 Mojave и новее. Для Mac с Intel — «Intel», для M1/M2/M3 — «Apple Silicon». Распакуйте zip и перетащите «Сигнал» в «Программы». Первый запуск: правый клик по приложению → «Открыть» → «Открыть».</p></div>
+    <div><h2>Mac</h2><p>macOS 10.14.6 Mojave и все новее. Для Mac с Intel — «Intel», для M1/M2/M3 — «Apple Silicon». Распакуйте zip и перетащите «Сигнал» в «Программы». Первый запуск: правый клик по приложению → «Открыть» → «Открыть».</p></div>
     <div class="btns">
-      <a class="btn" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest/download/Signal-Mac-Intel.zip">Mac Intel</a>
-      <a class="btn" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest/download/Signal-Mac-AppleSilicon.zip">Mac Apple Silicon</a>
+      <a class="btn" id="dMacI" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest">Mac Intel</a>
+      <a class="btn" id="dMacA" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest">Mac Apple Silicon</a>
     </div>
   </section>
 
   <section class="card">
     <div><h2>Windows</h2><p>Windows 10/11, 64-bit. Ничего дополнительно ставить не нужно. Если появится синее окно SmartScreen: «Подробнее» → «Выполнить в любом случае» — только при первом запуске. Переносная версия работает без установки, например с флешки.</p></div>
     <div class="btns">
-      <a class="btn" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest/download/Signal-Windows-Setup.exe">Скачать для Windows</a>
-      <a class="btn alt" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest/download/Signal-Windows-Portable.exe">Без установки</a>
+      <a class="btn" id="dWinS" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest">Скачать для Windows</a>
+      <a class="btn alt" id="dWinP" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest">Без установки</a>
     </div>
   </section>
 
@@ -55,12 +55,20 @@
     <a class="btn alt" href="../">Открыть веб-версию</a>
   </section>
 
-  <p class="note"><a href="https://github.com/slavahoh1976-ops/signal-app/releases/latest/download/Signal-All.zip">Все версии и исходники одним архивом</a>: Windows, Mac, веб-версия и исходники приложения.</p>
+  <p class="note"><a id="dAll" href="https://github.com/slavahoh1976-ops/signal-app/releases/latest">Все версии и исходники одним архивом</a>: Windows, Mac, веб-версия и исходники приложения.</p>
   <p class="note" id="ver">Программы на Mac и Windows сами проверяют обновления: новая версия скачивается сама, программа предлагает перезапуститься. Схемы и библиотека приборов сохраняются. Проверить вручную: меню «Сигнал» (Mac) или «Справка» (Windows) → «Проверить обновления…».</p>
 </main>
 <script>
+  // ссылки на файлы с номером версии и номер на каждой кнопке — по version.json
   fetch('../version.json?v=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => {
-    const el = document.getElementById('ver'); el.textContent = 'Версия ' + j.version + '. ' + el.textContent;
+    const v = j.version, base = 'https://github.com/slavahoh1976-ops/signal-app/releases/download/v' + v + '/';
+    const set = (id, file, label) => { const a = document.getElementById(id); if (!a) return; a.href = base + file; a.textContent = label + ' · ' + v; };
+    set('dMacI', 'Signal-Mac-Intel-' + v + '.zip', 'Mac Intel');
+    set('dMacA', 'Signal-Mac-AppleSilicon-' + v + '.zip', 'Mac Apple Silicon');
+    set('dWinS', 'Signal-Windows-Setup-' + v + '.exe', 'Windows');
+    set('dWinP', 'Signal-Windows-Portable-' + v + '.exe', 'Без установки');
+    set('dAll', 'Signal-All-' + v + '.zip', 'Все версии и исходники одним архивом');
+    const el = document.getElementById('ver'); el.textContent = 'Версия ' + v + '. ' + el.textContent;
   }).catch(() => {});
 </script>
 </body>

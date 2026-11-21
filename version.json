@@ -2,7 +2,7 @@
  "version": "2.0.4",
  "notes": "Линии не накладываются (шаг 18 px), изгибы как в draw.io, значки в библиотеке, доп. подпись устройства.",
  "desktop": {
-  "shell": "1.0.2",
+  "shell": "2.0.4",
   "page": "https://slavahoh1976-ops.github.io/signalflow/download/"
  }
 }
