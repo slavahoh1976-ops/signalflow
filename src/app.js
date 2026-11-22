@@ -2,48 +2,6 @@
 // ============================================================================
 //  SignalFlow — редактор схем видеосигнала
 // ============================================================================
-const APP_VERSION = '2.0.4', APP_DATE = '17.11.2026';
-const CHANGELOG = [
-  ['2.0.4', '21.11.2026', ['Расстояние между линиями и между точками входов/выходов на приборе — одно: 18 px', 'Линии не идут вдоль корпуса прибора и не делают «отростков» туда-обратно; у каждого порта — хвостик наружу']],
-  ['2.0.3', '21.11.2026', ['Исправлено: ручки участков стоят точно на линии, даже если линия отодвинута от соседней']],
-  ['2.0.2', '21.11.2026', ['Линии никогда не ложатся друг на друга: расстояние между ними не меньше шага портов (в обоих режимах), включая линии с ручными изгибами и участки у портов', 'Изгибы следуют за прибором: при перемещении сдвигаются участки у его порта, петель не появляется', 'Почти прямые линии в режиме «Картинки» — прямые, без мелких ступенек']],
-  ['2.0.1', '21.11.2026', ['Изгибы линий как в draw.io: тяните саму линию или ручку на участке — участок двигается параллельно, у порта остаётся хвостик; выровненный участок сливается с соседним; двойной клик по линии — подпись', 'Предпросмотр в режиме значков: фото больше не заезжает на текст']],
-  ['2.0.0', '21.11.2026', ['Библиотека: режим «значки» (▦ рядом с поиском) — сетка картинок, при наведении крупный предпросмотр', 'Точки поворота линий, как в draw.io: потяните кружок на линии — новый изгиб; квадратик двигается, двойной клик — удалить; двойной клик по линии — добавить; «Сбросить изгибы» — автопрокладка', 'Дополнительная подпись устройства: «сервер Resolume — главный экран» (в свойствах устройства)', 'Прокладка линий: параллельные линии не ближе шага портов, линии обходят устройства по свободным коридорам, подписи не ложатся на чужие линии', 'Исправлено: в примере схемы часть кабелей была подключена вход ко входу']],
-  ['1.9.1', '18.11.2026', ['Приложения для Windows и Mac (macOS 10.14 Mojave и новее): Помощь → «Скачать для Windows и Mac»; обновляются сами']],
-  ['1.9.0', '18.11.2026', ['Режим «Картинки»: под картинкой — название устройства («монитор», «видеопроцессор», «сервер Resolume»); своя подпись в редакторе прибора и в свойствах; Вид → «Подпись под картинкой» — название / номер / оба']],
-  ['1.8.3', '18.11.2026', ['Окно Claude: база с фото встроена прямо в код программы']],
-  ['1.8.2', '18.11.2026', ['Окно Claude: если память браузера не отвечает, программа не зависает и всё равно загружает базу с фото']],
-  ['1.8.1', '18.11.2026', ['Окно Claude: база с фото встроена в программу и загружается сразу']],
-  ['1.8.0', '18.11.2026', ['Новая база по умолчанию: 101 прибор с фото, группы «Процессоры» и «LED-контролеры и экраны», порядок приборов', 'База с сайта приносит и настройки групп; нетронутые старые приборы обновляются сами, отредактированные — остаются']],
-  ['1.7.7', '18.11.2026', ['Левая панель шире (360 px) и меняет ширину перетаскиванием края; двойной клик — по умолчанию']],
-  ['1.7.6', '18.11.2026', ['После редактирования прибор остаётся на своём месте в списке; копия встаёт сразу под оригиналом']],
-  ['1.7.5', '18.11.2026', ['Редактор прибора: при выборе цвета шапки группа всегда переключается на соответствующую']],
-  ['1.7.4', '18.11.2026', ['Все порты подписаны направлением: вход — «In», выход — «Out»', 'Редактор прибора: группа выбирается из списка (есть «＋ Новая группа…»); при смене цвета шапки стандартная группа меняется вместе с ним']],
-  ['1.7.3', '18.11.2026', ['Автоназвания портов без «IN»: вход — «1 - HDMI 2.0», выход — «1 - HDMI Out»; старые «… IN/OUT» переименовываются сами']],
-  ['1.7.2', '18.11.2026', ['Библиотека: картинки приборов одной ширины — названия начинаются ровно']],
-  ['1.7.1', '18.11.2026', ['Исправлено: устройство, перетащенное внутри группы, теперь остаётся на новом месте']],
-  ['1.7.0', '18.11.2026', ['Порядок устройств внутри группы меняется перетаскиванием (с линией вставки); можно сразу бросить в нужное место другой группы']],
-  ['1.6.9', '18.11.2026', ['Редактор прибора: «Сохранить — заменить» и «Сохранить как новый»; в списке «Цвет шапки» — ваши названия групп']],
-  ['1.6.8', '18.11.2026', ['Программа теперь называется «Сигнал»', 'Новые цвета кабелей: HDMI — синие, SDI — зелёные, оптика — рыжие, DP — сиреневые, звук — красные, LAN — яичный жёлтый; все типы различимы', 'Оптика: одномод (SM), многомод (MM), комбинированная (гибрид) — с проверкой совместимости']],
-  ['1.6.7', '18.11.2026', ['Точки подключения у портов снова видны: свободный порт — кольцо цвета сигнала, подключённый — закрашенная точка; при наведении подсвечиваются']],
-  ['1.6.6', '18.11.2026', ['Номер порта теперь впереди: «1 - HDMI 2.0» вместо «HDMI 2.0 1» — номер не сливается с версией']],
-  ['1.6.5', '18.11.2026', ['Новый тип порта Expansion Port (связь процессоров Event Master между собой); у Barco E2 — 4, S3-4K — 2, Ex — 2 порта']],
-  ['1.6.4', '18.11.2026', ['Версии HDMI (1.3, 1.4, 2.0, 2.1) и DisplayPort (1.1, 1.2, 1.4, 2.1) как типы сигнала; предупреждение, если выход новее входа']],
-  ['1.6.3', '18.11.2026', ['Порты: название ставится само по типу и направлению («HDMI IN 2», «3G-SDI OUT 1»), вводить не нужно; клик по названию — своё']],
-  ['1.6.2', '17.11.2026', ['Фигуры меняют форму: жёлтые ромбики (скругление, наклон, глубина, волна, наконечник и толщина стрелки, излом)', 'Поворот фигур на 90° и отражение по горизонтали/вертикали, ползунки формы в свойствах']],
-  ['1.6.1', '17.11.2026', ['Палитра фигур как в draw.io: 16 фигур и 4 линии — правый клик «Фигуры…» или двойной клик по холсту', 'Фигуры выглядят фигурами в обоих режимах, соединяются и меняют размер', 'Из меню по пустому месту убраны отдельные пункты «Фигура: …»']],
-  ['1.6.0', '17.11.2026', ['Группы библиотеки: перетаскивание устройств между группами, новые группы, переименование (и встроенных), порядок перетаскиванием, удаление с переносом устройств', 'Правый клик по устройству — «Переместить в группу…», в редакторе базы — перенос выбранных']],
-  ['1.5.4', '17.11.2026', ['Матрицы Lightware: MX2 HDMI 2.0 (4×4…48×48), MX2 DH (HDMI+DP), MX2 DP, MMX (HDBaseT), Taurus UCX (USB-C), модульные MX-FR']],
-  ['1.5.3', '17.11.2026', ['Правый клик по пустому месту: «Новое устройство здесь» — создаётся в базе и сразу ставится на схему', 'Там же — быстрые фигуры (экран, лампа, кнопка, блок)', 'Фото, брошенное на пустое место схемы, после сохранения встаёт в эту точку']],
-  ['1.5.2', '17.11.2026', ['Автопроверка обновлений: при новой версии вверху появляется кнопка «Обновить»', 'Сайт всегда загружается свежим (кэш только для работы без интернета)']],
-  ['1.5.1', '17.11.2026', ['База с фото всегда загружается свежая (без задержки кэша сайта)', 'В базе: «Коля (ПТС)» — группа «Люди / операторы»']],
-  ['1.5.0', '17.11.2026', ['Цвета кабелей одинаковые в режимах «С портами» и «Картинки»', 'Свои иллюстрации для всех устройств без фото (≈25 видов: рэки, коммутаторы, серверы d3, конвертеры, камеры, мониторы, ноутбуки, пульты, свет, ИБП)', 'Умные направляющие при перетаскивании — выравнивание по краям и центрам (Alt — без них)']],
-  ['1.4.0', '17.11.2026', ['База с фото догружается сама в любой браузер (раньше пропускалась, если в браузере уже была база)', 'Фильтр «📷 С фото» в библиотеке и «Файл → Пример из ваших фото»', 'Линии не накладываются: совпадающие участки разводятся по параллельным дорожкам', 'Концы линий равномерно распределяются по сторонам устройства', 'Подписи на линиях не перекрывают друг друга и устройства — автоматически ищут свободное место']],
-  ['1.3.0', '17.11.2026', ['Режим «Картинки» (как draw.io): устройства фото с подписью, тонкие линии с подписями, подключение синими кружками', 'Фигуры: экран, лампа, кнопка, блок — с изменением размера', 'Редактор базы: изменить / удалить / копировать любое устройство, правки переносятся на схему', 'База с фото: 98 устройств из ваших картинок, подгружается автоматически', 'Новые типы: DMX (свет), группы «Свет», «Питание», «Периферия»', 'Номер версии в шапке']],
-  ['1.2.0', '17.11.2026', ['Медиасерверы disguise (d3): VX, GX, EX, RX, PX и снятые модели', 'Двунаправленные SDI-порты']],
-  ['1.1.0', '17.11.2026', ['Процессоры Magnimage, Barco Event Master, PixelHue, Datapath', 'Ноутбуки, Novastar, удлинители, тип VGA', 'Прямые кабели между близкими устройствами']],
-  ['1.0.0', '17.11.2026', ['Первая веб-версия: устройства с портами, кабели, проверка, кабельный журнал, экспорт', 'Фото устройств, своя база, публикация на GitHub Pages']],
-];
 const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -54,17 +12,31 @@ const LY = { f: $('#Lframes'), e: $('#Ledges'), hv: $('#Lhover'), n: $('#Lnodes'
 
 // ---------- хранилище (try/catch: в некоторых окружениях localStorage недоступен)
 const store = {
-  get(k, d) { try { const v = localStorage.getItem('sf_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('sf_' + k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (e) { return false; } },
+  get(k, d) { try { const v = localStorage.getItem(STORE_PREFIX + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(STORE_PREFIX + k, typeof v === 'string' ? v : JSON.stringify(v)); return true; } catch (e) { return false; } },
 };
 const idb = (() => {
   let dbp = null;
-  const open = () => dbp || (dbp = new Promise((res, rej) => { setTimeout(() => rej(new Error('idb timeout')), 1500); try { const r = indexedDB.open('signalflow', 1); r.onblocked = () => rej(new Error('idb blocked')); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+  const open = () => dbp || (dbp = new Promise((res, rej) => { setTimeout(() => rej(new Error('idb timeout')), 1500); try { const r = indexedDB.open(IDB_NAME, 1); r.onblocked = () => rej(new Error('idb blocked')); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
   return {
     async get(k) { try { const db = await open(); return await new Promise((res) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(undefined); }); } catch (e) { return store.get(k); } },
     async set(k, v) { try { const db = await open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return store.set(k, v); } },
   };
 })();
+// данные соседней программы «Сигнал» (тот же сайт): только чтение, для переноса в «Экран» при первом запуске
+async function fromSignal(key) {
+  if (PRODUCT === 'signal') return undefined;
+  try { const v = localStorage.getItem('sf_' + key); if (v) return JSON.parse(v); } catch (e) { }
+  try {
+    return await new Promise(res => {
+      setTimeout(() => res(undefined), 1500);
+      const r = indexedDB.open('signalflow');
+      r.onupgradeneeded = () => { try { r.transaction.abort(); } catch (e) { } }; // базы нет — не создаём
+      r.onerror = () => res(undefined);
+      r.onsuccess = () => { try { const db = r.result, g = db.transaction('kv').objectStore('kv').get(key); g.onsuccess = () => { res(g.result); db.close(); }; g.onerror = () => res(undefined); } catch (e) { res(undefined); } };
+    });
+  } catch (e) { return undefined; }
+}
 const cfg = Object.assign({ groupRename: {}, groupOrder: [], groupsExtra: [], hidden: [], builtin: true, grid: true, snap: true, legend: true, labels: true, wire: 'orth', theme: 'light' }, store.get('cfg', {}));
 const saveCfg = () => store.set('cfg', cfg);
 const favs = new Set(store.get('favs', []));
@@ -181,7 +153,7 @@ async function readImage(file) {
 //  ДОКУМЕНТ
 // ============================================================================
 const newPage = name => ({ id: uid(), name, nodes: [], edges: [], frames: [], texts: [], view: { x: 40, y: 40, k: 1 } });
-const newDoc = () => ({ app: 'SignalFlow', appVersion: APP_VERSION, v: 1, name: 'Новая схема', author: '', pages: [newPage('Страница 1')], cur: 0, images: {} });
+const newDoc = () => ({ app: DOC_APP, appVersion: APP_VERSION, v: 1, name: 'Новая схема', author: '', pages: [newPage('Страница 1')], cur: 0, images: {} });
 const replacer = (k, v) => (k[0] === '_' ? undefined : v);
 const snap = () => { if (doc) doc.appVersion = APP_VERSION; return JSON.stringify(doc, replacer); };
 
@@ -961,7 +933,7 @@ function restoreBackup(b) {
 }
 function openDoc(d, handle) {
   if (d && d.backup) return restoreBackup(d);
-  if (!d || !Array.isArray(d.pages)) return toast('Это не файл программы «Сигнал»', 'e');
+  if (!d || !Array.isArray(d.pages)) return toast(`Это не файл программы «${APP_NAME}»`, 'e');
   doc = d; doc.cur = clamp(doc.cur || 0, 0, doc.pages.length - 1); doc.images ||= {};
   $('#imgDefs').innerHTML = '';
   for (const pg of doc.pages) { pg.nodes ||= []; pg.edges ||= []; pg.frames ||= []; pg.texts ||= []; for (const n of pg.nodes) for (const p of n.ports) { p.id ||= uid(); p.name = d.pn2 ? numFirst(p.name) : portName(p.name, p.dir, p.type); } }
@@ -1506,6 +1478,7 @@ svg.addEventListener('dblclick', ev => {
 const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 document.addEventListener('keydown', ev => {
   const mod = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase();
+  if (typeof LED !== 'undefined' && LED.on && !(mod && 'sop'.includes(k))) return LED.key(ev);
   if (mod && k === 's') { ev.preventDefault(); return ev.shiftKey ? saveAs() : save(); }
   if (mod && k === 'o') { ev.preventDefault(); return openFile(); }
   if (mod && k === 'p') { ev.preventDefault(); return printDoc(); }
@@ -2262,7 +2235,7 @@ function updateStatus() {
   $('#status').innerHTML = `Устройств: <b>${P.nodes.length}</b> · Кабелей: <b>${P.edges.length}</b>` + (bad ? ` · <span style="color:var(--bad)">⚠ несовместимо: ${bad}</span>` : '') + (warn ? ` · <span style="color:var(--warn)">внимание: ${warn}</span>` : '') + (sel.size ? ` · Выделено: ${sel.size}` : '');
 }
 function openModal(title, html) { $('#mTitle').textContent = title; $('#mBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
-function closeModal() { $('#modal').classList.add('hidden'); editorPaste = null; baseOpen = false; }
+function closeModal() { $('#modal').classList.add('hidden'); $('#modal .mbox').classList.remove('wide'); const mb = $('#mBody'); mb.oninput = mb.onchange = mb.onclick = null; editorPaste = null; baseOpen = false; }
 $('#mClose').onclick = closeModal;
 $('#modal').addEventListener('pointerdown', ev => { if (ev.target.id === 'modal') closeModal(); });
 
@@ -2395,9 +2368,44 @@ function exportPNG() {
   img.onerror = () => toast('Не удалось построить PNG — используйте SVG', 'e');
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
 }
+// ---------- PDF из готовых страниц (canvas → JPEG → PDF), без внешних библиотек; страница A4 (595×842 pt)
+async function pagesToPDF(canvases, wPt = 595.28, hPt = 842.89) {
+  const jpgs = [];
+  for (const c of canvases) jpgs.push(new Uint8Array(await (await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92))).arrayBuffer()));
+  const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+  const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (n, body) => { offs[n] = len; put(`${n} 0 obj\n`); for (const b of [].concat(body)) put(b); put('\nendobj\n'); };
+  const N = canvases.length, kids = [];
+  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  for (let i = 0; i < N; i++) kids.push(`${3 + i * 3} 0 R`);
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, `<< /Type /Pages /Count ${N} /Kids [${kids.join(' ')}] >>`);
+  canvases.forEach((c, i) => {
+    const pn = 3 + i * 3, im = pn + 1, ct = pn + 2, cs = `q ${wPt.toFixed(2)} 0 0 ${hPt.toFixed(2)} 0 0 cm /Im0 Do Q`;
+    obj(pn, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt.toFixed(2)} ${hPt.toFixed(2)}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>`);
+    obj(im, [`<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgs[i].length} >>\nstream\n`, jpgs[i], '\nendstream']);
+    obj(ct, `<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+  });
+  const xref = len, total = 3 + N * 3;
+  put(`xref\n0 ${total}\n0000000000 65535 f \n`);
+  for (let n = 1; n < total; n++) put(String(offs[n]).padStart(10, '0') + ' 00000 n \n');
+  put(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+// печать готовых страниц (A4 книжная): каждая страница — картинка на свой лист
+function printPages(canvases) {
+  if (inClaude()) return toast('Печать в окне просмотра Claude недоступна — скачайте PDF и распечатайте его', 'w');
+  let pa = $('#printArea'); if (!pa) { pa = document.createElement('div'); pa.id = 'printArea'; document.body.appendChild(pa); }
+  pa.innerHTML = canvases.map(c => `<img class="ppage" src="${c.toDataURL('image/jpeg', 0.92)}">`).join('');
+  let st = $('#printPageCss'); if (!st) { st = document.createElement('style'); st.id = 'printPageCss'; document.head.appendChild(st); }
+  st.textContent = '@media print{@page{size:A4 portrait;margin:0}#printArea img.ppage{display:block;width:210mm;height:297mm;page-break-after:always;break-after:page}}';
+  const done = () => { st.textContent = ''; pa.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => window.print(), 80);
+}
 function printDoc() {
   if (inClaude()) return toast('Печать в окне просмотра Claude недоступна — сделайте «Экспорт PNG/SVG» или откройте приложение в браузере', 'w');
-  const s = buildExportSVG(); if (!s) return;
+  const s = PRODUCT === 'ekran' ? LED.sheetSVG() : buildExportSVG(); if (!s) return;
   let pa = $('#printArea'); if (!pa) { pa = document.createElement('div'); pa.id = 'printArea'; document.body.appendChild(pa); }
   pa.innerHTML = s; const sv = pa.firstChild; sv.removeAttribute('width'); sv.removeAttribute('height');
   setTimeout(() => window.print(), 50);
@@ -2406,7 +2414,7 @@ function printDoc() {
 // ============================================================================
 //  ФАЙЛЫ
 // ============================================================================
-const FILE_TYPES = [{ description: 'Схема «Сигнал»', accept: { 'application/json': ['.json', '.vsf'] } }];
+const FILE_TYPES = [{ description: `Проект «${APP_NAME}»`, accept: { 'application/json': ['.json', '.vsf'] } }];
 async function writeHandle(h) { const w = await h.createWritable(); await w.write(snap()); await w.close(); }
 async function save() {
   if (fileHandle) { try { await writeHandle(fileHandle); dirtyFile = false; setSaveState(); toast('Сохранено'); return; } catch (e) { } }
@@ -2415,11 +2423,11 @@ async function save() {
 async function saveAs() {
   if (window.showSaveFilePicker) {
     try {
-      const h = await showSaveFilePicker({ suggestedName: safeName() + '.sflow.json', types: FILE_TYPES });
+      const h = await showSaveFilePicker({ suggestedName: safeName() + FILE_EXT, types: FILE_TYPES });
       await writeHandle(h); fileHandle = h; dirtyFile = false; setSaveState(); toast('Сохранено: ' + h.name); return;
     } catch (e) { if (e.name === 'AbortError') return; }
   }
-  download(safeName() + '.sflow.json', snap(), 'application/json'); dirtyFile = false; setSaveState();
+  download(safeName() + FILE_EXT, snap(), 'application/json'); dirtyFile = false; setSaveState();
 }
 async function openFile() {
   if (window.showOpenFilePicker) {
@@ -2723,13 +2731,13 @@ function toast(msg, kind) {
 const CMD = {
   new: () => { if (P.nodes.length) { idb.set('doc_backup', snap()); } openDoc(newDoc()); toast('Новый проект. Предыдущий сохранён в резервной копии браузера'); },
   open: openFile, save, saveAs, exportPNG, exportSVG, print: printDoc,
-  cables: exportCablesCSV, bom: exportBOMCSV, cablesView: showCables, bomView: showBOM, check: runCheck,
+  calc: () => typeof LED !== 'undefined' && LED.calcOpen(), cables: exportCablesCSV, bom: exportBOMCSV, cablesView: showCables, bomView: showBOM, check: runCheck,
   demo: () => { openDoc(buildDemo()); fit(); }, stress: () => { const t0 = performance.now(); openDoc(buildStress(1000)); fit(); toast(`Построено за ${Math.round(performance.now() - t0)} мс`); },
   undo, redo, copy: copySel, paste: () => paste(), dup: () => { copySel(); paste(); }, del: deleteSel,
   selAll: () => selectOnly([...P.nodes, ...P.frames, ...P.texts].map(o => o.id)), find: () => $('#findBox').focus(), renumber,
   quick: quickAtCenter, addFrame, addText, newDevice: () => deviceEditor({ id: null, cat: 'my', maker: '', model: '', ports: [] }),
   newGroup: () => newGroup(),
-  backupAll: () => download(`Сигнал — резервная копия ${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'SignalFlow', backup: 1, appVersion: APP_VERSION, date: new Date().toISOString(), doc: JSON.parse(snap()), lib: customLib, cfg, favs: [...favs] }), 'application/json'),
+  backupAll: () => download(`${APP_NAME} — резервная копия ${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: DOC_APP, backup: 1, appVersion: APP_VERSION, date: new Date().toISOString(), doc: JSON.parse(snap()), lib: customLib, cfg, favs: [...favs] }), 'application/json'),
   restoreAll: () => $('#fileIn').click(),
   baseManager: () => { baseQ = ''; baseSel.clear(); baseManager(); },
   libExport: () => { if (!customLib.length) return toast('В вашей базе пока нет устройств', 'w'); download('Сигнал — база устройств.json', JSON.stringify({ app: 'SignalFlow', devices: customLib }), 'application/json'); },
@@ -2751,7 +2759,7 @@ const CMD = {
   theme: () => { cfg.theme = cfg.theme === 'dark' ? 'light' : 'dark'; saveCfg(); document.documentElement.classList.toggle('dark', cfg.theme === 'dark'); },
   viewPorts: () => setMode('ports'), viewPic: () => setMode('pic'),
   addPage: () => { hist(); doc.pages.push(newPage('Страница ' + (doc.pages.length + 1))); switchPage(doc.pages.length - 1); markDirty(); },
-  about: () => openModal(`Сигнал — версия ${APP_VERSION}`, `<p class="muted">Редактор схем видеосигнала для аппаратных. Сборка от ${APP_DATE}.</p>` + CHANGELOG.map(([v, d, list]) => `<h4>v${v} · ${d}${v === APP_VERSION ? ' — текущая' : ''}</h4><ul style="margin:4px 0 10px;padding-left:20px;line-height:1.6">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('') + '<p class="small muted">Исходники и обновления: github.com/slavahoh1976-ops/signalflow</p>'),
+  about: () => openModal(`${APP_NAME} — версия ${APP_VERSION}`, `<p class="muted">${APP_ABOUT}. Сборка от ${APP_DATE}.</p>` + CHANGELOG.map(([v, d, list]) => `<h4>${/^\d/.test(v) ? 'v' + v : v} · ${d}${v === APP_VERSION ? ' — текущая' : ''}</h4><ul style="margin:4px 0 10px;padding-left:20px;line-height:1.6">${list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('') + '<p class="small muted">Исходники и обновления: github.com/slavahoh1976-ops/signalflow</p>'),
   help: () => openModal('Горячие клавиши и приёмы', `<table class="grid"><tbody>${[
     ['Двойной клик по холсту, A, /, Ctrl+K', 'Быстрый поиск и добавление устройства'],
     ['Тянуть от порта', 'Новый кабель (зелёные порты — совместимы)'],
@@ -2762,7 +2770,7 @@ const CMD = {
     ['F', 'Показать всё'], ['Ctrl+0', 'Масштаб 100%'], ['Shift+клик, рамка', 'Множественное выделение'],
     ['Стрелки (Shift — ×5)', 'Сдвиг выделенного'], ['Ctrl+C / V / D / X', 'Копировать / вставить / дублировать / вырезать'],
     ['Ctrl+Z / Ctrl+Y', 'Отмена / повтор'], ['Del', 'Удалить'], ['Z', 'Зона вокруг выделенного (или новая)'], ['T', 'Текст'], ['R', 'Зеркально: входы справа'],
-    ['Ctrl+S / Ctrl+O', 'Сохранить / открыть проект (.sflow.json)'], ['Ctrl+F', 'Найти на схеме'], ['Ctrl+P', 'Печать / PDF'],
+    ['Ctrl+S / Ctrl+O', 'Сохранить / открыть проект (' + FILE_EXT + ')'], ['Ctrl+F', 'Найти на схеме'], ['Ctrl+P', 'Печать / PDF'],
     ['Поиск «sdi>hdmi»', 'Конвертеры из одного сигнала в другой'], ['Правый клик по кабелю', 'Вставить конвертер в разрыв'],
   ].map(r => `<tr><td style="white-space:nowrap"><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`),
 };
@@ -2890,7 +2898,7 @@ function buildStress(N) {
 //  СТАРТ
 // ============================================================================
 document.documentElement.classList.toggle('dark', cfg.theme === 'dark');
-$('#appVer').textContent = 'v' + APP_VERSION; document.title = `Сигнал ${APP_VERSION} — схемы видеосигнала`;
+$('#appVer').textContent = 'v' + APP_VERSION; document.title = `${APP_NAME} ${APP_VERSION} — ${APP_TAG}`;
 $('#wireStyle').value = cfg.wire;
 renderTypeFilter();
 doc = newDoc(); P = doc.pages[0];
@@ -2900,37 +2908,109 @@ doc = newDoc(); P = doc.pages[0];
   customLib = Array.isArray(lib) ? lib : [];
   if (!(cfg.migr || []).includes('io1')) { for (const d of customLib) for (const p of d.ports || []) p.name = portName(p.name, p.dir, p.type); cfg.migr = [...(cfg.migr || []), 'io1']; saveCfg(); saveLib(); }
   else for (const d of customLib) for (const p of d.ports || []) p.name = numFirst(p.name);
-  try { await mergeDefaults(false); } catch (e) { console.warn('База с фото не загрузилась', e); }
+  if (PRODUCT === 'signal') try { await mergeDefaults(false); } catch (e) { console.warn('База с фото не загрузилась', e); }
   renderLib();
   let saved = null; try { saved = await idb.get('doc'); } catch (e) { saved = null; }
   if (!saved) saved = store.get('doc', null);
   let d = null;
   try { d = typeof saved === 'string' ? JSON.parse(saved) : saved; if (!d || !d.pages) d = null; } catch (e) { d = null; }
-  openDoc(d || buildDemo());
-  if (!d) setTimeout(() => fit(), 30);
+  if (!d && PRODUCT === 'ekran') { // первый запуск «Экрана»: забрать LED-экраны из последнего проекта «Сигнала»
+    let sg = await fromSignal('doc'); try { if (typeof sg === 'string') sg = JSON.parse(sg); } catch (e) { sg = null; }
+    if (sg && sg.led && sg.led.screens && sg.led.screens.length) { d = newDoc(); d.name = sg.name || d.name; d.led = sg.led; setTimeout(() => toast('Экраны перенесены из «Сигнала»'), 600); }
+  }
+  openDoc(d || (PRODUCT === 'ekran' ? newDoc() : buildDemo()));
+  if (!d && PRODUCT === 'signal') setTimeout(() => fit(), 30);
   dirtyFile = false; setSaveState();
 })();
 // открытие файла проекта двойным кликом, когда приложение установлено (PWA file handler)
 try { if ('launchQueue' in window) launchQueue.setConsumer(async p => { if (!p.files || !p.files.length) return; const h = p.files[0]; const f = await h.getFile(); try { openDoc(JSON.parse(await f.text()), h); } catch (e) { toast('Не удалось открыть файл', 'e'); } }); } catch (e) { }
-// проверка обновлений: сайт сообщает последнюю версию, у пользователя — плашка «Обновить»
+// ---------- обновления (как в «Срочном ТЗ»): кнопка «⟳ версия» вверху справа мигает, если вышла новая,
+// и всплывает оповещение «Обновить / Позже». Проверка: при запуске, каждые 15 минут и при возврате в окно.
+// Сайт — перезагрузка с новой версией; Windows / Mac — программа сама скачивает новую версию и перезапускается.
+const DESK = window.SIGNAL_DESKTOP || null;
 const verNum = v => String(v).split('.').map(x => +x || 0).reduce((s, x) => s * 1000 + x, 0);
-async function hardReload() {
-  try { if (window.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) { }
+const UPD = { ver: '', shell: '', notes: '', last: 0, busy: false };
+const onSite = () => /^https?:$/.test(location.protocol) && location.href.startsWith(SITE_URL);
+async function hardReload(v) {
+  try { await idb.set('doc', snap()); } catch (e) { }
+  try { if (window.caches) for (const k of await caches.keys()) if (k.startsWith(CACHE_PREFIX)) await caches.delete(k); } catch (e) { }
   try { if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.update(); } catch (e) { }
-  location.reload();
+  const u = new URL(location.href); u.searchParams.set('v', v || String(Date.now())); location.replace(u.toString());
 }
-async function checkUpdate() {
-  if (!location.protocol.startsWith('http') || inClaude()) return;
-  try {
-    const r = await fetch('version.json?v=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
-    const j = await r.json();
-    if (verNum(j.version) > verNum(APP_VERSION) && !$('#updBar')) {
-      const b = document.createElement('button'); b.id = 'updBar'; b.className = 'pri';
-      b.textContent = `⟳ Доступна версия ${j.version} — обновить`; b.onclick = hardReload;
-      $('#saveState').after(b);
+function syncVerBtn() {
+  const b = $('#verBtn'); if (!b) return;
+  const has = !!(UPD.ver || UPD.shell);
+  b.innerHTML = `<span class="vic">⟳</span>${APP_VERSION}`;
+  b.classList.toggle('has-upd', has);
+  b.title = has ? `Доступна версия ${UPD.ver || UPD.shell} — нажмите, чтобы обновить${UPD.notes ? '\n' + UPD.notes : ''}`
+    : `Версия ${APP_VERSION}${DESK ? ' (приложение ' + DESK.shell + ')' : ''} — нажмите, чтобы проверить обновления`;
+}
+async function fetchVer() {
+  const url = (onSite() ? 'version.json' : SITE_URL + 'version.json') + '?t=' + Date.now();
+  const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function pollUpdate(force, manual) {
+  if (UPD.busy || (inClaude() && !manual)) return;
+  if (!force && Date.now() - UPD.last < 12e4) return;
+  UPD.last = Date.now();
+  let j; try { j = await fetchVer(); } catch (e) { if (manual) toast('Не удалось проверить обновления — нет связи с сайтом', 'w'); return; }
+  UPD.ver = verNum(j.version) > verNum(APP_VERSION) ? j.version : '';
+  const sh = j.desktop && j.desktop.shell;
+  UPD.shell = DESK && sh && verNum(sh) > verNum(DESK.shell) ? sh : '';
+  UPD.notes = (UPD.ver || UPD.shell) && j.notes ? String(j.notes) : '';
+  syncVerBtn();
+  if (!UPD.ver && !UPD.shell) { $('#updCard')?.remove(); if (manual) toast(`У вас последняя версия ${APP_VERSION}`); return; }
+  const key = (UPD.ver || UPD.shell) + '|' + new Date().toDateString();
+  // старое приложение (без обновления в один клик) само показывает своё окно — здесь только мигающая кнопка
+  if (DESK && typeof DESK.update !== 'function' && !manual) return;
+  if (manual || store.get('updLater', '') !== key) showUpdCard(key);
+}
+function showUpdCard(key) {
+  $('#updCard')?.remove();
+  const v = UPD.ver || UPD.shell;
+  const how = DESK ? 'Программа скачает новую версию и перезапустится. Схема и библиотека сохранятся.'
+    : onSite() ? 'Страница перезагрузится с новой версией. Схема и библиотека сохранятся.'
+    : 'Эта страница открыта файлом с компьютера и сама не обновится — откройте новую версию на сайте.';
+  const d = document.createElement('div'); d.id = 'updCard';
+  d.innerHTML = `<b>Доступна версия ${esc(v)}</b><div class="muted">У вас ${APP_VERSION}${DESK && UPD.shell && !UPD.ver ? ' (приложение ' + esc(DESK.shell) + ')' : ''}.</div>`
+    + (UPD.notes ? `<div class="un">${esc(UPD.notes)}</div>` : '') + `<div class="muted">${how}</div>`
+    + `<div class="ub"><button class="pri" data-u="go">${DESK || onSite() ? 'Обновить' : 'Открыть сайт'}</button><button data-u="later">Позже</button></div>`;
+  d.onclick = ev => {
+    const a = ev.target.dataset.u; if (!a) return;
+    d.remove();
+    if (a === 'later') { store.set('updLater', key); return; }
+    doUpdate();
+  };
+  document.body.appendChild(d);
+}
+async function doUpdate() {
+  if (UPD.busy) return;
+  if (DESK) {
+    if (typeof DESK.update !== 'function') return DESK.checkUpdates && DESK.checkUpdates(); // старое приложение — его окно обновления
+    UPD.busy = true;
+    try { await idb.set('doc', snap()); } catch (e) { }
+    const t = document.createElement('div'); t.id = 'updBusy'; t.textContent = 'Загрузка обновления…'; document.body.appendChild(t);
+    try {
+      const r = await DESK.update(UPD.ver, UPD.shell);
+      if (r && r.error) throw new Error(r.error);
+      t.textContent = r && r.restart ? 'Устанавливаю обновление и перезапускаю…' : 'Готово — открываю новую версию…';
+    } catch (e) {
+      t.remove(); UPD.busy = false;
+      toast('Обновление не удалось: ' + (e.message || e) + '. Можно скачать новую версию на странице загрузки.', 'e');
     }
-  } catch (e) { }
+    return;
+  }
+  if (onSite()) return hardReload(UPD.ver);
+  window.open(SITE_URL, '_blank');
 }
-setTimeout(checkUpdate, 1500); setInterval(checkUpdate, 10 * 60 * 1000);
+if (DESK && DESK.onProgress) DESK.onProgress(p => { const t = $('#updBusy'); if (t) t.textContent = 'Загрузка обновления… ' + Math.round(Math.max(0, Math.min(1, +p || 0)) * 100) + '%'; });
+window.sigCheckUpdate = manual => pollUpdate(true, manual); // меню приложения «Проверить обновления…»
+$('#verBtn').onclick = () => (UPD.ver || UPD.shell) ? doUpdate() : pollUpdate(true, true);
+syncVerBtn();
+setTimeout(() => pollUpdate(true), 1500);
+setInterval(() => pollUpdate(true), 15 * 60 * 1000);
+addEventListener('focus', () => pollUpdate(false));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pollUpdate(false); });
 // PWA (установка как приложение) — только при хостинге на своём сайте
 try { if ('serviceWorker' in navigator && location.protocol === 'https:' && window.top === window && document.querySelector('link[rel=manifest]')) navigator.serviceWorker.register('sw.js'); } catch (e) { }
